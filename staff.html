@@ -1,0 +1,557 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Goya Portal — Staff</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,600;9..144,700&family=Inter:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --espresso:#241712; --espresso-2:#3B2A20; --espresso-3:#4a3527;
+    --parchment:#FBF6EC; --parchment-2:#F1E7D4; --ink:#2A1D14; --ink-soft:#6b5a4a;
+    --amber:#C97A2B; --amber-dark:#A85F1D; --sage:#6E8B5E; --rust:#B23B25;
+    --gold:#D9A441; --gray:#8A7B6C; --line:#e3d6bf; --radius:10px; --shadow:0 2px 10px rgba(36,23,18,0.10);
+  }
+  *{box-sizing:border-box;}
+  html,body{margin:0;padding:0;}
+  body{background:var(--parchment);color:var(--ink);font-family:'Inter',sans-serif;-webkit-font-smoothing:antialiased;}
+  h1,h2,h3,h4{font-family:'Fraunces',serif;font-weight:600;margin:0;color:var(--espresso);}
+  .mono{font-family:'IBM Plex Mono',monospace;}
+  button{font-family:inherit;cursor:pointer;}
+  input,select,textarea{font-family:inherit;}
+  #app{min-height:100vh;display:flex;flex-direction:column;}
+
+  .topbar{background:var(--espresso);color:var(--parchment);padding:14px 20px;display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;position:sticky;top:0;z-index:20;box-shadow:var(--shadow);}
+  .brand{display:flex;align-items:center;gap:10px;}
+  .brand-logo-chip{background:var(--parchment);border-radius:9px;padding:5px 12px;display:flex;align-items:center;box-shadow:0 1px 3px rgba(0,0,0,.25);}
+  .brand-logo-chip img{height:24px;display:block;}
+  .gate-logo-chip{background:var(--parchment);border-radius:12px;padding:10px 22px;display:inline-flex;align-items:center;margin:0 auto 16px;box-shadow:0 2px 10px rgba(0,0,0,.08);}
+  .gate-logo-chip img{height:34px;display:block;}
+  .top-right{display:flex;align-items:center;gap:10px;flex-wrap:wrap;}
+  .pill-btn{background:transparent;border:1px solid #6b5541;color:#e9dcc7;padding:7px 14px;border-radius:999px;font-size:13px;font-weight:500;}
+  .pill-btn:hover{background:#392a20;}
+  .staff-chip{background:#392a20;color:#f1e7d4;padding:6px 12px;border-radius:999px;font-size:13px;display:flex;align-items:center;gap:8px;}
+  .staff-chip button{background:none;border:none;color:#c9b79c;font-size:12px;text-decoration:underline;padding:0;}
+
+  .main{flex:1;width:100%;max-width:1180px;margin:0 auto;padding:24px 20px 60px;}
+  .tabs{display:flex;gap:6px;overflow-x:auto;padding-bottom:2px;margin-bottom:22px;border-bottom:2px solid var(--line);}
+  .tab-btn{background:none;border:none;padding:10px 16px;font-size:14.5px;font-weight:600;color:var(--ink-soft);white-space:nowrap;border-bottom:3px solid transparent;margin-bottom:-2px;}
+  .tab-btn.active{color:var(--espresso);border-bottom-color:var(--amber);}
+
+  .card{background:#fff;border:1px solid var(--line);border-radius:var(--radius);padding:20px;box-shadow:var(--shadow);}
+  .card + .card{margin-top:16px;}
+  .grid-2{display:grid;grid-template-columns:1.3fr 1fr;gap:18px;}
+  @media (max-width:860px){.grid-2{grid-template-columns:1fr;}}
+
+  label.field-label{display:block;font-size:12px;font-weight:600;color:var(--ink-soft);text-transform:uppercase;letter-spacing:.5px;margin-bottom:6px;}
+  input[type=text],input[type=number],input[type=tel],input[type=password],input[type=date],input[type=month],select,textarea{
+    width:100%;padding:10px 12px;border:1.5px solid var(--line);border-radius:8px;font-size:14px;background:#fffdf9;color:var(--ink);
+  }
+  input:focus,select:focus{outline:2px solid var(--amber);border-color:var(--amber);}
+  .row{display:flex;gap:10px;flex-wrap:wrap;}
+  .row > *{flex:1;min-width:110px;}
+
+  .btn{display:inline-flex;align-items:center;justify-content:center;gap:6px;padding:12px 18px;border-radius:8px;border:none;font-weight:600;font-size:14px;}
+  .btn-primary{background:var(--amber);color:#2a1a08;}
+  .btn-primary:hover{background:var(--amber-dark);}
+  .btn-ghost{background:transparent;border:1.5px solid var(--line);color:var(--ink);}
+  .btn-danger{background:#fbe6e0;color:var(--rust);}
+  .btn-sm{padding:6px 12px;font-size:12.5px;}
+
+  .item-list{max-height:360px;overflow-y:auto;border:1px solid var(--line);border-radius:8px;}
+  .item-row{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:11px 14px;border-bottom:1px solid var(--line);}
+  .item-row:last-child{border-bottom:none;}
+  .item-row:hover{background:var(--parchment-2);}
+  .item-name{font-weight:600;font-size:14px;}
+  .item-meta{font-size:12px;color:var(--ink-soft);}
+
+  .receipt{background:#fffdf7;border:1px solid var(--line);padding:18px;position:relative;}
+  .tear-line{position:relative;height:1px;margin:14px 0;border-top:2px dashed #d8c7a6;}
+  .receipt-line{display:flex;justify-content:space-between;font-size:13.5px;padding:4px 0;font-family:'IBM Plex Mono',monospace;}
+
+  .badge{display:inline-block;padding:3px 10px;border-radius:999px;font-size:11px;font-weight:700;text-transform:uppercase;}
+  .badge-PENDING{background:#faf0d6;color:#946a10;}
+  .badge-ORDERED{background:#f4e2cd;color:var(--amber-dark);}
+  .badge-RECEIVED{background:#e3ecdd;color:var(--sage);}
+
+  table{width:100%;border-collapse:collapse;font-size:13.5px;}
+  th{text-align:left;font-size:11px;text-transform:uppercase;color:var(--ink-soft);border-bottom:2px solid var(--line);padding:8px 10px;}
+  td{padding:9px 10px;border-bottom:1px solid var(--line);vertical-align:middle;}
+  .table-wrap{overflow-x:auto;}
+
+  .empty-state{text-align:center;padding:40px 20px;color:var(--ink-soft);}
+  .overlay{position:fixed;inset:0;background:rgba(36,23,18,0.55);display:flex;align-items:center;justify-content:center;z-index:100;padding:20px;}
+  .modal{background:#fff;border-radius:var(--radius);padding:26px;max-width:400px;width:100%;box-shadow:0 10px 40px rgba(0,0,0,.3);}
+  .toast{position:fixed;bottom:22px;left:50%;transform:translateX(-50%);background:var(--espresso);color:#fff;padding:12px 20px;border-radius:8px;z-index:200;}
+  .gate-wrap{min-height:100vh;display:flex;align-items:center;justify-content:center;background:var(--espresso);padding:20px;}
+  .gate-card{background:var(--parchment);border-radius:14px;padding:36px 32px;max-width:420px;width:100%;box-shadow:0 20px 60px rgba(0,0,0,.4);}
+  .staff-pick{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:18px;}
+  .staff-pick button{padding:14px;border-radius:9px;border:1.5px solid var(--line);background:#fff;font-weight:600;}
+  .success-check{width:56px;height:56px;border-radius:50%;background:#e3ecdd;color:var(--sage);display:flex;align-items:center;justify-content:center;font-size:28px;margin:0 auto 12px;}
+  .inline-input{padding:6px 8px;font-size:13px;border:1px solid var(--line);border-radius:6px;width:100%;min-width:70px;}
+  .tag{font-size:11px;padding:2px 8px;border-radius:6px;background:var(--parchment-2);color:var(--ink-soft);font-weight:600;}
+  .count-row{display:grid;grid-template-columns:1.6fr 1fr 1fr 0.9fr;gap:10px;align-items:center;padding:9px 4px;border-bottom:1px solid var(--line);font-size:13.5px;}
+  .count-row.head{font-size:11px;text-transform:uppercase;color:var(--ink-soft);font-weight:700;border-bottom:2px solid var(--line);}
+  .wa-btn{background:#e7f4ea;color:#2f6b3a;}
+</style>
+</head>
+<body>
+<div id="app"></div>
+<script src="goya-common.js"></script>
+<script>
+let DB = { items:[], staff:[], orders:[], production:[], wastage:[], inventoryCounts:[], inventoryDrafts:[], suppliers:[], settings:{} };
+let UI = {
+  loaded:false, currentPin:null, tab:'order',
+  cart:[], orderSearch:'',
+  prodCart:[], prodSearch:'',
+  wasteCart:[], wasteSearch:'',
+  historySub:'orders',
+  countSection:null, countMonth: monthLabel(), countValues:{}, countLoadedKey:null,
+  showSettings:false,
+  orderHist:{ month:monthLabel(), date:'', supplier:'', status:'', search:'' },
+  prodHist:{ month:monthLabel(), date:'', search:'' },
+  wasteHist:{ month:monthLabel(), date:'', search:'' }
+};
+
+function currentStaff(){ return DB.staff.find(s=>s['PIN Code']===UI.currentPin); }
+function staffDisplayName(){ const s=currentStaff(); return s? s['Staff Full Name'] : '—'; }
+function allowedSectionsForCurrent(){ const s=currentStaff(); return s? parseSections(s['Allowed Sections']) : []; }
+function orderableItems(){ return DB.items.filter(it=>(it['Supplier']||'').trim()!==''); }
+function internalItems(){ return DB.items.filter(it=>(it['Supplier']||'').trim()===''); }
+
+async function boot(){
+  await initBackend();
+  DB = await api.getAll();
+  const savedPin = await getLocalSetting('goya-staff-pin');
+  if(savedPin && DB.staff.some(s=>s['PIN Code']===savedPin)) UI.currentPin = savedPin;
+  UI.loaded = true;
+  render();
+}
+
+function render(){
+  const app = document.getElementById('app');
+  if(!UI.loaded){
+    app.innerHTML = `<div class="gate-wrap"><div class="gate-card"><div class="gate-logo-chip"><img src="goya-logo.png" alt="Goya"></div><p style="text-align:center;color:var(--ink-soft);">Loading Goya Portal…</p></div></div>`;
+    return;
+  }
+  if(!UI.currentPin){
+    app.innerHTML = renderLoginGate();
+    return;
+  }
+  let html = renderTopbar();
+  html += `<div class="main">`;
+  html += renderTabs();
+  if(UI.tab==='order') html += renderOrderTab();
+  else if(UI.tab==='production') html += renderProductionTab();
+  else if(UI.tab==='wastage') html += renderWastageTab();
+  else if(UI.tab==='count') html += renderCountTab();
+  else if(UI.tab==='history') html += renderHistoryTab();
+  html += `</div>`;
+  if(UI.showSettings) html += renderSettingsModal();
+  app.innerHTML = html;
+}
+
+function renderLoginGate(){
+  const buttons = DB.staff.map(s=>`<button onclick="loginAs('${s['PIN Code']}')">${escHtml(s['Staff Full Name'])}</button>`).join('');
+  return `<div class="gate-wrap"><div class="gate-card">
+    <div style="text-align:center;"><div class="gate-logo-chip"><img src="goya-logo.png" alt="Goya"></div></div>
+    <h2 style="text-align:center;">Staff Portal</h2>
+    <p class="note-muted" style="text-align:center;margin-top:6px;">Who's working today?</p>
+    <div class="staff-pick">${buttons || '<p>No staff set up yet.</p>'}</div>
+    <div style="text-align:center;margin-top:20px;">
+      <button class="pill-btn" style="color:var(--ink-soft);border-color:var(--line);" onclick="openConnectionSettings()">⚙ Connection settings</button>
+    </div>
+  </div></div>`;
+}
+
+function loginAs(pin){
+  const staff = DB.staff.find(s=>s['PIN Code']===pin);
+  openPinPad(`Enter your PIN, ${staff['Staff Full Name']}`, async (entered)=>{
+    if(entered===pin){
+      UI.currentPin = pin;
+      await setLocalSetting('goya-staff-pin', pin);
+      showToast('Welcome, '+staff['Staff Full Name']);
+      render();
+      return true;
+    }
+    return false;
+  });
+}
+function logout(){ UI.currentPin=null; setLocalSetting('goya-staff-pin',''); render(); }
+
+function openConnectionSettings(){
+  openPinPad('Enter connection PIN', async (entered)=>{
+    if(entered === (DB.settings.ConnectionPin || '9988')){ UI.showSettings = true; render(); return true; }
+    return false;
+  });
+}
+
+function renderSettingsModal(){
+  return `<div class="overlay" onclick="if(event.target===this){UI.showSettings=false;render();}">
+    <div class="modal" style="max-width:460px;">
+      <h3>Connection settings</h3>
+      <label class="field-label" style="margin-top:10px;">Apps Script Web App URL</label>
+      <input type="text" id="settings-sheet-url" value="${escHtml(SHEET_URL)}">
+      <div class="row" style="margin-top:12px;">
+        <button class="btn btn-primary btn-sm" onclick="saveSheetUrlFromStaff()">Save &amp; reload</button>
+        <button class="btn btn-ghost btn-sm" onclick="UI.showSettings=false;render();">Close</button>
+      </div>
+    </div>
+  </div>`;
+}
+async function saveSheetUrlFromStaff(){
+  const url = document.getElementById('settings-sheet-url').value.trim();
+  await connectSheet(url);
+  showToast('Saved — reloading…');
+  setTimeout(()=>location.reload(), 500);
+}
+
+function showSuccessPopup(title, subtitle, actionHtml=''){
+  const holder = document.createElement('div');
+  holder.className='overlay'; holder.id='success-overlay';
+  holder.innerHTML = `<div class="modal" style="text-align:center;">
+    <div class="success-check">✓</div>
+    <h3>${escHtml(title)}</h3>
+    ${subtitle? `<p style="margin:8px 0 14px;font-size:13.5px;color:var(--ink-soft);">${escHtml(subtitle)}</p>` : ''}
+    ${actionHtml}
+    <button class="btn btn-primary" style="width:100%;margin-top:12px;" onclick="document.getElementById('success-overlay').remove(); render();">Done / OK</button>
+  </div>`;
+  document.body.appendChild(holder);
+}
+
+function renderTopbar(){
+  return `<div class="topbar">
+    <div class="brand"><div class="brand-logo-chip"><img src="goya-logo.png" alt="Goya"></div><div><div style="font-size:11px;color:#c9b79c;text-transform:uppercase;letter-spacing:1px;">Staff Portal</div></div></div>
+    <div class="top-right">
+      <div class="staff-chip">👤 ${escHtml(staffDisplayName())} <button onclick="logout()">switch</button></div>
+      <button class="pill-btn" onclick="openConnectionSettings()">⚙</button>
+    </div>
+  </div>`;
+}
+
+function renderTabs(){
+  const tabs = [['order','Send Order'],['production','Production Log'],['wastage','Wastage Log']];
+  if(DB.settings.InventoryCountEnabled==='true' && allowedSectionsForCurrent().length>0) tabs.push(['count','Inventory Count']);
+  tabs.push(['history','History']);
+  return `<div class="tabs">${tabs.map(([k,l])=>`<button class="tab-btn ${UI.tab===k?'active':''}" onclick="UI.tab='${k}';render();">${l}</button>`).join('')}</div>`;
+}
+
+/* ================= SEND ORDER ================= */
+function unitOptionsFor(it){
+  const opts = [];
+  if(it['Storage Unit']) opts.push(it['Storage Unit']);
+  if(it['Ingredient Unit'] && it['Ingredient Unit']!==it['Storage Unit']) opts.push(it['Ingredient Unit']);
+  return opts.length? opts : ['unit'];
+}
+function renderOrderTab(){
+  const items = orderableItems().filter(it=>!UI.orderSearch || it['Name'].toLowerCase().includes(UI.orderSearch.toLowerCase()) || (it['Supplier']||'').toLowerCase().includes(UI.orderSearch.toLowerCase()));
+  return `<div class="grid-2">
+    <div class="card">
+      <div class="section-title" style="display:flex;justify-content:space-between;margin-bottom:12px;"><h3>Find items to order</h3><span class="tag">Supplier items</span></div>
+      <input type="text" placeholder="Search item or supplier…" value="${escHtml(UI.orderSearch)}" oninput="UI.orderSearch=this.value; render();">
+      <div style="height:12px;"></div>
+      <div class="item-list">${items.map(it=>`<div class="item-row">
+        <div><div class="item-name">${escHtml(it['Name'])}</div><div class="item-meta">${escHtml(it['Supplier']||'—')} · ${escHtml(it['SKU']||'')}</div></div>
+        <button class="btn btn-primary btn-sm" onclick="addToCart('${it['Row ID']}')">Add</button>
+      </div>`).join('') || '<div class="empty-state"><h3>No items found</h3></div>'}</div>
+    </div>
+    <div class="card receipt">
+      <h3>Cart (${UI.cart.length})</h3>
+      ${cartHTML()}
+    </div>
+  </div>`;
+}
+function addToCart(rowId){
+  const it = DB.items.find(x=>x['Row ID']===rowId);
+  if(!it) return;
+  const existing = UI.cart.find(c=>c.rowId===rowId);
+  if(existing) existing.qty += 1;
+  else UI.cart.push({rowId:it['Row ID'], name:it['Name'], supplier:it['Supplier'], unit:unitOptionsFor(it)[0], unitOptions:unitOptionsFor(it), qty:1, note:''});
+  render();
+}
+function cartHTML(){
+  if(UI.cart.length===0) return `<div class="empty-state"><h3>Cart is empty</h3></div>`;
+  let html = '';
+  UI.cart.forEach(c=>{
+    html += `<div style="margin-bottom:10px;border-bottom:1px solid var(--line);padding-bottom:8px;">
+      <div class="receipt-line"><span><b>${escHtml(c.name)}</b></span><button class="btn btn-danger btn-sm" style="padding:2px 6px;" onclick="UI.cart=UI.cart.filter(x=>x.rowId!=='${c.rowId}');render();">✕</button></div>
+      <div class="row" style="margin-top:6px;">
+        <input type="number" step="0.1" class="inline-input" value="${c.qty}" onchange="let x=UI.cart.find(i=>i.rowId==='${c.rowId}');if(x)x.qty=Math.max(0.1,parseFloat(this.value)||1)">
+        <select class="inline-input" onchange="let x=UI.cart.find(i=>i.rowId==='${c.rowId}');if(x)x.unit=this.value;">${c.unitOptions.map(u=>`<option value="${u}" ${c.unit===u?'selected':''}>${u}</option>`).join('')}</select>
+      </div>
+      <input type="text" class="inline-input" placeholder="Note (optional)" value="${escHtml(c.note)}" style="margin-top:6px;" onchange="let x=UI.cart.find(i=>i.rowId==='${c.rowId}');if(x)x.note=this.value;">
+    </div>`;
+  });
+  html += `<div class="tear-line"></div><button class="btn btn-primary" style="width:100%;" onclick="submitOrder()">Submit Order</button>`;
+  return html;
+}
+async function submitOrder(){
+  if(UI.cart.length===0) return;
+  const now = Date.now();
+  const rows = UI.cart.map((c,i)=>({
+    'Timestamp': new Date(now+i).toISOString(),
+    'Order Date': fmtDate(new Date().toISOString()),
+    'Item Name': c.name,
+    'Quantity': c.qty,
+    'Unit': c.unit,
+    'Supplier': c.supplier,
+    'Status': 'PENDING',
+    'Note/Remarks': c.note,
+    'Received Date': '',
+    'Logged By': staffDisplayName(),
+  }));
+  await api.addOrders(rows);
+  const bySupplier = {};
+  rows.forEach(r=>{ const k=r['Supplier']||'Unspecified'; (bySupplier[k]=bySupplier[k]||[]).push({name:r['Item Name'],qty:r['Quantity'],unit:r['Unit'],note:r['Note/Remarks']}); });
+  UI.cart = [];
+  const waMsg = buildPurchaseOrderMessage(bySupplier, staffDisplayName());
+  const waUrl = waLink('', waMsg);
+  showSuccessPopup('Order Submitted Successfully!', 'Email has been automatically sent to management (mehedi.src@gmail.com). You can also forward via WhatsApp group below.', `
+    <a class="btn wa-btn" style="display:flex;margin-bottom:8px;text-decoration:none;justify-content:center;" target="_blank" href="${waUrl}">📲 Forward via WhatsApp Group</a>
+    <button class="btn btn-ghost" style="width:100%;margin-bottom:8px;" onclick="copyToClipboard(${JSON.stringify(waMsg)}).then(ok=>showToast(ok?'Message copied':'Could not copy'))">📋 Copy message</button>
+  `);
+}
+
+/* ================= PRODUCTION LOG ================= */
+function renderProductionTab(){
+  const items = internalItems().filter(it=>!UI.prodSearch || it['Name'].toLowerCase().includes(UI.prodSearch.toLowerCase()));
+  return `<div class="grid-2">
+    <div class="card">
+      <div class="section-title"><h3>In-house Batch Items</h3><span class="tag">Production</span></div>
+      <input type="text" placeholder="Search item…" value="${escHtml(UI.prodSearch)}" oninput="UI.prodSearch=this.value;render();">
+      <div style="height:12px;"></div>
+      <div class="item-list">${items.map(it=>`<div class="item-row">
+        <div><div class="item-name">${escHtml(it['Name'])}</div><div class="item-meta">${escHtml(it['SKU']||'')}</div></div>
+        <button class="btn btn-primary btn-sm" onclick="addProdCart('${it['Row ID']}')">Add</button>
+      </div>`).join('') || '<div class="empty-state"><h3>No internal items</h3></div>'}</div>
+    </div>
+    <div class="card receipt">
+      <h3>Production Cart (${UI.prodCart.length})</h3>
+      ${prodCartHTML()}
+    </div>
+  </div>`;
+}
+function addProdCart(rowId){
+  const it = DB.items.find(x=>x['Row ID']===rowId);
+  if(!it) return;
+  const existing = UI.prodCart.find(c=>c.rowId===rowId);
+  if(existing) existing.qty += 1;
+  else UI.prodCart.push({rowId:it['Row ID'], name:it['Name'], unit:unitOptionsFor(it)[0], unitOptions:unitOptionsFor(it), qty:1});
+  render();
+}
+function prodCartHTML(){
+  if(UI.prodCart.length===0) return `<div class="empty-state"><h3>Cart is empty</h3></div>`;
+  let html = '';
+  UI.prodCart.forEach(c=>{
+    html += `<div style="margin-bottom:10px;border-bottom:1px solid var(--line);padding-bottom:8px;">
+      <div class="receipt-line"><span><b>${escHtml(c.name)}</b></span><button class="btn btn-danger btn-sm" style="padding:2px 6px;" onclick="UI.prodCart=UI.prodCart.filter(x=>x.rowId!=='${c.rowId}');render();">✕</button></div>
+      <div class="row" style="margin-top:6px;">
+        <input type="number" step="0.1" class="inline-input" value="${c.qty}" onchange="let x=UI.prodCart.find(i=>i.rowId==='${c.rowId}');if(x)x.qty=Math.max(0.1,parseFloat(this.value)||1)">
+        <select class="inline-input" onchange="let x=UI.prodCart.find(i=>i.rowId==='${c.rowId}');if(x)x.unit=this.value;">${c.unitOptions.map(u=>`<option value="${u}" ${c.unit===u?'selected':''}>${u}</option>`).join('')}</select>
+      </div>
+    </div>`;
+  });
+  html += `<div class="tear-line"></div><button class="btn btn-primary" style="width:100%;" onclick="submitProductionCart()">Submit Production</button>`;
+  return html;
+}
+async function submitProductionCart(){
+  if(UI.prodCart.length===0) return;
+  const now = Date.now();
+  const rows = UI.prodCart.map((c,i)=>({
+    'Timestamp': new Date(now+i).toISOString(),
+    'Date': fmtDate(new Date().toISOString()),
+    'Item Name': c.name,
+    'Quantity': c.qty,
+    'Unit': c.unit,
+    'Logged By': staffDisplayName(),
+    'Status':'Logged'
+  }));
+  await api.addProduction(rows);
+  UI.prodCart = [];
+  showSuccessPopup('Production Logged Successfully!', rows.length+' items recorded.');
+}
+
+/* ================= WASTAGE LOG ================= */
+function renderWastageTab(){
+  const items = internalItems().filter(it=>!UI.wasteSearch || it['Name'].toLowerCase().includes(UI.wasteSearch.toLowerCase()));
+  return `<div class="grid-2">
+    <div class="card">
+      <div class="section-title"><h3>In-house Batch Items</h3><span class="tag">Wastage</span></div>
+      <input type="text" placeholder="Search item…" value="${escHtml(UI.wasteSearch)}" oninput="UI.wasteSearch=this.value;render();">
+      <div style="height:12px;"></div>
+      <div class="item-list">${items.map(it=>`<div class="item-row">
+        <div><div class="item-name">${escHtml(it['Name'])}</div><div class="item-meta">${escHtml(it['SKU']||'')}</div></div>
+        <button class="btn btn-danger btn-sm" onclick="addWasteCart('${it['Row ID']}')">Add</button>
+      </div>`).join('') || '<div class="empty-state"><h3>No internal items</h3></div>'}</div>
+    </div>
+    <div class="card receipt">
+      <h3>Wastage Cart (${UI.wasteCart.length})</h3>
+      ${wasteCartHTML()}
+    </div>
+  </div>`;
+}
+function addWasteCart(rowId){
+  const it = DB.items.find(x=>x['Row ID']===rowId);
+  if(!it) return;
+  const existing = UI.wasteCart.find(c=>c.rowId===rowId);
+  if(existing) existing.qty += 1;
+  else UI.wasteCart.push({rowId:it['Row ID'], name:it['Name'], unit:unitOptionsFor(it)[0], unitOptions:unitOptionsFor(it), qty:1, reason:WASTE_REASONS[0]});
+  render();
+}
+function wasteCartHTML(){
+  if(UI.wasteCart.length===0) return `<div class="empty-state"><h3>Cart is empty</h3></div>`;
+  let html = '';
+  UI.wasteCart.forEach(c=>{
+    html += `<div style="margin-bottom:10px;border-bottom:1px solid var(--line);padding-bottom:8px;">
+      <div class="receipt-line"><span><b>${escHtml(c.name)}</b></span><button class="btn btn-danger btn-sm" style="padding:2px 6px;" onclick="UI.wasteCart=UI.wasteCart.filter(x=>x.rowId!=='${c.rowId}');render();">✕</button></div>
+      <div class="row" style="margin-top:6px;">
+        <input type="number" step="0.1" class="inline-input" value="${c.qty}" onchange="let x=UI.wasteCart.find(i=>i.rowId==='${c.rowId}');if(x)x.qty=Math.max(0.1,parseFloat(this.value)||1)">
+        <select class="inline-input" onchange="let x=UI.wasteCart.find(i=>i.rowId==='${c.rowId}');if(x)x.unit=this.value;">${c.unitOptions.map(u=>`<option value="${u}" ${c.unit===u?'selected':''}>${u}</option>`).join('')}</select>
+      </div>
+      <select class="inline-input" style="margin-top:6px;" onchange="let x=UI.wasteCart.find(i=>i.rowId==='${c.rowId}');if(x)x.reason=this.value;">${WASTE_REASONS.map(r=>`<option value="${r}" ${c.reason===r?'selected':''}>${r}</option>`).join('')}</select>
+    </div>`;
+  });
+  html += `<div class="tear-line"></div><button class="btn btn-danger" style="width:100%;" onclick="submitWastageCart()">Submit Wastage</button>`;
+  return html;
+}
+async function submitWastageCart(){
+  if(UI.wasteCart.length===0) return;
+  const now = Date.now();
+  const rows = UI.wasteCart.map((c,i)=>({
+    'Timestamp': new Date(now+i).toISOString(),
+    'Date': fmtDate(new Date().toISOString()),
+    'Item Name': c.name,
+    'Quantity': c.qty,
+    'Unit': c.unit,
+    'Reason': c.reason,
+    'Logged By': staffDisplayName(),
+    'Status':'Logged'
+  }));
+  await api.addWastage(rows);
+  UI.wasteCart = [];
+  showSuccessPopup('Wastage Logged Successfully!', rows.length+' items recorded.');
+}
+
+/* ================= INVENTORY COUNT ================= */
+function renderCountTab(){
+  if(DB.settings.InventoryCountEnabled!=='true') return `<div class="card"><div class="empty-state"><h3>Inventory count is currently disabled by admin.</h3></div></div>`;
+  const allowed = allowedSectionsForCurrent();
+  if(allowed.length===0) return `<div class="card"><div class="empty-state"><h3>No section access assigned.</h3></div></div>`;
+  if(!UI.countSection || !allowed.includes(UI.countSection)) UI.countSection = allowed[0];
+  const items = DB.items.filter(it=>(it['Items Type']||'').toLowerCase()===UI.countSection);
+  return `<div class="card">
+    <div class="section-title" style="display:flex;justify-content:space-between;margin-bottom:14px;">
+      <h3>Inventory Count</h3>
+      <div class="row" style="flex:none;">
+        <select onchange="UI.countSection=this.value;render();">${allowed.map(s=>`<option value="${s}" ${UI.countSection===s?'selected':''}>${SECTION_LABEL[s]}</option>`).join('')}</select>
+        <input type="month" value="${UI.countMonth}" onchange="UI.countMonth=this.value;render();">
+      </div>
+    </div>
+    <div class="count-row head"><span>Item (${items.length})</span><span>Storage Qty</span><span>Ingredient Qty</span><span>Units</span></div>
+    ${items.map(it=>{
+      const v = UI.countValues[it['Row ID']] || {};
+      return `<div class="count-row">
+        <span><b>${escHtml(it['Name'])}</b><br><span class="item-meta">${escHtml(it['SKU']||'')}</span></span>
+        <input type="number" class="inline-input" placeholder="Storage" value="${v.storage!=null?v.storage:''}" onchange="UI.countValues['${it['Row ID']}']=UI.countValues['${it['Row ID']}']||{};UI.countValues['${it['Row ID']}'].storage=this.value">
+        <input type="number" class="inline-input" placeholder="Ingredient" value="${v.ingredient!=null?v.ingredient:''}" onchange="UI.countValues['${it['Row ID']}']=UI.countValues['${it['Row ID']}']||{};UI.countValues['${it['Row ID']}'].ingredient=this.value">
+        <span class="item-meta">${escHtml(it['Storage Unit']||'')} / ${escHtml(it['Ingredient Unit']||'')}</span>
+      </div>`;
+    }).join('') || '<div class="empty-state"><h3>No items in this section</h3></div>'}
+    <div class="tear-line"></div>
+    <button class="btn btn-primary" style="width:100%;" onclick="submitCount()">Submit Final Count</button>
+  </div>`;
+}
+async function submitCount(){
+  const items = DB.items.filter(it=>(it['Items Type']||'').toLowerCase()===UI.countSection);
+  const rows = [];
+  items.forEach(it=>{
+    const v = UI.countValues[it['Row ID']];
+    if(v && (v.storage!=null || v.ingredient!=null)){
+      rows.push({
+        'Count Date / Month': UI.countMonth, 'Section': UI.countSection,
+        'Item Name': it['Name'], 'SKU': it['SKU']||'',
+        'Storage Quantity': v.storage!=null? v.storage : '',
+        'Ingredient Quantity': v.ingredient!=null? v.ingredient : '',
+        'Submitted By': staffDisplayName()
+      });
+    }
+  });
+  if(rows.length===0){ showToast('Enter at least one item quantity'); return; }
+  await api.addInventoryCounts(rows);
+  UI.countValues = {};
+  showSuccessPopup('Inventory Count Submitted!', rows.length+' items recorded for '+SECTION_LABEL[UI.countSection]);
+}
+
+/* ================= HISTORY ================= */
+function renderHistoryTab(){
+  return `<div class="card">
+    <div class="section-title" style="display:flex;justify-content:space-between;margin-bottom:14px;">
+      <h3>History</h3>
+      <div class="tabs" style="margin:0;border:none;">
+        <button class="tab-btn ${UI.historySub==='orders'?'active':''}" onclick="UI.historySub='orders';render();">Orders</button>
+        <button class="tab-btn ${UI.historySub==='production'?'active':''}" onclick="UI.historySub='production';render();">Production</button>
+        <button class="tab-btn ${UI.historySub==='wastage'?'active':''}" onclick="UI.historySub='wastage';render();">Wastage</button>
+      </div>
+    </div>
+    ${UI.historySub==='orders'? renderOrdersHistory() : renderLogHistory(UI.historySub)}
+  </div>`;
+}
+
+function renderOrdersHistory(){
+  const f = UI.orderHist;
+  let rows = DB.orders.slice();
+  if(f.month) rows = rows.filter(o=>(o['Timestamp']||'').startsWith(f.month));
+  if(f.date) rows = rows.filter(o=>(o['Timestamp']||'').slice(0,10)===f.date);
+  if(f.search) rows = rows.filter(o=>(o['Item Name']||'').toLowerCase().includes(f.search.toLowerCase()));
+  rows.sort((a,b)=>new Date(b['Timestamp'])-new Date(a['Timestamp']));
+  return `<div>
+    <div class="row" style="margin-bottom:12px;">
+      <input type="text" placeholder="Search item…" value="${escHtml(f.search)}" oninput="UI.orderHist.search=this.value;render();">
+      <input type="month" value="${f.month}" onchange="UI.orderHist.month=this.value;render();">
+      <input type="date" value="${f.date}" onchange="UI.orderHist.date=this.value;render();">
+      <button class="btn btn-ghost btn-sm" onclick="UI.orderHist.date='';render();">Clear Date</button>
+    </div>
+    <div class="table-wrap"><table><thead><tr><th>Date &amp; Time</th><th>Item</th><th>Qty</th><th>Supplier</th><th>Logged By</th><th>Status</th></tr></thead><tbody>
+    ${rows.map(o=>`<tr>
+      <td class="mono">${fmtDateTime(o['Timestamp'])}</td>
+      <td><b>${escHtml(o['Item Name'])}</b>${o['Note/Remarks']?`<div class="item-meta">${escHtml(o['Note/Remarks'])}</div>`:''}</td>
+      <td>${o['Quantity']} ${escHtml(o['Unit'])}</td>
+      <td>${escHtml(o['Supplier'])}</td>
+      <td><b>${escHtml(o['Logged By']||'—')}</b></td>
+      <td><span class="badge badge-${o['Status']}">${o['Status']}</span></td>
+    </tr>`).join('') || '<tr><td colspan="6" style="text-align:center;padding:20px;">No orders found</td></tr>'}
+    </tbody></table></div>
+  </div>`;
+}
+
+function renderLogHistory(kind){
+  const f = kind==='wastage'? UI.wasteHist : UI.prodHist;
+  let rows = (kind==='wastage'? DB.wastage : DB.production).slice();
+  if(f.month) rows = rows.filter(o=>(o['Timestamp']||'').startsWith(f.month));
+  if(f.date) rows = rows.filter(o=>(o['Timestamp']||'').slice(0,10)===f.date);
+  if(f.search) rows = rows.filter(o=>(o['Item Name']||'').toLowerCase().includes(f.search.toLowerCase()));
+  rows.sort((a,b)=>new Date(b['Timestamp'])-new Date(a['Timestamp']));
+  return `<div>
+    <div class="row" style="margin-bottom:12px;">
+      <input type="text" placeholder="Search item…" value="${escHtml(f.search)}" oninput="UI.${kind==='wastage'?'wasteHist':'prodHist'}.search=this.value;render();">
+      <input type="month" value="${f.month}" onchange="UI.${kind==='wastage'?'wasteHist':'prodHist'}.month=this.value;render();">
+      <input type="date" value="${f.date}" onchange="UI.${kind==='wastage'?'wasteHist':'prodHist'}.date=this.value;render();">
+      <button class="btn btn-ghost btn-sm" onclick="UI.${kind==='wastage'?'wasteHist':'prodHist'}.date='';render();">Clear Date</button>
+    </div>
+    <div class="table-wrap"><table><thead><tr><th>Date &amp; Time</th><th>Item</th><th>Qty</th>${kind==='wastage'?'<th>Reason</th>':''}<th>Logged By</th></tr></thead><tbody>
+    ${rows.map(o=>`<tr>
+      <td class="mono">${fmtDateTime(o['Timestamp'])}</td>
+      <td><b>${escHtml(o['Item Name'])}</b></td>
+      <td>${o['Quantity']} ${escHtml(o['Unit'])}</td>
+      ${kind==='wastage'?`<td><span class="tag">${escHtml(o['Reason'])}</span></td>`:''}
+      <td><b>${escHtml(o['Logged By']||'—')}</b></td>
+    </tr>`).join('') || '<tr><td colspan="5" style="text-align:center;padding:20px;">No logs found</td></tr>'}
+    </tbody></table></div>
+  </div>`;
+}
+
+boot();
+</script>
+</body>
+</html>

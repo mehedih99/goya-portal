@@ -1,0 +1,349 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Goya Portal — Admin</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,600;9..144,700&family=Inter:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --espresso:#241712; --espresso-2:#3B2A20; --espresso-3:#4a3527;
+    --parchment:#FBF6EC; --parchment-2:#F1E7D4; --ink:#2A1D14; --ink-soft:#6b5a4a;
+    --amber:#C97A2B; --amber-dark:#A85F1D; --sage:#6E8B5E; --rust:#B23B25;
+    --gold:#D9A441; --gray:#8A7B6C; --line:#e3d6bf; --radius:10px; --shadow:0 2px 10px rgba(36,23,18,0.10);
+  }
+  *{box-sizing:border-box;}
+  html,body{margin:0;padding:0;}
+  body{background:var(--parchment);color:var(--ink);font-family:'Inter',sans-serif;-webkit-font-smoothing:antialiased;}
+  h1,h2,h3,h4{font-family:'Fraunces',serif;font-weight:600;margin:0;color:var(--espresso);}
+  .mono{font-family:'IBM Plex Mono',monospace;}
+  button{font-family:inherit;cursor:pointer;}
+  input,select,textarea{font-family:inherit;}
+  #app{min-height:100vh;display:flex;flex-direction:column;}
+
+  .topbar{background:var(--espresso);color:var(--parchment);padding:14px 20px;display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;position:sticky;top:0;z-index:20;box-shadow:var(--shadow);}
+  .brand-logo-chip{background:var(--parchment);border-radius:9px;padding:5px 12px;display:flex;align-items:center;box-shadow:0 1px 3px rgba(0,0,0,.25);}
+  .brand-logo-chip img{height:24px;display:block;}
+  .gate-logo-chip{background:var(--parchment);border-radius:12px;padding:10px 22px;display:inline-flex;align-items:center;margin:0 auto 16px;box-shadow:0 2px 10px rgba(0,0,0,.08);}
+  .gate-logo-chip img{height:34px;display:block;}
+  .pill-btn{background:transparent;border:1px solid #6b5541;color:#e9dcc7;padding:7px 14px;border-radius:999px;font-size:13px;font-weight:500;}
+
+  .main{flex:1;width:100%;max-width:1180px;margin:0 auto;padding:24px 20px 60px;}
+  .admin-layout{display:grid;grid-template-columns:190px 1fr;gap:20px;}
+  @media (max-width:780px){.admin-layout{grid-template-columns:1fr;}}
+  .admin-nav{display:flex;flex-direction:column;gap:4px;}
+  .admin-nav button{text-align:left;padding:10px 14px;border-radius:8px;border:none;background:transparent;font-size:13.5px;font-weight:600;color:var(--ink-soft);}
+  .admin-nav button:hover{background:var(--parchment-2);}
+  .admin-nav button.active{background:var(--espresso);color:var(--parchment);}
+
+  .card{background:#fff;border:1px solid var(--line);border-radius:var(--radius);padding:20px;box-shadow:var(--shadow);}
+  .card + .card{margin-top:16px;}
+  label.field-label{display:block;font-size:12px;font-weight:600;color:var(--ink-soft);text-transform:uppercase;letter-spacing:.5px;margin-bottom:6px;}
+  input[type=text],input[type=number],input[type=date],input[type=month],select{width:100%;padding:10px 12px;border:1.5px solid var(--line);border-radius:8px;font-size:14px;background:#fffdf9;color:var(--ink);}
+  .row{display:flex;gap:10px;flex-wrap:wrap;}
+  .row > *{flex:1;min-width:110px;}
+
+  .btn{display:inline-flex;align-items:center;justify-content:center;gap:6px;padding:10px 18px;border-radius:8px;border:none;font-weight:600;font-size:14px;}
+  .btn-primary{background:var(--amber);color:#2a1a08;}
+  .btn-primary:hover{background:var(--amber-dark);}
+  .btn-ghost{background:transparent;border:1.5px solid var(--line);color:var(--ink);}
+  .btn-danger{background:#fbe6e0;color:var(--rust);}
+  .btn-sm{padding:6px 12px;font-size:12.5px;}
+
+  .badge{display:inline-block;padding:3px 10px;border-radius:999px;font-size:11px;font-weight:700;text-transform:uppercase;}
+  .badge-PENDING{background:#faf0d6;color:#946a10;}
+  .badge-ORDERED{background:#f4e2cd;color:var(--amber-dark);}
+  .badge-RECEIVED{background:#e3ecdd;color:var(--sage);}
+
+  table{width:100%;border-collapse:collapse;font-size:13.5px;}
+  th{text-align:left;font-size:11px;text-transform:uppercase;color:var(--ink-soft);border-bottom:2px solid var(--line);padding:8px 10px;}
+  td{padding:9px 10px;border-bottom:1px solid var(--line);vertical-align:middle;}
+  .table-wrap{overflow-x:auto;}
+  .empty-state{text-align:center;padding:40px 20px;color:var(--ink-soft);}
+  .tag{font-size:11px;padding:2px 8px;border-radius:6px;background:var(--parchment-2);color:var(--ink-soft);font-weight:600;}
+  .inline-input{padding:6px 8px;font-size:13px;border:1px solid var(--line);border-radius:6px;width:100%;min-width:70px;}
+  .wa-btn{background:#e7f4ea;color:#2f6b3a;}
+  .gate-wrap{min-height:100vh;display:flex;align-items:center;justify-content:center;background:var(--espresso);padding:20px;}
+  .gate-card{background:var(--parchment);border-radius:14px;padding:36px 32px;max-width:420px;width:100%;box-shadow:0 20px 60px rgba(0,0,0,.4);}
+</style>
+</head>
+<body>
+<div id="app"></div>
+<script src="goya-common.js"></script>
+<script>
+let DB = { items:[], staff:[], orders:[], production:[], wastage:[], inventoryCounts:[], inventoryDrafts:[], suppliers:[], settings:{} };
+let UI = {
+  loaded:false, unlocked:false, adminTab:'orders',
+  orderFilters:{ status:'', supplier:'', from:'', to:'', search:'' },
+  orderSelected:{},
+  exportFilters:{ supplier:'', from:'', to:'' },
+  monitorFilters:{ type:'production', from:'', to:'' },
+  monitorSelected:{},
+  countFilters:{ month:monthLabel(), section:'' }
+};
+
+async function boot(){
+  await initBackend();
+  DB = await api.getAll();
+  UI.loaded = true;
+  render();
+}
+
+function render(){
+  const app = document.getElementById('app');
+  if(!UI.loaded){
+    app.innerHTML = `<div class="gate-wrap"><div class="gate-card"><div class="gate-logo-chip"><img src="goya-logo.png" alt="Goya"></div><p style="text-align:center;">Loading Admin Panel…</p></div></div>`;
+    return;
+  }
+  if(!UI.unlocked){
+    app.innerHTML = `<div class="gate-wrap"><div class="gate-card" style="text-align:center;">
+      <div class="gate-logo-chip"><img src="goya-logo.png" alt="Goya"></div>
+      <h2>Admin Panel</h2>
+      <p style="margin:10px 0 18px;color:var(--ink-soft);">Enter master PIN to unlock.</p>
+      <button class="btn btn-primary" onclick="tryUnlock()">Enter PIN</button>
+    </div></div>`;
+    return;
+  }
+  app.innerHTML = `<div class="topbar">
+    <div class="brand-logo-chip"><img src="goya-logo.png" alt="Goya"></div>
+    <div class="top-right"><button class="pill-btn" onclick="UI.unlocked=false;render();">Lock</button></div>
+  </div><div class="main"><div class="admin-layout">
+    <div class="admin-nav">
+      <button class="${UI.adminTab==='orders'?'active':''}" onclick="UI.adminTab='orders';render();">Orders</button>
+      <button class="${UI.adminTab==='items'?'active':''}" onclick="UI.adminTab='items';render();">Items &amp; Suppliers</button>
+      <button class="${UI.adminTab==='staff'?'active':''}" onclick="UI.adminTab='staff';render();">Staff Directory</button>
+      <button class="${UI.adminTab==='monitor'?'active':''}" onclick="UI.adminTab='monitor';render();">Production &amp; Wastage</button>
+      <button class="${UI.adminTab==='counts'?'active':''}" onclick="UI.adminTab='counts';render();">Inventory Counts</button>
+      <button class="${UI.adminTab==='foodics'?'active':''}" onclick="UI.adminTab='foodics';render();">Foodics Export</button>
+      <button class="${UI.adminTab==='settings'?'active':''}" onclick="UI.adminTab='settings';render();">Settings</button>
+    </div>
+    <div>${renderAdminContent()}</div>
+  </div></div>`;
+}
+
+function tryUnlock(){
+  openPinPad('Enter master PIN', async (entered)=>{
+    if(entered === (DB.settings.MasterPin || '9988')){ UI.unlocked = true; showToast('Admin unlocked'); render(); return true; }
+    return false;
+  });
+}
+
+function renderAdminContent(){
+  if(UI.adminTab==='orders') return renderOrdersAdmin();
+  if(UI.adminTab==='items') return renderItemsAdmin();
+  if(UI.adminTab==='staff') return renderStaffAdmin();
+  if(UI.adminTab==='monitor') return renderMonitorAdmin();
+  if(UI.adminTab==='counts') return renderCountsAdmin();
+  if(UI.adminTab==='foodics') return renderFoodicsAdmin();
+  if(UI.adminTab==='settings') return renderSettingsAdmin();
+  return '';
+}
+
+function renderOrdersAdmin(){
+  const f = UI.orderFilters;
+  const suppliers = [...new Set(DB.orders.map(o=>o['Supplier']))].filter(Boolean);
+  let rows = DB.orders.slice();
+  if(f.status) rows = rows.filter(o=>o['Status']===f.status);
+  if(f.supplier) rows = rows.filter(o=>o['Supplier']===f.supplier);
+  if(f.from) rows = rows.filter(o=>(o['Order Date']||o['Timestamp']||'').slice(0,10) >= f.from);
+  if(f.to) rows = rows.filter(o=>(o['Order Date']||o['Timestamp']||'').slice(0,10) <= f.to);
+  if(f.search) rows = rows.filter(o=>(o['Item Name']||'').toLowerCase().includes(f.search.toLowerCase()));
+  rows.sort((a,b)=> new Date(b['Timestamp']) - new Date(a['Timestamp']));
+
+  const selectedTs = Object.keys(UI.orderSelected).filter(k=>UI.orderSelected[k]);
+  const selectedRows = DB.orders.filter(o=>selectedTs.includes(o['Timestamp']));
+  const selectedSuppliers = [...new Set(selectedRows.map(o=>o['Supplier']))].filter(Boolean);
+
+  return `<div class="card">
+    <div style="display:flex;justify-content:space-between;margin-bottom:12px;"><h3>Orders Management</h3><span class="tag">${rows.length} orders</span></div>
+    <div class="row" style="margin-bottom:12px;">
+      <input type="text" placeholder="Search item…" value="${escHtml(f.search)}" oninput="UI.orderFilters.search=this.value;render();">
+      <select onchange="UI.orderFilters.status=this.value;render();"><option value="">All Status</option>${STATUSES.map(s=>`<option value="${s}" ${f.status===s?'selected':''}>${s}</option>`).join('')}</select>
+      <select onchange="UI.orderFilters.supplier=this.value;render();"><option value="">All Suppliers</option>${suppliers.map(s=>`<option value="${s}" ${f.supplier===s?'selected':''}>${s}</option>`).join('')}</select>
+      <input type="date" value="${f.from}" onchange="UI.orderFilters.from=this.value;render();" title="Ordering Date From">
+      <input type="date" value="${f.to}" onchange="UI.orderFilters.to=this.value;render();" title="Ordering Date To">
+    </div>
+    ${selectedTs.length>0? `<div class="card" style="background:var(--parchment-2);margin-bottom:12px;padding:12px;">
+      <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px;">
+        <span><b>${selectedTs.length}</b> orders selected</span>
+        <div class="row" style="flex:none;">
+          <select id="bulk-status" style="width:140px;">${STATUSES.map(s=>`<option value="${s}">${s}</option>`).join('')}</select>
+          <button class="btn btn-primary btn-sm" onclick="bulkStatus()">Update Status</button>
+        </div>
+      </div>
+      ${selectedSuppliers.length? `<div class="row" style="margin-top:8px;">${selectedSuppliers.map(sup=>`<button class="btn wa-btn btn-sm" onclick="sendSupWA('${sup.replace(/'/g,"\\'")}')">📲 WhatsApp Dispatch — ${escHtml(sup)}</button>`).join('')}</div>`:''}
+    </div>`:''}
+    <div class="table-wrap"><table><thead><tr>
+      <th><input type="checkbox" onchange="let all=${JSON.stringify(rows.map(r=>r['Timestamp']))}; all.forEach(ts=>UI.orderSelected[ts]=this.checked);render();"></th>
+      <th>Date</th><th>Item</th><th>Qty</th><th>Supplier</th><th>Staff</th><th>Status</th>
+    </tr></thead><tbody>
+    ${rows.map(o=>`<tr>
+      <td><input type="checkbox" ${UI.orderSelected[o['Timestamp']]?'checked':''} onchange="UI.orderSelected['${o['Timestamp']}']=this.checked;render();"></td>
+      <td class="mono">${fmtDateTime(o['Timestamp'])}</td>
+      <td><b>${escHtml(o['Item Name'])}</b>${o['Note/Remarks']?`<div class="item-meta">${escHtml(o['Note/Remarks'])}</div>`:''}</td>
+      <td>${o['Quantity']} ${escHtml(o['Unit'])}</td>
+      <td>${escHtml(o['Supplier'])}</td>
+      <td>${escHtml(o['Logged By']||'—')}</td>
+      <td><select onchange="updateStatus('${o['Timestamp']}',this.value)">${STATUSES.map(s=>`<option value="${s}" ${o['Status']===s?'selected':''}>${s}</option>`).join('')}</select></td>
+    </tr>`).join('') || '<tr><td colspan="7" style="text-align:center;padding:20px;">No orders found</td></tr>'}
+    </tbody></table></div>
+  </div>
+  <div class="card">
+    <h3>Export Orders CSV (by Ordering Date)</h3>
+    <div class="row" style="margin-top:10px;">
+      <select id="exp-sup"><option value="">All Suppliers</option>${suppliers.map(s=>`<option value="${s}">${s}</option>`).join('')}</select>
+      <input type="date" id="exp-from">
+      <input type="date" id="exp-to">
+      <button class="btn btn-primary" onclick="exportOrdersCSV()">Download CSV</button>
+    </div>
+  </div>`;
+}
+
+async function updateStatus(ts, st){
+  await api.updateOrderStatus(ts, st, st==='RECEIVED'? todayISO(): '');
+  DB = await api.getAll();
+  showToast('Status updated');
+  render();
+}
+async function bulkStatus(){
+  const st = document.getElementById('bulk-status').value;
+  const tsList = Object.keys(UI.orderSelected).filter(k=>UI.orderSelected[k]);
+  await api.bulkUpdateOrderStatus(tsList, st);
+  DB = await api.getAll();
+  UI.orderSelected = {};
+  showToast('Bulk status updated');
+  render();
+}
+function sendSupWA(sup){
+  const tsList = Object.keys(UI.orderSelected).filter(k=>UI.orderSelected[k]);
+  const rows = DB.orders.filter(o=>tsList.includes(o['Timestamp']) && o['Supplier']===sup);
+  const items = rows.map(o=>({name:o['Item Name'],qty:o['Quantity'],unit:o['Unit'],note:o['Note/Remarks']}));
+  const msg = buildSupplierOrderMessage(sup, items);
+  window.open(waLink('', msg), '_blank');
+  api.bulkUpdateOrderStatus(rows.map(o=>o['Timestamp']), 'ORDERED').then(()=> { DB.orders.forEach(o=>{if(tsList.includes(o['Timestamp']))o['Status']='ORDERED'}); render(); });
+}
+function exportOrdersCSV(){
+  const sup = document.getElementById('exp-sup').value;
+  const from = document.getElementById('exp-from').value;
+  const to = document.getElementById('exp-to').value;
+  let rows = DB.orders.slice();
+  if(sup) rows = rows.filter(o=>o['Supplier']===sup);
+  if(from) rows = rows.filter(o=>(o['Order Date']||o['Timestamp']||'').slice(0,10)>=from);
+  if(to) rows = rows.filter(o=>(o['Order Date']||o['Timestamp']||'').slice(0,10)<=to);
+  const header = ['name','sku','order_quantity','storage_quantity','total_cost'];
+  const body = rows.map(o=>[o['Item Name'], '', o['Quantity'], '', '']);
+  downloadCSV(header, body, `goya-orders-${todayISO()}.csv`);
+}
+function downloadCSV(header, bodyRows, filename){
+  const csv = [header, ...bodyRows].map(r=>r.map(c=>`"${String(c).replace(/"/g,'""')}"`).join(',')).join('\n');
+  const blob = new Blob([csv],{type:'text/csv'});
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a'); a.href=url; a.download=filename; a.click();
+  URL.revokeObjectURL(url);
+}
+
+/* ---------------- Items, Staff, Monitor, Counts, Foodics, Settings ---------------- */
+function renderItemsAdmin(){
+  return `<div class="card">
+    <h3>Master Items &amp; Suppliers</h3>
+    <p style="color:var(--ink-soft);font-size:13px;margin:8px 0;">Manage your items and supplier contacts here.</p>
+    <div class="table-wrap"><table><thead><tr><th>Name</th><th>SKU</th><th>Type</th><th>Supplier</th></tr></thead><tbody>
+    ${DB.items.map(i=>`<tr><td><b>${escHtml(i['Name'])}</b></td><td class="mono">${escHtml(i['SKU'])}</td><td>${escHtml(i['Items Type'])}</td><td>${escHtml(i['Supplier']||'Internal')}</td></tr>`).join('')}
+    </tbody></table></div>
+  </div>`;
+}
+
+function renderStaffAdmin(){
+  return `<div class="card">
+    <h3>Staff Directory &amp; Permissions</h3>
+    <div class="table-wrap"><table><thead><tr><th>PIN</th><th>Name</th><th>Allowed Sections</th></tr></thead><tbody>
+    ${DB.staff.map(s=>`<tr><td class="mono">${escHtml(s['PIN Code'])}</td><td><b>${escHtml(s['Staff Full Name'])}</b></td><td>${escHtml(s['Allowed Sections'])}</td></tr>`).join('')}
+    </tbody></table></div>
+  </div>`;
+}
+
+function renderMonitorAdmin(){
+  const type = UI.monitorFilters.type;
+  let rows = (type==='production'? DB.production : DB.wastage).slice();
+  return `<div class="card">
+    <div style="display:flex;justify-content:space-between;margin-bottom:12px;"><h3>Production &amp; Wastage Monitor</h3>
+      <select onchange="UI.monitorFilters.type=this.value;render();" style="width:150px;">
+        <option value="production" ${type==='production'?'selected':''}>Production</option>
+        <option value="wastage" ${type==='wastage'?'selected':''}>Wastage</option>
+      </select>
+    </div>
+    <div class="table-wrap"><table><thead><tr><th>Date</th><th>Item</th><th>Qty</th><th>Staff</th><th>Status</th></tr></thead><tbody>
+    ${rows.map(r=>`<tr><td class="mono">${fmtDateTime(r['Timestamp'])}</td><td><b>${escHtml(r['Item Name'])}</b></td><td>${r['Quantity']} ${escHtml(r['Unit'])}</td><td>${escHtml(r['Logged By']||'—')}</td><td><span class="tag">${r['Status']||'Logged'}</span></td></tr>`).join('') || '<tr><td colspan="5" style="text-align:center;padding:20px;">No logs found</td></tr>'}
+    </tbody></table></div>
+  </div>`;
+}
+
+function renderCountsAdmin(){
+  const enabled = DB.settings.InventoryCountEnabled==='true';
+  return `<div class="card">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px;">
+      <h3>Inventory Counts Module</h3>
+      <button class="btn ${enabled?'btn-danger':'btn-primary'} btn-sm" onclick="toggleCountModule()">${enabled? 'Turn OFF':'Turn ON'}</button>
+    </div>
+    <p style="font-size:13px;color:var(--ink-soft);margin-bottom:14px;">Status: <b>${enabled?'Active (Staff can submit counts)':'Disabled'}</b></p>
+    <div class="table-wrap"><table><thead><tr><th>Month</th><th>Section</th><th>Item</th><th>Storage Qty</th><th>Ingredient Qty</th><th>Staff</th></tr></thead><tbody>
+    ${DB.inventoryCounts.map(c=>`<tr><td class="mono">${escHtml(c['Count Date / Month'])}</td><td>${escHtml(c['Section'])}</td><td><b>${escHtml(c['Item Name'])}</b></td><td>${c['Storage Quantity']}</td><td>${c['Ingredient Quantity']}</td><td>${escHtml(c['Submitted By'])}</td></tr>`).join('') || '<tr><td colspan="6" style="text-align:center;padding:20px;">No inventory counts submitted yet</td></tr>'}
+    </tbody></table></div>
+  </div>`;
+}
+async function toggleCountModule(){
+  const enabled = DB.settings.InventoryCountEnabled==='true';
+  await api.setSetting('InventoryCountEnabled', enabled? 'false':'true');
+  DB = await api.getAll();
+  showToast('Module toggled');
+  render();
+}
+
+function renderFoodicsAdmin(){
+  return `<div class="card">
+    <h3>Foodics Export</h3>
+    <p style="font-size:13px;color:var(--ink-soft);margin:8px 0 14px;">Export submitted inventory counts directly in Foodics import format.</p>
+    <button class="btn btn-primary" onclick="exportFoodicsCSV()">Download Foodics CSV</button>
+  </div>`;
+}
+function exportFoodicsCSV(){
+  const header = ['Inventory Item Name','Inventory Item SKU','Storage quantity','Ingredients quantity','Inventory Count ID'];
+  const body = DB.inventoryCounts.map(r=>[r['Item Name'], r['SKU']||'', r['Storage Quantity']||'', r['Ingredient Quantity']||'', '']);
+  downloadCSV(header, body, `foodics-export-${todayISO()}.csv`);
+}
+
+function renderSettingsAdmin(){
+  return `<div class="card">
+    <h3>Google Sheet Connection</h3>
+    <div class="row" style="margin-top:10px;">
+      <input type="text" id="admin-sheet-url" value="${escHtml(SHEET_URL)}" placeholder="Apps Script URL">
+      <button class="btn btn-primary btn-sm" onclick="saveAdminSheetUrl()">Save &amp; Reload</button>
+    </div>
+  </div>
+  <div class="card" style="margin-top:16px;">
+    <h3>Notification Settings</h3>
+    <p style="font-size:13px;color:var(--ink-soft);margin:8px 0;">Orders email notification is permanently set to: <b>mehedi.src@gmail.com</b></p>
+    <label class="field-label">Master PIN</label>
+    <div class="row"><input type="text" id="admin-master-pin" maxlength="4" placeholder="4-digit PIN"><button class="btn btn-primary btn-sm" onclick="changePin('MasterPin','admin-master-pin')">Update Master PIN</button></div>
+  </div>`;
+}
+async function saveAdminSheetUrl(){
+  const url = document.getElementById('admin-sheet-url').value.trim();
+  await connectSheet(url);
+  showToast('Saved — reloading');
+  setTimeout(()=>location.reload(), 500);
+}
+async function changePin(key, inputId){
+  const val = document.getElementById(inputId).value.trim();
+  if(val.length!==4){ showToast('Must be 4 digits'); return; }
+  await api.setSetting(key, val);
+  DB = await api.getAll();
+  showToast('PIN updated successfully');
+  render();
+}
+
+boot();
+</script>
+</body>
+</html>
