@@ -3,71 +3,74 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Portal — Staff</title>
-<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,600;9..144,700&family=Inter:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<title>Staff Portal — Goya</title>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500;9..144,600;9..144,700&family=Plus+Jakarta+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
 <style>
-:root{--espresso:#2d2416;--sage:#6b8e5f;--ink:#1a1a1a;--ink-soft:#666;--line:#e5ddd0;--parchment:#f5f1e8;--parchment-2:#ede9df;--alert:#d9534f;--shadow:0 4px 12px rgba(0,0,0,0.05)}
+:root{--espresso:#1e1810;--espresso-light:#2d2416;--sage:#527945;--sage-hover:#436337;--ink:#1f1f1f;--ink-soft:#665c54;--line:#e4dec9;--parchment:#f7f5ef;--parchment-2:#eeecdf;--alert:#b93835;--radius:12px;--shadow:0 4px 20px rgba(45,36,22,0.06)}
 *{margin:0;padding:0;box-sizing:border-box}
-body{font-family:'Inter',sans-serif;background:#faf8f5;color:var(--ink);line-height:1.5}
+body{font-family:'Plus Jakarta Sans',sans-serif;background:var(--parchment);color:var(--ink);line-height:1.5;-webkit-tap-highlight-color:transparent}
 input,select,button,textarea{font-family:inherit;font-size:inherit;color:inherit}
-.topbar{background:#fff;padding:12px 20px;display:flex;justify-content:space-between;align-items:center;border-bottom:1px solid var(--line);box-shadow:var(--shadow);position:sticky;top:0;z-index:100}
-.brand{font-weight:700;font-size:16px;color:var(--espresso);display:flex;align-items:center;gap:8px;}
-.tabs{display:flex;gap:4px;background:#fff;padding:0 16px;border-bottom:1px solid var(--line);flex-wrap:wrap;overflow-x:auto;}
-.tab-btn{padding:14px 16px;background:none;border:none;cursor:pointer;font-weight:600;color:var(--ink-soft);border-bottom:3px solid transparent;transition:all 0.2s;white-space:nowrap;}
-.tab-btn.active{color:var(--espresso);border-color:var(--sage)}
-.tab-btn:hover:not(.active){color:var(--espresso)}
-.main{padding:24px 20px;max-width:1200px;margin:0 auto}
-.card{background:#fff;border-radius:12px;padding:24px;margin-bottom:20px;box-shadow:var(--shadow);border:1px solid rgba(0,0,0,0.03)}
-.section-title{display:flex;justify-content:space-between;align-items:center;margin-bottom:20px}
-.section-title h3{font-size:18px;font-weight:700;font-family:'Fraunces',serif;color:var(--espresso)}
+.topbar{background:#fff;padding:14px 20px;display:flex;justify-content:space-between;align-items:center;border-bottom:1px solid var(--line);box-shadow:var(--shadow);position:sticky;top:0;z-index:100}
+.brand{font-weight:700;font-size:16px;color:var(--espresso);display:flex;align-items:center;gap:8px;font-family:'Fraunces',serif;}
+.tabs{display:flex;gap:6px;background:#fff;padding:8px 16px;border-bottom:1px solid var(--line);overflow-x:auto;white-space:nowrap;-webkit-overflow-scrolling:touch}
+.tabs::-webkit-scrollbar{display:none}
+.tab-btn{padding:10px 16px;background:none;border:none;cursor:pointer;font-weight:600;font-size:13.5px;color:var(--ink-soft);border-radius:8px;transition:all 0.2s}
+.tab-btn.active{color:#fff;background:var(--espresso)}
+.tab-btn:hover:not(.active){background:var(--parchment-2);color:var(--espresso)}
+.main{padding:20px 16px;max-width:1100px;margin:0 auto}
+.card{background:#fff;border-radius:var(--radius);padding:20px;margin-bottom:16px;box-shadow:var(--shadow);border:1px solid rgba(228,222,201,0.6)}
+.section-title{display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;flex-wrap:gap;gap:10px}
+.section-title h3{font-size:17px;font-weight:700;font-family:'Fraunces',serif;color:var(--espresso)}
 .row{display:flex;gap:12px;flex-wrap:wrap;align-items:center}
 .row>*{min-width:0;flex:1}
-.btn{padding:10px 18px;border:none;border-radius:8px;font-weight:600;cursor:pointer;transition:all 0.2s;font-size:14px;display:inline-flex;align-items:center;justify-content:center;gap:6px;}
+.btn{padding:12px 18px;border:none;border-radius:10px;font-weight:600;cursor:pointer;transition:all 0.2s;font-size:14px;display:inline-flex;align-items:center;justify-content:center;gap:6px;}
 .btn-primary{background:var(--sage);color:#fff}
-.btn-primary:hover{background:#5a7a50;transform:translateY(-1px)}
+.btn-primary:hover{background:var(--sage-hover);transform:translateY(-1px)}
 .btn-ghost{background:transparent;border:1.5px solid var(--line);color:var(--ink)}
 .btn-ghost:hover{background:var(--parchment)}
-.btn-danger{background:#fdecec;color:var(--alert)}
-.btn-danger:hover{background:#fad4d4}
-.btn-sm{padding:8px 14px;font-size:13px}
-.input-text,.input-number,.input-select{padding:12px 14px;border:1.5px solid var(--line);border-radius:8px;background:#fffdf9;width:100%;transition:all 0.2s}
-.input-text:focus,.input-number:focus,.input-select:focus{outline:none;border-color:var(--sage);box-shadow:0 0 0 3px rgba(107,142,95,.15);background:#fff}
-.item-list{max-height:500px;overflow-y:auto;padding-right:4px;}
-.item-list::-webkit-scrollbar{width:6px;}
+.btn-danger{background:#fdf2f2;color:var(--alert)}
+.btn-danger:hover{background:#fae1e1}
+.btn-sm{padding:8px 12px;font-size:12.5px}
+.input-text,.input-number,.input-select{padding:12px 14px;border:1.5px solid var(--line);border-radius:10px;background:#fffdfa;width:100%;transition:all 0.2s;font-size:14px}
+.input-text:focus,.input-number:focus,.input-select:focus{outline:none;border-color:var(--sage);box-shadow:0 0 0 3px rgba(82,121,69,0.12);background:#fff}
+.item-list{max-height:450px;overflow-y:auto;padding-right:4px;}
+.item-list::-webkit-scrollbar{width:5px;}
 .item-list::-webkit-scrollbar-thumb{background:var(--line);border-radius:4px;}
-.item-row{display:flex;justify-content:space-between;align-items:center;padding:14px;background:#fff;border:1px solid var(--line);border-radius:8px;margin-bottom:10px;transition:all 0.2s}
-.item-row:hover{border-color:var(--sage);box-shadow:0 2px 8px rgba(0,0,0,0.04)}
-.item-name{font-weight:600;font-size:14.5px;color:var(--espresso)}
-.item-meta{font-size:12px;color:var(--ink-soft);margin-top:4px;font-family:'IBM Plex Mono',monospace}
-.cart-item{background:var(--parchment);padding:14px;border-radius:8px;margin-bottom:12px;display:grid;grid-template-columns:1fr auto auto;gap:12px;align-items:center;border:1px solid var(--line)}
-.gate-wrap{display:flex;align-items:center;justify-content:center;min-height:100vh;background:var(--espresso);padding:20px;}
-.gate-card{background:#fff;padding:40px;border-radius:16px;box-shadow:0 20px 40px rgba(0,0,0,.2);max-width:440px;width:100%}
-.staff-pick{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin:24px 0}
-.staff-pick button{padding:16px;text-align:center;border-radius:10px;font-weight:600;border:1.5px solid var(--line);background:#fff;cursor:pointer;transition:all 0.2s}
+.item-row{display:flex;justify-content:space-between;align-items:center;padding:12px 14px;background:#fff;border:1px solid var(--line);border-radius:10px;margin-bottom:8px;transition:all 0.2s}
+.item-row:hover{border-color:var(--sage);box-shadow:0 2px 8px rgba(0,0,0,0.03)}
+.item-name{font-weight:600;font-size:14px;color:var(--espresso)}
+.item-meta{font-size:11.5px;color:var(--ink-soft);margin-top:2px;font-family:'IBM Plex Mono',monospace}
+.cart-item{background:var(--parchment);padding:12px 14px;border-radius:10px;margin-bottom:10px;display:grid;grid-template-columns:1fr auto auto;gap:10px;align-items:center;border:1px solid var(--line)}
+.gate-wrap{display:flex;align-items:center;justify-content:center;min-height:100vh;background:var(--espresso);padding:16px;}
+.gate-card{background:#fff;padding:36px 24px;border-radius:16px;box-shadow:0 20px 40px rgba(0,0,0,.25);max-width:420px;width:100%}
+.staff-pick{display:grid;grid-template-columns:1fr;gap:10px;margin:20px 0}
+.staff-pick button{padding:14px;text-align:center;border-radius:10px;font-weight:600;border:1.5px solid var(--line);background:#fff;cursor:pointer;transition:all 0.2s}
 .staff-pick button:hover{border-color:var(--sage);background:var(--parchment)}
-.success-popup{position:fixed;top:50%;left:50%;transform:translate(-50%,-50%);background:#fff;padding:32px;border-radius:16px;box-shadow:0 20px 60px rgba(0,0,0,.15);text-align:center;z-index:9999;max-width:420px;width:90%;animation:popIn 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275)}
+.success-popup{position:fixed;top:50%;left:50%;transform:translate(-50%,-50%);background:#fff;padding:28px 20px;border-radius:16px;box-shadow:0 20px 60px rgba(0,0,0,.2);text-align:center;z-index:9999;max-width:380px;width:90%;animation:popIn 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275)}
 @keyframes popIn { 0% { transform: translate(-50%,-40%) scale(0.9); opacity:0; } 100% { transform: translate(-50%,-50%) scale(1); opacity:1; } }
-.success-check{width:64px;height:64px;border-radius:50%;background:#e3ecdd;color:var(--sage);display:flex;align-items:center;justify-content:center;font-size:32px;margin:0 auto 16px}
-.table-wrap{overflow-x:auto;border-radius:8px;border:1px solid var(--line)}
-.table-wrap table{width:100%;border-collapse:collapse;font-size:13px}
-.table-wrap th{background:var(--parchment);padding:12px 14px;text-align:left;font-weight:600;color:var(--espresso);text-transform:uppercase;font-size:11px;letter-spacing:0.5px}
-.table-wrap td{padding:14px;border-bottom:1px solid var(--line)}
+.success-check{width:56px;height:56px;border-radius:50%;background:#e5f0e1;color:var(--sage);display:flex;align-items:center;justify-content:center;font-size:28px;margin:0 auto 14px}
+.table-wrap{overflow-x:auto;border-radius:10px;border:1px solid var(--line);-webkit-overflow-scrolling:touch}
+.table-wrap table{width:100%;border-collapse:collapse;font-size:13px;white-space:nowrap}
+.table-wrap th{background:var(--parchment-2);padding:12px 14px;text-align:left;font-weight:700;color:var(--espresso);text-transform:uppercase;font-size:11px;letter-spacing:0.5px}
+.table-wrap td{padding:12px 14px;border-bottom:1px solid var(--line)}
 .table-wrap tr:last-child td{border-bottom:none}
 .badge{display:inline-block;padding:4px 10px;border-radius:20px;font-size:11px;font-weight:700;text-transform:uppercase;background:var(--parchment-2);color:var(--ink)}
-.tag{display:inline-block;padding:4px 10px;border-radius:6px;background:#e3ecdd;color:var(--sage);font-size:11px;font-weight:700;text-transform:uppercase}
+.tag{display:inline-block;padding:4px 10px;border-radius:6px;background:#e5f0e1;color:var(--sage);font-size:11px;font-weight:700;text-transform:uppercase}
 .pin-pad{text-align:center}
-.pin-grid{display:grid;grid-template-columns:repeat(3,70px);gap:12px;justify-content:center;margin-bottom:20px}
-.pin-grid button{width:70px;height:70px;font-size:24px;font-weight:600;border:1.5px solid var(--line);background:#fff;border-radius:12px;cursor:pointer;transition:all 0.1s}
+.pin-grid{display:grid;grid-template-columns:repeat(3,64px);gap:10px;justify-content:center;margin-bottom:16px}
+.pin-grid button{width:64px;height:64px;font-size:22px;font-weight:600;border:1.5px solid var(--line);background:#fff;border-radius:12px;cursor:pointer;transition:all 0.1s}
 .pin-grid button:active{background:var(--parchment);transform:scale(0.95)}
-.overlay{position:fixed;inset:0;background:rgba(45,36,22,0.8);backdrop-filter:blur(4px);display:flex;align-items:center;justify-content:center;z-index:9999}
-.modal{background:#fff;padding:32px;border-radius:16px;box-shadow:0 20px 40px rgba(0,0,0,.2);max-width:400px;width:90%}
+.overlay{position:fixed;inset:0;background:rgba(30,24,16,0.85);backdrop-filter:blur(4px);display:flex;align-items:center;justify-content:center;z-index:9999;padding:16px}
+.modal{background:#fff;padding:28px;border-radius:16px;box-shadow:0 20px 40px rgba(0,0,0,.25);max-width:380px;width:100%}
+.filters{display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:10px;margin-bottom:16px;background:var(--parchment);padding:12px;border-radius:10px;border:1px solid var(--line)}
+.filter-item label{display:block;font-size:10.5px;font-weight:700;color:var(--espresso);margin-bottom:4px;text-transform:uppercase}
 @media (max-width:768px){
-  .main{padding:16px 12px}
+  .main{padding:12px 10px}
   .card{padding:16px}
   .row{flex-direction:column}
-  .cart-item{grid-template-columns:1fr;gap:10px}
+  .cart-item{grid-template-columns:1fr;gap:8px}
   .cart-item .row{flex-direction:row}
-  .staff-pick{grid-template-columns:1fr}
+  .filters{grid-template-columns:1fr}
 }
 </style>
 </head>
@@ -75,11 +78,9 @@ input,select,button,textarea{font-family:inherit;font-size:inherit;color:inherit
 <div id="app"></div>
 <script>
 /* ================= STANDALONE CORE ================= */
-const OWNER_EMAIL = 'mehedi.src@gmail.com';
 const WASTE_REASONS = ['Expired','Spillage / Damaged','Over-prepared','Staff Mistake'];
-const STATUSES = ['PENDING','ORDERED','RECEIVED','NOT_RECEIVED','REJECTED'];
-const SECTIONS = ['kitchen','pastry','bar','packaging'];
-const SECTION_LABEL = {kitchen:'Kitchen',pastry:'Pastry',bar:'Bar',packaging:'Packaging'};
+const SECTIONS = ['kitchen','pastry','bar','packaging','internal'];
+const SECTION_LABEL = {kitchen:'Kitchen',pastry:'Pastry',bar:'Bar',packaging:'Packaging',internal:'Internal'};
 
 let SHEET_URL = '';
 let LOCAL_DB = null;
@@ -101,10 +102,10 @@ const api = {
     if(!SHEET_URL) return seedData();
     try{ const resp = await fetch(SHEET_URL+'?action=getAll'); return resp.json(); }catch(e){ return seedData(); }
   },
-  async addOrders(rows){ if(SHEET_URL) await sheetPost('addOrders',{rows}); else{ LOCAL_DB.orders.unshift(...rows.slice().reverse()); await saveLocalDB(); } },
-  async addProduction(rows){ if(SHEET_URL) return sheetPost('addProduction',{rows}); else{ LOCAL_DB.production.unshift(...rows.slice().reverse()); await saveLocalDB(); } },
-  async addWastage(rows){ if(SHEET_URL) return sheetPost('addWastage',{rows}); else{ LOCAL_DB.wastage.unshift(...rows.slice().reverse()); await saveLocalDB(); } },
-  async addInventoryCounts(rows){ if(SHEET_URL) return sheetPost('addInventoryCounts',{rows}); else{ LOCAL_DB.inventoryCounts.unshift(...rows.slice().reverse()); await saveLocalDB(); } }
+  async addOrders(rows){ if(SHEET_URL) await sheetPost('addOrders',{rows}); else{ LOCAL_DB.orders.unshift(...rows); await saveLocalDB(); } },
+  async addProduction(rows){ if(SHEET_URL) return sheetPost('addProduction',{rows}); else{ LOCAL_DB.production.unshift(...rows); await saveLocalDB(); } },
+  async addWastage(rows){ if(SHEET_URL) return sheetPost('addWastage',{rows}); else{ LOCAL_DB.wastage.unshift(...rows); await saveLocalDB(); } },
+  async addInventoryCounts(rows){ if(SHEET_URL) return sheetPost('addInventoryCounts',{rows}); else{ LOCAL_DB.inventoryCounts.unshift(...rows); await saveLocalDB(); } }
 };
 
 function seedData(){
@@ -112,13 +113,13 @@ function seedData(){
     items:[
       {'Row ID':'1','Name':'Ethiopian Green Beans','SKU':'BN-01','Storage Unit':'KG','Ingredient Unit':'GRAM','Supplier':'Sunrise Beans','Items Type':'kitchen'},
       {'Row ID':'2','Name':'Oat Milk','SKU':'MLK-01','Storage Unit':'Liter','Ingredient Unit':'ML','Supplier':'Dairy Fresh','Items Type':'bar'},
-      {'Row ID':'3','Name':'Vanilla Syrup Batch','SKU':'VS-01','Storage Unit':'Liter','Ingredient Unit':'ML','Supplier':'','Items Type':'pastry'},
+      {'Row ID':'3','Name':'Vanilla Syrup Batch','SKU':'VS-01','Storage Unit':'Liter','Ingredient Unit':'ML','Supplier':'','Items Type':'internal'},
     ],
     staff:[
       {'PIN Code':'1111','Staff Full Name':'Aisha Rahman','Allowed Sections':'bar'},
       {'PIN Code':'2222','Staff Full Name':'Rahim Uddin','Allowed Sections':'kitchen,pastry'},
     ],
-    orders:[], production:[], wastage:[], inventoryCounts:[], suppliers:[], settings:{ MasterPin:'9988', ConnectionPin:'9988', InventoryCountEnabled:'true' }
+    orders:[], production:[], wastage:[], inventoryCounts:[], suppliers:[], settings:{ MasterPin:'9988', ConnectionPin:'9988', InventoryCountEnabled:'true', OwnerEmail:'mehedi.src@gmail.com' }
   };
 }
 
@@ -129,22 +130,22 @@ function escHtml(s){ return String(s||'').replace(/[&<>"']/g,c=>({'&':'&amp;','<
 function fmtDate(iso){ return iso? iso.slice(0,10) : ''; }
 function fmtDateTime(iso){ return iso? iso.slice(0,16).replace('T',' ') : ''; }
 function todayISO(){ return new Date().toISOString().slice(0,10); }
-function monthLabel(){ return new Date().toISOString().slice(0,7); }
+function currentMonthISO(){ return new Date().toISOString().slice(0,7); }
 function parseSections(str){ return (str||'').split(',').map(s=>s.trim()).filter(Boolean); }
 
 function showToast(msg){
   const t = document.createElement('div');
-  t.style.cssText = 'position:fixed;bottom:24px;left:50%;transform:translateX(-50%);background:var(--espresso);color:#fff;padding:14px 24px;border-radius:8px;font-size:14px;font-weight:500;z-index:9999;box-shadow:0 10px 30px rgba(0,0,0,0.2)';
+  t.style.cssText = 'position:fixed;bottom:24px;left:50%;transform:translateX(-50%);background:var(--espresso);color:#fff;padding:12px 20px;border-radius:10px;font-size:13.5px;font-weight:500;z-index:9999;box-shadow:0 10px 30px rgba(0,0,0,0.2)';
   t.textContent = msg; document.body.appendChild(t); setTimeout(()=>t.remove(), 2500);
 }
 
 function openPinPad(title, onSubmit){
-  const holder = document.createElement('div'); holder.className='overlay'; holder.id='pin-keypad'; let input = '';
+  const holder = document.createElement('div'); holder.className='overlay'; let input = '';
   const pad = `<div class="pin-pad">
-    <h3 style="margin-bottom:20px;font-family:'Fraunces',serif;font-size:22px;color:var(--espresso);">${escHtml(title)}</h3>
-    <input type="password" id="pin-input" placeholder="••••" readonly style="text-align:center;font-size:28px;letter-spacing:12px;width:160px;height:60px;border:2px solid var(--line);border-radius:12px;margin:0 auto 24px;display:block;background:#fffdf9;color:var(--espresso)">
+    <h3 style="margin-bottom:16px;font-family:'Fraunces',serif;font-size:20px;color:var(--espresso);">${escHtml(title)}</h3>
+    <input type="password" id="pin-input" placeholder="••••" readonly style="text-align:center;font-size:24px;letter-spacing:10px;width:140px;height:54px;border:2px solid var(--line);border-radius:10px;margin:0 auto 20px;display:block;background:#fffdfa;color:var(--espresso)">
     <div class="pin-grid">${[1,2,3,4,5,6,7,8,9,0].map(n=>`<button onclick="insertPin(${n})">${n}</button>`).join('')}<button onclick="deletePin()" style="grid-column:2;background:var(--parchment-2);color:var(--ink-soft)">⌫</button></div>
-    <div class="row" style="margin-top:20px;"><button class="btn btn-ghost" style="width:100%" onclick="closePinPad()">Cancel</button><button class="btn btn-primary" style="width:100%" onclick="submitPin()">Confirm</button></div>
+    <div class="row" style="margin-top:16px;"><button class="btn btn-ghost" style="width:100%" onclick="closePinPad()">Cancel</button><button class="btn btn-primary" style="width:100%" onclick="submitPin()">Confirm</button></div>
   </div>`;
   holder.innerHTML = `<div class="modal">${pad}</div>`; document.body.appendChild(holder);
   window.pinInput = () => document.getElementById('pin-input');
@@ -158,13 +159,19 @@ function openPinPad(title, onSubmit){
 
 function showSuccessPopup(title, subtitle){
   const h=document.createElement('div');
-  h.innerHTML=`<div class="overlay" style="z-index:99999;"><div class="success-popup"><div class="success-check">✓</div><h3 style="font-family:'Fraunces',serif;font-size:24px;color:var(--espresso);margin-bottom:8px;">${escHtml(title)}</h3><p style="color:var(--ink-soft);font-size:14px;line-height:1.5;">${escHtml(subtitle)}</p><button class="btn btn-primary" style="width:100%;margin-top:24px;padding:14px;" onclick="this.parentElement.parentElement.remove();">Done</button></div></div>`;
+  h.innerHTML=`<div class="overlay" style="z-index:99999;"><div class="success-popup"><div class="success-check">✓</div><h3 style="font-family:'Fraunces',serif;font-size:22px;color:var(--espresso);margin-bottom:8px;">${escHtml(title)}</h3><p style="color:var(--ink-soft);font-size:13.5px;line-height:1.5;">${escHtml(subtitle)}</p><button class="btn btn-primary" style="width:100%;margin-top:20px;padding:12px;" onclick="this.parentElement.parentElement.remove();">Done</button></div></div>`;
   document.body.appendChild(h);
 }
 
 /* ================= APP LOGIC ================= */
 let DB={items:[],staff:[],orders:[],production:[],wastage:[],inventoryCounts:[],suppliers:[],settings:{}};
-let UI={loaded:false,currentPin:null,tab:'order',orderCart:[],productionCart:[],wastageCart:[],orderSearch:'',prodSearch:'',wasteSearch:'',historyTab:'orders',countMonth:monthLabel(),countSection:null,countValues:{}};
+let UI={
+  loaded:false, currentPin:null, tab:'order', orderCart:[], productionCart:[], wastageCart:[],
+  orderFilters:{search:'',supplier:'',from:currentMonthISO()+'-01',to:todayISO()},
+  prodFilters:{search:'',from:currentMonthISO()+'-01',to:todayISO()},
+  wasteFilters:{search:'',from:currentMonthISO()+'-01',to:todayISO()},
+  historyTab:'orders', countMonth:currentMonthISO(), historyCountMonth:currentMonthISO(), countSection:null, countValues:{}
+};
 
 async function boot(){
   await loadLocalDB(); await initBackend();
@@ -176,13 +183,13 @@ async function boot(){
 
 function currentStaff(){return DB.staff.find(s=>s['PIN Code']===UI.currentPin);}
 function orderableItems(){return DB.items.filter(it=>(it['Supplier']||'').trim()!=='');}
-function internalItems(){return DB.items.filter(it=>(it['Supplier']||'').trim()==='');}
+function internalItems(){return DB.items.filter(it=>(it['Items Type']||'').trim().toLowerCase()==='internal' || (it['Supplier']||'').trim()==='');}
 
 function render(){
   const app=document.getElementById('app');
-  if(!UI.loaded){app.innerHTML=`<div class="gate-wrap"><div class="gate-card"><h2 style="text-align:center;font-family:'Fraunces',serif;font-size:28px;">Portal</h2><p style="text-align:center;color:var(--ink-soft);margin-top:8px;">Loading securely...</p></div></div>`;return;}
+  if(!UI.loaded){app.innerHTML=`<div class="gate-wrap"><div class="gate-card"><h2 style="text-align:center;font-family:'Fraunces',serif;font-size:26px;color:#fff">Staff Portal</h2><p style="text-align:center;color:#a89f91;margin-top:8px;">Loading securely...</p></div></div>`;return;}
   if(!UI.currentPin){
-    app.innerHTML=`<div class="gate-wrap"><div class="gate-card"><h2 style="text-align:center;font-family:'Fraunces',serif;font-size:28px;color:var(--espresso);">Staff Portal</h2><p style="color:var(--ink-soft);text-align:center;margin-top:8px;">Who's working today?</p><div class="staff-pick">${DB.staff.map(s=>`<button onclick="loginAs('${s['PIN Code']}')">👤 ${escHtml(s['Staff Full Name'])}</button>`).join('')}</div><div style="text-align:center;margin-top:16px;"><button class="btn btn-ghost btn-sm" onclick="openPinPad('Connection PIN', async(e)=>{if(e===(DB.settings.ConnectionPin||'9988')){const url=prompt('App Script URL:', SHEET_URL);if(url!==null)await connectSheet(url);return true;}return false;})">⚙ Connection Settings</button></div></div></div>`;
+    app.innerHTML=`<div class="gate-wrap"><div class="gate-card"><h2 style="text-align:center;font-family:'Fraunces',serif;font-size:26px;color:var(--espresso);">Staff Portal</h2><p style="color:var(--ink-soft);text-align:center;margin-top:6px;font-size:14px;">Select your account to continue</p><div class="staff-pick">${DB.staff.map(s=>`<button onclick="loginAs('${s['PIN Code']}')">👤 ${escHtml(s['Staff Full Name'])}</button>`).join('')}</div><div style="text-align:center;margin-top:14px;"><button class="btn btn-ghost btn-sm" onclick="openPinPad('Connection PIN', async(e)=>{if(e===(DB.settings.ConnectionPin||'9988')){const url=prompt('App Script URL:', SHEET_URL);if(url!==null)await connectSheet(url);return true;}return false;})">⚙ Connection Settings</button></div></div></div>`;
     return;
   }
   let html=`<div class="topbar"><div class="brand">👤 ${escHtml(currentStaff()?.['Staff Full Name']||'')}</div><button class="btn btn-ghost btn-sm" onclick="logout()">Switch User</button></div>`;
@@ -198,14 +205,14 @@ function logout(){ UI.currentPin=null; setLocalSetting('goya-staff-pin',''); ren
 
 /* ORDER MODULE */
 function renderOrder(){
-  let html=`<div class="row" style="align-items:stretch;"><div style="flex:1.2;min-width:300px;"><div class="card" style="height:100%;"><div class="section-title"><h3>Find Items</h3></div><input type="text" placeholder="Search item or supplier..." class="input-text" style="margin-bottom:16px;" value="${escHtml(UI.orderSearch)}" oninput="UI.orderSearch=this.value;render();"><div class="item-list">`;
+  let html=`<div class="row" style="align-items:stretch;"><div style="flex:1.2;min-width:280px;"><div class="card" style="height:100%;"><div class="section-title"><h3>Find Items</h3></div><input type="text" placeholder="Search item or supplier..." class="input-text" style="margin-bottom:14px;" value="${escHtml(UI.orderSearch||'')}" oninput="UI.orderSearch=this.value;render();"><div class="item-list">`;
   const items=orderableItems().filter(it=>!UI.orderSearch||it['Name'].toLowerCase().includes(UI.orderSearch.toLowerCase())||it['Supplier'].toLowerCase().includes(UI.orderSearch.toLowerCase()));
   items.forEach(it=>{ html+=`<div class="item-row"><div><div class="item-name">${escHtml(it['Name'])}</div><div class="item-meta">📦 ${escHtml(it['Supplier'])}</div></div><button class="btn btn-primary btn-sm" onclick="addToOrder('${it['Row ID']}')">Add</button></div>`; });
-  html+=`</div></div></div><div style="flex:1;min-width:300px;"><div class="card" style="height:100%;background:#fffdf7;"><div class="section-title"><h3>Cart (${UI.orderCart.length})</h3></div>`;
-  if(!UI.orderCart.length) html+=`<div class="empty-state">Cart is empty.</div>`;
+  html+=`</div></div></div><div style="flex:1;min-width:280px;"><div class="card" style="height:100%;background:#fffdfa;"><div class="section-title"><h3>Cart (${UI.orderCart.length})</h3></div>`;
+  if(!UI.orderCart.length) html+=`<div style="padding:40px;text-align:center;color:var(--ink-soft);font-size:13.5px;">Cart is empty.</div>`;
   else{
-    UI.orderCart.forEach((c,i)=>{ html+=`<div class="cart-item"><div><div class="item-name">${escHtml(c.name)}</div><div class="item-meta">${escHtml(c.supplier)}</div></div><div class="row" style="gap:8px;"><input type="number" step="0.1" value="${c.qty}" onchange="UI.orderCart[${i}].qty=parseFloat(this.value)||1;" class="input-number" style="width:80px;"><select onchange="UI.orderCart[${i}].unit=this.value;" class="input-select" style="width:100px;"><option>${c.unit}</option></select></div><button class="btn btn-danger btn-sm" onclick="UI.orderCart.splice(${i},1);render();">✕</button></div>`; });
-    html+=`<button class="btn btn-primary" style="width:100%;padding:14px;margin-top:16px;font-size:15px;" onclick="submitOrder()">Submit Order</button>`;
+    UI.orderCart.forEach((c,i)=>{ html+=`<div class="cart-item"><div><div class="item-name">${escHtml(c.name)}</div><div class="item-meta">${escHtml(c.supplier)}</div></div><div class="row" style="gap:6px;"><input type="number" step="0.1" value="${c.qty}" onchange="UI.orderCart[${i}].qty=parseFloat(this.value)||1;" class="input-number" style="width:75px;"><select onchange="UI.orderCart[${i}].unit=this.value;" class="input-select" style="width:90px;"><option>${c.unit}</option></select></div><button class="btn btn-danger btn-sm" onclick="UI.orderCart.splice(${i},1);render();">✕</button></div>`; });
+    html+=`<button class="btn btn-primary" style="width:100%;padding:14px;margin-top:14px;font-size:14.5px;" onclick="submitOrder()">Submit Order</button>`;
   }
   html+=`</div></div></div>`; return html;
 }
@@ -221,14 +228,14 @@ async function submitOrder(){
 
 /* PRODUCTION MODULE */
 function renderProduction(){
-  let html=`<div class="row" style="align-items:stretch;"><div style="flex:1.2;min-width:300px;"><div class="card" style="height:100%;"><div class="section-title"><h3>Internal Items</h3></div><input type="text" placeholder="Search in-house items..." class="input-text" style="margin-bottom:16px;" value="${escHtml(UI.prodSearch)}" oninput="UI.prodSearch=this.value;render();"><div class="item-list">`;
+  let html=`<div class="row" style="align-items:stretch;"><div style="flex:1.2;min-width:280px;"><div class="card" style="height:100%;"><div class="section-title"><h3>Internal Items</h3></div><input type="text" placeholder="Search in-house items..." class="input-text" style="margin-bottom:14px;" value="${escHtml(UI.prodSearch||'')}" oninput="UI.prodSearch=this.value;render();"><div class="item-list">`;
   const items=internalItems().filter(it=>!UI.prodSearch||it['Name'].toLowerCase().includes(UI.prodSearch.toLowerCase()));
-  items.forEach(it=>{ html+=`<div class="item-row"><div><div class="item-name">${escHtml(it['Name'])}</div><div class="item-meta">Type: ${escHtml(it['Items Type'])}</div></div><button class="btn btn-primary btn-sm" onclick="addToProd('${it['Row ID']}')">Add</button></div>`; });
-  html+=`</div></div></div><div style="flex:1;min-width:300px;"><div class="card" style="height:100%;"><div class="section-title"><h3>Log Production</h3></div>`;
-  if(!UI.productionCart.length) html+=`<div class="empty-state">No items added.</div>`;
+  items.forEach(it=>{ html+=`<div class="item-row"><div><div class="item-name">${escHtml(it['Name'])}</div><div class="item-meta">Type: Internal</div></div><button class="btn btn-primary btn-sm" onclick="addToProd('${it['Row ID']}')">Add</button></div>`; });
+  html+=`</div></div></div><div style="flex:1;min-width:280px;"><div class="card" style="height:100%;"><div class="section-title"><h3>Log Production</h3></div>`;
+  if(!UI.productionCart.length) html+=`<div style="padding:40px;text-align:center;color:var(--ink-soft);font-size:13.5px;">No items added.</div>`;
   else{
-    UI.productionCart.forEach((c,i)=>{ html+=`<div class="cart-item"><div><div class="item-name">${escHtml(c.name)}</div></div><div class="row" style="gap:8px;"><input type="number" step="0.1" value="${c.qty}" onchange="UI.productionCart[${i}].qty=parseFloat(this.value)||1;" class="input-number" style="width:80px;"><select onchange="UI.productionCart[${i}].unit=this.value;" class="input-select" style="width:90px;"><option>${c.unit}</option></select></div><button class="btn btn-danger btn-sm" onclick="UI.productionCart.splice(${i},1);render();">✕</button></div>`; });
-    html+=`<button class="btn btn-primary" style="width:100%;padding:14px;margin-top:16px;" onclick="submitProd()">Submit Production</button>`;
+    UI.productionCart.forEach((c,i)=>{ html+=`<div class="cart-item"><div><div class="item-name">${escHtml(c.name)}</div></div><div class="row" style="gap:6px;"><input type="number" step="0.1" value="${c.qty}" onchange="UI.productionCart[${i}].qty=parseFloat(this.value)||1;" class="input-number" style="width:75px;"><select onchange="UI.productionCart[${i}].unit=this.value;" class="input-select" style="width:85px;"><option>${c.unit}</option></select></div><button class="btn btn-danger btn-sm" onclick="UI.productionCart.splice(${i},1);render();">✕</button></div>`; });
+    html+=`<button class="btn btn-primary" style="width:100%;padding:14px;margin-top:14px;" onclick="submitProd()">Submit Production</button>`;
   }
   html+=`</div></div></div>`; return html;
 }
@@ -244,14 +251,14 @@ async function submitProd(){
 
 /* WASTAGE MODULE */
 function renderWastage(){
-  let html=`<div class="row" style="align-items:stretch;"><div style="flex:1.2;min-width:300px;"><div class="card" style="height:100%;"><div class="section-title"><h3>Select Items</h3></div><input type="text" placeholder="Search..." class="input-text" style="margin-bottom:16px;" value="${escHtml(UI.wasteSearch)}" oninput="UI.wasteSearch=this.value;render();"><div class="item-list">`;
+  let html=`<div class="row" style="align-items:stretch;"><div style="flex:1.2;min-width:280px;"><div class="card" style="height:100%;"><div class="section-title"><h3>Select Items</h3></div><input type="text" placeholder="Search..." class="input-text" style="margin-bottom:14px;" value="${escHtml(UI.wasteSearch||'')}" oninput="UI.wasteSearch=this.value;render();"><div class="item-list">`;
   const items=internalItems().filter(it=>!UI.wasteSearch||it['Name'].toLowerCase().includes(UI.wasteSearch.toLowerCase()));
   items.forEach(it=>{ html+=`<div class="item-row"><div><div class="item-name">${escHtml(it['Name'])}</div></div><button class="btn btn-danger btn-sm" onclick="addToWaste('${it['Row ID']}')">Add</button></div>`; });
-  html+=`</div></div></div><div style="flex:1;min-width:300px;"><div class="card" style="height:100%;"><div class="section-title"><h3>Log Wastage</h3></div>`;
-  if(!UI.wastageCart.length) html+=`<div class="empty-state">No items added.</div>`;
+  html+=`</div></div></div><div style="flex:1;min-width:280px;"><div class="card" style="height:100%;"><div class="section-title"><h3>Log Wastage</h3></div>`;
+  if(!UI.wastageCart.length) html+=`<div style="padding:40px;text-align:center;color:var(--ink-soft);font-size:13.5px;">No items added.</div>`;
   else{
-    UI.wastageCart.forEach((c,i)=>{ html+=`<div class="cart-item"><div><div class="item-name">${escHtml(c.name)}</div></div><div class="row" style="gap:6px;"><input type="number" step="0.1" value="${c.qty}" onchange="UI.wastageCart[${i}].qty=parseFloat(this.value)||1;" class="input-number" style="width:70px;"><select onchange="UI.wastageCart[${i}].unit=this.value;" class="input-select" style="width:80px;"><option>${c.unit}</option></select><select onchange="UI.wastageCart[${i}].reason=this.value;" class="input-select" style="width:120px;">${WASTE_REASONS.map(r=>`<option value="${r}">${r}</option>`).join('')}</select></div><button class="btn btn-ghost btn-sm" style="color:var(--alert);border-color:var(--alert)" onclick="UI.wastageCart.splice(${i},1);render();">✕</button></div>`; });
-    html+=`<button class="btn btn-danger" style="width:100%;padding:14px;margin-top:16px;" onclick="submitWaste()">Submit Wastage</button>`;
+    UI.wastageCart.forEach((c,i)=>{ html+=`<div class="cart-item"><div><div class="item-name">${escHtml(c.name)}</div></div><div class="row" style="gap:6px;"><input type="number" step="0.1" value="${c.qty}" onchange="UI.wastageCart[${i}].qty=parseFloat(this.value)||1;" class="input-number" style="width:65px;"><select onchange="UI.wastageCart[${i}].unit=this.value;" class="input-select" style="width:75px;"><option>${c.unit}</option></select><select onchange="UI.wastageCart[${i}].reason=this.value;" class="input-select" style="width:110px;">${WASTE_REASONS.map(r=>`<option value="${r}">${r}</option>`).join('')}</select></div><button class="btn btn-ghost btn-sm" style="color:var(--alert);border-color:var(--alert)" onclick="UI.wastageCart.splice(${i},1);render();">✕</button></div>`; });
+    html+=`<button class="btn btn-danger" style="width:100%;padding:14px;margin-top:14px;" onclick="submitWaste()">Submit Wastage</button>`;
   }
   html+=`</div></div></div>`; return html;
 }
@@ -265,12 +272,24 @@ async function submitWaste(){
   await api.addWastage(rows); DB=await api.getAll(); UI.wastageCart=[]; render(); showSuccessPopup('Wastage Logged!', `${rows.length} items recorded.`);
 }
 
-/* COUNT MODULE */
+/* COUNT MODULE WITH HISTORY */
 function renderCount(){
   const allowed=parseSections(currentStaff()?.['Allowed Sections']||'');
   if(!UI.countSection||!allowed.includes(UI.countSection)) UI.countSection=allowed[0]||'';
   const items=DB.items.filter(it=>(it['Items Type']||'').toLowerCase()===UI.countSection);
-  return `<div class="card"><div class="section-title"><h3>Inventory Count</h3><div class="row" style="flex:none;"><select class="input-select" onchange="UI.countSection=this.value;render();">${allowed.map(s=>`<option value="${s}" ${UI.countSection===s?'selected':''}>${SECTION_LABEL[s]||s}</option>`).join('')}</select><input type="month" class="input-text" value="${UI.countMonth}" onchange="UI.countMonth=this.value;render();"></div></div><div class="table-wrap"><table><tr style="background:var(--parchment);"><th style="border-radius:8px 0 0 0">Item Details</th><th>Storage Qty</th><th>Ingredient Qty</th></tr>${items.map(it=>{const v=UI.countValues[it['Row ID']]||{};return `<tr><td><div class="item-name">${escHtml(it['Name'])}</div><div class="item-meta">${escHtml(it['SKU'])} | Unit: ${escHtml(it['Storage Unit'])}</div></td><td><input type="number" step="0.1" class="input-number" placeholder="0" value="${v.s!=null?v.s:''}" onchange="UI.countValues['${it['Row ID']}']=UI.countValues['${it['Row ID']}']||{};UI.countValues['${it['Row ID']}'].s=parseFloat(this.value);" style="width:120px;"></td><td><input type="number" step="0.1" class="input-number" placeholder="0" value="${v.i!=null?v.i:''}" onchange="UI.countValues['${it['Row ID']}']=UI.countValues['${it['Row ID']}']||{};UI.countValues['${it['Row ID']}'].i=parseFloat(this.value);" style="width:120px;"></td></tr>`;}).join('')||'<tr><td colspan="3" class="empty-state">No items found for this section.</td></tr>'}</table></div><button class="btn btn-primary" style="width:100%;padding:14px;margin-top:20px;" onclick="submitCount()">Submit Final Count</button></div>`;
+  
+  let html=`<div class="card"><div class="section-title"><h3>Inventory Count</h3><div class="row" style="flex:none;"><select class="input-select" onchange="UI.countSection=this.value;render();">${allowed.map(s=>`<option value="${s}" ${UI.countSection===s?'selected':''}>${SECTION_LABEL[s]||s}</option>`).join('')}</select><input type="month" class="input-text" value="${UI.countMonth}" onchange="UI.countMonth=this.value;render();"></div></div><div class="table-wrap"><table><tr><th>Item Details</th><th>Storage Qty</th><th>Ingredient Qty</th></tr>${items.map(it=>{const v=UI.countValues[it['Row ID']]||{};return `<tr><td><div class="item-name">${escHtml(it['Name'])}</div><div class="item-meta">${escHtml(it['SKU'])} | Unit: ${escHtml(it['Storage Unit'])}</div></td><td><input type="number" step="0.1" class="input-number" placeholder="0" value="${v.s!=null?v.s:''}" onchange="UI.countValues['${it['Row ID']}']=UI.countValues['${it['Row ID']}']||{};UI.countValues['${it['Row ID']}'].s=parseFloat(this.value);" style="width:110px;"></td><td><input type="number" step="0.1" class="input-number" placeholder="0" value="${v.i!=null?v.i:''}" onchange="UI.countValues['${it['Row ID']}']=UI.countValues['${it['Row ID']}']||{};UI.countValues['${it['Row ID']}'].i=parseFloat(this.value);" style="width:110px;"></td></tr>`;}).join('')||'<tr><td colspan="3" style="text-align:center;padding:20px;color:var(--ink-soft)">No items found for this section.</td></tr>'}</table></div><button class="btn btn-primary" style="width:100%;padding:14px;margin-top:16px;" onclick="submitCount()">Submit Final Count</button></div>`;
+
+  // Inventory Count History
+  html+=`<div class="card"><div class="section-title"><h3>Inventory Count History</h3><input type="month" class="input-text" style="width:160px;" value="${UI.historyCountMonth||currentMonthISO()}" onchange="UI.historyCountMonth=this.value;render();"></div><div class="table-wrap"><table><tr><th>Month</th><th>Section</th><th>Item Name</th><th>SKU</th><th>Storage Qty</th><th>Ingredient Qty</th><th>Submitted By</th></tr>`;
+  let pastCounts = DB.inventoryCounts.filter(c => !UI.historyCountMonth || c['Count Date / Month'] === UI.historyCountMonth);
+  pastCounts.sort((a,b)=>String(b['Count Date / Month']).localeCompare(String(a['Count Date / Month'])));
+  pastCounts.forEach(c => {
+    html+=`<tr><td style="font-family:monospace;font-weight:600">${escHtml(c['Count Date / Month'])}</td><td><span class="tag">${SECTION_LABEL[(c['Section']||'').toLowerCase()]||c['Section']}</span></td><td style="font-weight:600">${escHtml(c['Item Name'])}</td><td style="font-family:monospace">${escHtml(c['SKU'])}</td><td>${c['Storage Quantity']}</td><td>${c['Ingredient Quantity']}</td><td>${escHtml(c['Submitted By'])}</td></tr>`;
+  });
+  if(!pastCounts.length) html+=`<tr><td colspan="7" style="text-align:center;padding:20px;color:var(--ink-soft)">No count history found for this month.</td></tr>`;
+  html+=`</table></div></div>`;
+  return html;
 }
 async function submitCount(){
   const items=DB.items.filter(it=>(it['Items Type']||'').toLowerCase()===UI.countSection); const rows=[];
@@ -282,20 +301,46 @@ async function submitCount(){
   await api.addInventoryCounts(rows); DB=await api.getAll(); UI.countValues={}; render(); showSuccessPopup('Count Recorded', `${rows.length} items logged for ${SECTION_LABEL[UI.countSection]||UI.countSection}.`);
 }
 
-/* HISTORY MODULE */
+/* HISTORY MODULE WITH FILTERS */
 function renderHistory(){
-  let html=`<div class="card"><div class="section-title"><h3>History Logs</h3><div class="row" style="flex:none;"><button class="btn ${UI.historyTab==='orders'?'btn-primary':'btn-ghost'} btn-sm" onclick="UI.historyTab='orders';render();">Orders</button><button class="btn ${UI.historyTab==='prod'?'btn-primary':'btn-ghost'} btn-sm" onclick="UI.historyTab='prod';render();">Production</button><button class="btn ${UI.historyTab==='waste'?'btn-primary':'btn-ghost'} btn-sm" onclick="UI.historyTab='waste';render();">Wastage</button></div></div><div class="table-wrap"><table>`;
+  let html=`<div class="card"><div class="section-title"><h3>History Logs</h3><div class="row" style="flex:none;"><button class="btn ${UI.historyTab==='orders'?'btn-primary':'btn-ghost'} btn-sm" onclick="UI.historyTab='orders';render();">Orders</button><button class="btn ${UI.historyTab==='prod'?'btn-primary':'btn-ghost'} btn-sm" onclick="UI.historyTab='prod';render();">Production</button><button class="btn ${UI.historyTab==='waste'?'btn-primary':'btn-ghost'} btn-sm" onclick="UI.historyTab='waste';render();">Wastage</button></div></div>`;
+  
   if(UI.historyTab==='orders'){
-    html+=`<tr><th>Date & Time</th><th>Item</th><th>Qty</th><th>Supplier</th><th>Status</th></tr>`;
-    DB.orders.slice().sort((a,b)=>new Date(b['Timestamp'])-new Date(a['Timestamp'])).slice(0,50).forEach(r=>{ html+=`<tr><td class="item-meta">${fmtDateTime(r['Timestamp'])}</td><td><div class="item-name">${escHtml(r['Item Name'])}</div></td><td>${r['Quantity']} ${escHtml(r['Unit'])}</td><td>${escHtml(r['Supplier'])}</td><td><span class="badge">${escHtml(r['Status'])}</span></td></tr>`; });
+    html+=`<div class="filters"><div class="filter-item"><label>Search</label><input type="text" class="input-text" value="${escHtml(UI.orderFilters.search)}" oninput="UI.orderFilters.search=this.value;render();"></div><div class="filter-item"><label>Supplier</label><select class="input-select" onchange="UI.orderFilters.supplier=this.value;render();"><option value="">All Suppliers</option>${[...new Set(DB.orders.map(o=>o['Supplier']))].filter(Boolean).map(s=>`<option value="${escHtml(s)}" ${UI.orderFilters.supplier===s?'selected':''}>${escHtml(s)}</option>`).join('')}</select></div><div class="filter-item"><label>From</label><input type="date" class="input-text" value="${UI.orderFilters.from}" onchange="UI.orderFilters.from=this.value;render();"></div><div class="filter-item"><label>To</label><input type="date" class="input-text" value="${UI.orderFilters.to}" onchange="UI.orderFilters.to=this.value;render();"></div></div>`;
+    let rows=DB.orders.slice().sort((a,b)=>new Date(b['Timestamp'])-new Date(a['Timestamp']));
+    if(UI.orderFilters.search) rows=rows.filter(o=>o['Item Name'].toLowerCase().includes(UI.orderFilters.search.toLowerCase()));
+    if(UI.orderFilters.supplier) rows=rows.filter(o=>o['Supplier']===UI.orderFilters.supplier);
+    if(UI.orderFilters.from) rows=rows.filter(o=>o['Timestamp'].slice(0,10)>=UI.orderFilters.from);
+    if(UI.orderFilters.to) rows=rows.filter(o=>o['Timestamp'].slice(0,10)<=UI.orderFilters.to);
+    
+    html+=`<div class="table-wrap"><table><tr><th>Date & Time</th><th>Item</th><th>Qty</th><th>Supplier</th><th>Status</th><th>Logged By</th></tr>`;
+    rows.forEach(r=>{ html+=`<tr><td class="item-meta">${fmtDateTime(r['Timestamp'])}</td><td><div class="item-name">${escHtml(r['Item Name'])}</div></td><td>${r['Quantity']} ${escHtml(r['Unit'])}</td><td>${escHtml(r['Supplier'])}</td><td><span class="badge">${escHtml(r['Status'])}</span></td><td>${escHtml(r['Logged By'])}</td></tr>`; });
+    if(!rows.length) html+=`<tr><td colspan="6" style="text-align:center;padding:20px;color:var(--ink-soft)">No orders found.</td></tr>`;
+    html+=`</table></div>`;
   } else if(UI.historyTab==='prod'){
-    html+=`<tr><th>Date</th><th>Item</th><th>Qty</th><th>Logged By</th></tr>`;
-    DB.production.slice().sort((a,b)=>new Date(b['Timestamp'])-new Date(a['Timestamp'])).slice(0,50).forEach(r=>{ html+=`<tr><td class="item-meta">${fmtDate(r['Timestamp'])}</td><td><div class="item-name">${escHtml(r['Item Name'])}</div></td><td>${r['Quantity']} ${escHtml(r['Unit'])}</td><td>${escHtml(r['Logged By'])}</td></tr>`; });
+    html+=`<div class="filters"><div class="filter-item"><label>Search</label><input type="text" class="input-text" value="${escHtml(UI.prodFilters.search)}" oninput="UI.prodFilters.search=this.value;render();"></div><div class="filter-item"><label>From</label><input type="date" class="input-text" value="${UI.prodFilters.from}" onchange="UI.prodFilters.from=this.value;render();"></div><div class="filter-item"><label>To</label><input type="date" class="input-text" value="${UI.prodFilters.to}" onchange="UI.prodFilters.to=this.value;render();"></div></div>`;
+    let rows=DB.production.slice().sort((a,b)=>new Date(b['Timestamp'])-new Date(a['Timestamp']));
+    if(UI.prodFilters.search) rows=rows.filter(r=>r['Item Name'].toLowerCase().includes(UI.prodFilters.search.toLowerCase()));
+    if(UI.prodFilters.from) rows=rows.filter(r=>r['Timestamp'].slice(0,10)>=UI.prodFilters.from);
+    if(UI.prodFilters.to) rows=rows.filter(r=>r['Timestamp'].slice(0,10)<=UI.prodFilters.to);
+    
+    html+=`<div class="table-wrap"><table><tr><th>Date & Time</th><th>Item</th><th>Qty</th><th>Logged By</th><th>Status</th></tr>`;
+    rows.forEach(r=>{ html+=`<tr><td class="item-meta">${fmtDateTime(r['Timestamp'])}</td><td><div class="item-name">${escHtml(r['Item Name'])}</div></td><td>${r['Quantity']} ${escHtml(r['Unit'])}</td><td>${escHtml(r['Logged By'])}</td><td><span class="badge">${escHtml(r['Status'])}</span></td></tr>`; });
+    if(!rows.length) html+=`<tr><td colspan="5" style="text-align:center;padding:20px;color:var(--ink-soft)">No production logs found.</td></tr>`;
+    html+=`</table></div>`;
   } else {
-    html+=`<tr><th>Date</th><th>Item</th><th>Qty</th><th>Reason</th></tr>`;
-    DB.wastage.slice().sort((a,b)=>new Date(b['Timestamp'])-new Date(a['Timestamp'])).slice(0,50).forEach(r=>{ html+=`<tr><td class="item-meta">${fmtDate(r['Timestamp'])}</td><td><div class="item-name">${escHtml(r['Item Name'])}</div></td><td>${r['Quantity']} ${escHtml(r['Unit'])}</td><td><span class="tag">${escHtml(r['Reason'])}</span></td></tr>`; });
+    html+=`<div class="filters"><div class="filter-item"><label>Search</label><input type="text" class="input-text" value="${escHtml(UI.wasteFilters.search)}" oninput="UI.wasteFilters.search=this.value;render();"></div><div class="filter-item"><label>From</label><input type="date" class="input-text" value="${UI.wasteFilters.from}" onchange="UI.wasteFilters.from=this.value;render();"></div><div class="filter-item"><label>To</label><input type="date" class="input-text" value="${UI.wasteFilters.to}" onchange="UI.wasteFilters.to=this.value;render();"></div></div>`;
+    let rows=DB.wastage.slice().sort((a,b)=>new Date(b['Timestamp'])-new Date(a['Timestamp']));
+    if(UI.wasteFilters.search) rows=rows.filter(r=>r['Item Name'].toLowerCase().includes(UI.wasteFilters.search.toLowerCase()));
+    if(UI.wasteFilters.from) rows=rows.filter(r=>r['Timestamp'].slice(0,10)>=UI.wasteFilters.from);
+    if(UI.wasteFilters.to) rows=rows.filter(r=>r['Timestamp'].slice(0,10)<=UI.wasteFilters.to);
+    
+    html+=`<div class="table-wrap"><table><tr><th>Date & Time</th><th>Item</th><th>Qty</th><th>Reason</th><th>Logged By</th><th>Status</th></tr>`;
+    rows.forEach(r=>{ html+=`<tr><td class="item-meta">${fmtDateTime(r['Timestamp'])}</td><td><div class="item-name">${escHtml(r['Item Name'])}</div></td><td>${r['Quantity']} ${escHtml(r['Unit'])}</td><td><span class="tag">${escHtml(r['Reason'])}</span></td><td>${escHtml(r['Logged By'])}</td><td><span class="badge">${escHtml(r['Status'])}</span></td></tr>`; });
+    if(!rows.length) html+=`<tr><td colspan="6" style="text-align:center;padding:20px;color:var(--ink-soft)">No wastage logs found.</td></tr>`;
+    html+=`</table></div>`;
   }
-  html+=`</table></div></div>`; return html;
+  html+=`</div>`; return html;
 }
 
 boot();
