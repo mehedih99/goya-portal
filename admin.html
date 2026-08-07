@@ -56,7 +56,6 @@ input,select,button,textarea{font-family:inherit;font-size:inherit;color:inherit
 <body>
 <div id="app"></div>
 <script>
-/* ================= STANDALONE CORE ================= */
 const STATUSES = ['PENDING','ORDERED','RECEIVED','NOT_RECEIVED','REJECTED'];
 const STATUS_LABEL = {PENDING:'Pending',ORDERED:'Ordered',RECEIVED:'Received',NOT_RECEIVED:'Not Received',REJECTED:'Rejected'};
 const SECTIONS = ['kitchen','pastry','bar','packaging','internal'];
@@ -77,23 +76,43 @@ async function sheetPost(action, body){
   return resp.json();
 }
 
+function seedData(){
+  return {
+    items:[
+      {'Row ID':'1','Name':'Ethiopian Green Beans','SKU':'BN-01','Storage Unit':'KG','Ingredient Unit':'GRAM','Supplier':'Sunrise Beans','Items Type':'kitchen'},
+      {'Row ID':'2','Name':'Oat Milk','SKU':'MLK-01','Storage Unit':'Liter','Ingredient Unit':'ML','Supplier':'Dairy Fresh','Items Type':'bar'},
+      {'Row ID':'3','Name':'Vanilla Syrup Batch','SKU':'VS-01','Storage Unit':'Liter','Ingredient Unit':'ML','Supplier':'','Items Type':'internal'},
+    ],
+    staff:[
+      {'PIN Code':'1111','Staff Full Name':'Aisha Rahman','Allowed Sections':'bar'},
+      {'PIN Code':'2222','Staff Full Name':'Rahim Uddin','Allowed Sections':'kitchen,pastry'},
+    ],
+    orders:[], production:[], wastage:[], inventoryCounts:[], suppliers:[],
+    settings:{ MasterPin:'9988', ConnectionPin:'9988', InventoryCountEnabled:'true', OwnerEmail:'mehedi.src@gmail.com' }
+  };
+}
+
 const api = {
-  async getAll(){ if(!SHEET_URL) return seedData(); try{ const resp = await fetch(SHEET_URL+'?action=getAll'); return resp.json(); }catch(e){ return seedData(); } },
+  async getAll(){
+    if(!SHEET_URL) return seedData();
+    try{
+      const resp = await fetch(SHEET_URL+'?action=getAll');
+      const data = await resp.json();
+      if(!data || data.error) return seedData();
+      return data;
+    }catch(e){ return seedData(); }
+  },
   async updateOrderStatus(timestamp, status, receivedDate){ if(SHEET_URL) await sheetPost('updateOrderStatus',{timestamp,status,receivedDate}); else{ const o=LOCAL_DB.orders.find(x=>x['Timestamp']===timestamp); if(o) o['Status']=status; await saveLocalDB(); } },
   async bulkUpdateOrderStatus(timestamps, status){ if(SHEET_URL) await sheetPost('bulkUpdateOrderStatus',{timestamps,status}); else{ LOCAL_DB.orders.forEach(o=>{ if(timestamps.includes(o['Timestamp'])) o['Status']=status; }); await saveLocalDB(); } },
   async updateLogStatus(sheet, timestamp, status){ if(SHEET_URL) await sheetPost('updateLogStatus',{sheet,timestamp,status}); else{ const arr=sheet==='Production'?LOCAL_DB.production:LOCAL_DB.wastage; const r=arr.find(x=>x['Timestamp']===timestamp); if(r) r['Status']=status; await saveLocalDB(); } },
   async upsertItem(item){ if(SHEET_URL) return sheetPost('upsertItem',{item}); else{ const i=LOCAL_DB.items.find(x=>x['Row ID']===item.rowId); const row={'Row ID':item.rowId||Date.now().toString(),'Name':item.name,'SKU':item.sku||'','Storage Unit':item.storageUnit||'','Ingredient Unit':item.ingredientUnit||'','Supplier':item.supplier||'','Items Type':item.itemsType||'internal'}; if(i) Object.assign(i,row); else LOCAL_DB.items.push(row); await saveLocalDB(); } },
   async deleteItem(rowId){ if(SHEET_URL) await sheetPost('deleteItem',{rowId}); else{ LOCAL_DB.items=LOCAL_DB.items.filter(x=>x['Row ID']!==rowId); await saveLocalDB(); } },
   async upsertStaff(staff, oldPin){ if(SHEET_URL) return sheetPost('upsertStaff',{staff,oldPin}); else{ const matchPin=oldPin||staff.pin; const s=LOCAL_DB.staff.find(x=>x['PIN Code']===matchPin); const row={'PIN Code':staff.pin,'Staff Full Name':staff.name,'Allowed Sections':(staff.allowedSections||[]).join(',')}; if(s) Object.assign(s,row); else LOCAL_DB.staff.push(row); await saveLocalDB(); } },
-  async deleteStaff(pin){ if(SHEET_URL) await sheetPost('deleteStaff',{pin}); else{ LOCAL_DB.staff=LOCAL_DB.staff.filter(x=>x['PIN Code']!==pin); await saveLocalDB(); } },
+  async deleteStaff(pin){ if(SHEET_URL) return sheetPost('deleteStaff',{pin}); else{ LOCAL_DB.staff=LOCAL_DB.staff.filter(x=>x['PIN Code']!==pin); await saveLocalDB(); } },
   async upsertSupplier(supplier, oldName){ if(SHEET_URL) return sheetPost('upsertSupplier',{supplier,oldName}); else{ const matchName=oldName||supplier.name; const s=LOCAL_DB.suppliers.find(x=>x['Name']===matchName); const row={'Name':supplier.name,'Phone':supplier.phone||'','Group Link':supplier.groupLink||''}; if(s) Object.assign(s,row); else LOCAL_DB.suppliers.push(row); await saveLocalDB(); } },
   async deleteSupplier(name){ if(SHEET_URL) return sheetPost('deleteSupplier',{name}); else{ LOCAL_DB.suppliers=LOCAL_DB.suppliers.filter(x=>x['Name']!==name); await saveLocalDB(); } },
   async setSetting(key, value){ if(SHEET_URL) return sheetPost('setSetting',{key,value}); else{ LOCAL_DB.settings[key]=value; await saveLocalDB(); } }
 };
-
-function seedData(){
-  return { items:[], staff:[], orders:[], production:[], wastage:[], inventoryCounts:[], suppliers:[], settings:{ MasterPin:'9988', ConnectionPin:'9988', InventoryCountEnabled:'true', OwnerEmail:'mehedi.src@gmail.com' } };
-}
 
 async function saveLocalDB(){ if(LOCAL_DB) localStorage.setItem('goya-local-db', JSON.stringify(LOCAL_DB)); }
 async function loadLocalDB(){ try{ LOCAL_DB = JSON.parse(localStorage.getItem('goya-local-db')); if(!LOCAL_DB) LOCAL_DB = seedData(); }catch(e){ LOCAL_DB = seedData(); } }
@@ -102,6 +121,7 @@ function escHtml(s){ return String(s||'').replace(/[&<>"']/g,c=>({'&':'&amp;','<
 function fmtDate(iso){ return iso? iso.slice(0,10) : ''; }
 function fmtDateTime(iso){ return iso? iso.slice(0,16).replace('T',' ') : ''; }
 function todayISO(){ return new Date().toISOString().slice(0,10); }
+function currentMonthISO(){ return new Date().toISOString().slice(0,7); }
 
 function showToast(msg){
   const t = document.createElement('div');
@@ -119,7 +139,6 @@ function openPinPad(title, onSubmit){
   window.submitPin = async () => { if(await onSubmit(input)){ holder.remove(); } else { showToast('Incorrect PIN'); input=''; window.pinInput().value=''; } };
 }
 
-/* ================= CSV EXPORT ENGINE ================= */
 function downloadCSV(filename, headers, rows){
   const csvRows = [headers.map(h => `"${String(h).replace(/"/g, '""')}"`).join(',')];
   rows.forEach(r => {
@@ -133,7 +152,6 @@ function downloadCSV(filename, headers, rows){
   URL.revokeObjectURL(url);
 }
 
-/* ================= ADMIN LOGIC ================= */
 let DB={items:[],staff:[],orders:[],production:[],wastage:[],inventoryCounts:[],suppliers:[],settings:{}};
 let UI={
   loaded:false, unlocked:false, tab:'orders',
@@ -142,44 +160,69 @@ let UI={
   countFilters:{month:currentMonthISO()}
 };
 
-async function boot(){ await loadLocalDB(); await initBackend(); DB=await api.getAll(); UI.loaded=true; render(); }
+async function boot(){
+  try {
+    await loadLocalDB();
+    await initBackend();
+    DB = await api.getAll();
+    if(!DB || typeof DB !== 'object') DB = seedData();
+  } catch(e) {
+    DB = seedData();
+  }
+  UI.loaded = true;
+  render();
+}
 
 function render(){
   const app=document.getElementById('app');
-  if(!UI.loaded){app.innerHTML=`<div class="gate-wrap"><div class="gate-card"><h2 style="text-align:center;font-family:'Fraunces',serif;font-size:26px;color:#fff">Admin Panel</h2><p style="text-align:center;color:#a89f91;margin-top:8px;">Loading securely...</p></div></div>`;return;}
-  if(!UI.unlocked){app.innerHTML=`<div class="gate-wrap"><div class="gate-card"><h2 style="text-align:center;font-family:'Fraunces',serif;font-size:24px;color:var(--espresso);margin-bottom:6px;">Admin Access</h2><p style="color:var(--ink-soft);font-size:13.5px;margin-bottom:20px;">Enter Master PIN to continue.</p><button class="btn btn-primary" style="width:100%;padding:12px;" onclick="openPinPad('Master PIN', async(e)=>{if(e===(DB.settings.MasterPin||'9988')){UI.unlocked=true;render();return true;}return false;})">Unlock Panel</button></div></div>`;return;}
+  if(!app) return;
+  if(!UI.loaded){
+    app.innerHTML=`<div class="gate-wrap"><div class="gate-card"><h2 style="text-align:center;font-family:'Fraunces',serif;font-size:26px;color:#fff">Admin Panel</h2><p style="text-align:center;color:#a89f91;margin-top:8px;">Loading securely...</p></div></div>`;
+    return;
+  }
+  if(!UI.unlocked){
+    app.innerHTML=`<div class="gate-wrap"><div class="gate-card"><h2 style="text-align:center;font-family:'Fraunces',serif;font-size:24px;color:var(--espresso);margin-bottom:6px;">Admin Access</h2><p style="color:var(--ink-soft);font-size:13.5px;margin-bottom:20px;">Enter Master PIN to continue.</p><button class="btn btn-primary" style="width:100%;padding:12px;" onclick="openPinPad('Master PIN', async(e)=>{if(e===(DB.settings?.MasterPin||'9988')){UI.unlocked=true;render();return true;}return false;})">Unlock Panel</button></div></div>`;
+    return;
+  }
   let html=`<div class="topbar"><div class="brand">🚀 Goya Admin Workspace</div><button class="btn btn-ghost btn-sm" onclick="UI.unlocked=false;render();">Lock Session</button></div>`;
   html+=`<div class="admin-layout"><div class="admin-nav">${[['orders','📦 Orders'],['items','📋 Items & Suppliers'],['staff','👥 Staff'],['monitor','📊 Prod & Waste'],['counts','🛒 Inventory Counts'],['export','📥 Data Export'],['settings','⚙️ Settings']].map(([k,l])=>`<button class="${UI.tab===k?'active':''}" onclick="UI.tab='${k}';render();">${l}</button>`).join('')}</div><div>`;
-  if(UI.tab==='orders') html+=renderOrders(); else if(UI.tab==='items') html+=renderItems(); else if(UI.tab==='staff') html+=renderStaff(); else if(UI.tab==='monitor') html+=renderMonitor(); else if(UI.tab==='counts') html+=renderCounts(); else if(UI.tab==='export') html+=renderExport(); else html+=renderSettings();
-  html+=`</div></div>`; app.innerHTML=html;
+  try {
+    if(UI.tab==='orders') html+=renderOrders();
+    else if(UI.tab==='items') html+=renderItems();
+    else if(UI.tab==='staff') html+=renderStaff();
+    else if(UI.tab==='monitor') html+=renderMonitor();
+    else if(UI.tab==='counts') html+=renderCounts();
+    else if(UI.tab==='export') html+=renderExport();
+    else html+=renderSettings();
+  } catch(err) {
+    html+=`<div class="card"><p style="color:var(--alert)">Error rendering view: ${escHtml(err.message)}</p></div>`;
+  }
+  html+=`</div></div>`;
+  app.innerHTML=html;
 }
 
 /* 1. ORDERS */
 function renderOrders(){
-  let html=`<div class="card"><div class="section-title"><h3>Orders Management</h3><div class="row" style="flex:none;gap:8px;"><button class="btn btn-primary btn-sm" onclick="exportOrdersCSV()">📥 Download CSV</button><span class="badge">${DB.orders.length} Records</span></div></div><div class="filters"><div class="filter-item"><label>Search Item</label><input type="text" class="input-text" value="${escHtml(UI.orderFilters.search)}" oninput="UI.orderFilters.search=this.value;render();"></div><div class="filter-item"><label>Status</label><select class="input-select" onchange="UI.orderFilters.status=this.value;render();"><option value="">All Statuses</option>${STATUSES.map(s=>`<option value="${s}" ${UI.orderFilters.status===s?'selected':''}>${STATUS_LABEL[s]}</option>`).join('')}</select></div><div class="filter-item"><label>Supplier</label><select class="input-select" onchange="UI.orderFilters.supplier=this.value;render();"><option value="">All Suppliers</option>${[...new Set(DB.orders.map(o=>o['Supplier']))].filter(Boolean).map(s=>`<option value="${escHtml(s)}" ${UI.orderFilters.supplier===s?'selected':''}>${escHtml(s)}</option>`).join('')}</select></div><div class="filter-item"><label>From</label><input type="date" class="input-text" value="${UI.orderFilters.from}" onchange="UI.orderFilters.from=this.value;render();"></div><div class="filter-item"><label>To</label><input type="date" class="input-text" value="${UI.orderFilters.to}" onchange="UI.orderFilters.to=this.value;render();"></div></div>`;
-  let rows=DB.orders.slice().sort((a,b)=>new Date(b['Timestamp'])-new Date(a['Timestamp']));
-  if(UI.orderFilters.search)rows=rows.filter(o=>o['Item Name'].toLowerCase().includes(UI.orderFilters.search.toLowerCase()));
+  const orders = DB.orders || [];
+  let html=`<div class="card"><div class="section-title"><h3>Orders Management</h3><div class="row" style="flex:none;gap:8px;"><button class="btn btn-primary btn-sm" onclick="exportOrdersCSV()">📥 Download CSV</button><span class="badge">${orders.length} Records</span></div></div><div class="filters"><div class="filter-item"><label>Search Item</label><input type="text" class="input-text" value="${escHtml(UI.orderFilters.search)}" oninput="UI.orderFilters.search=this.value;render();"></div><div class="filter-item"><label>Status</label><select class="input-select" onchange="UI.orderFilters.status=this.value;render();"><option value="">All Statuses</option>${STATUSES.map(s=>`<option value="${s}" ${UI.orderFilters.status===s?'selected':''}>${STATUS_LABEL[s]}</option>`).join('')}</select></div><div class="filter-item"><label>Supplier</label><select class="input-select" onchange="UI.orderFilters.supplier=this.value;render();"><option value="">All Suppliers</option>${[...new Set(orders.map(o=>o['Supplier']))].filter(Boolean).map(s=>`<option value="${escHtml(s)}" ${UI.orderFilters.supplier===s?'selected':''}>${escHtml(s)}</option>`).join('')}</select></div><div class="filter-item"><label>From</label><input type="date" class="input-text" value="${UI.orderFilters.from}" onchange="UI.orderFilters.from=this.value;render();"></div><div class="filter-item"><label>To</label><input type="date" class="input-text" value="${UI.orderFilters.to}" onchange="UI.orderFilters.to=this.value;render();"></div></div>`;
+  let rows=orders.slice().sort((a,b)=>new Date(b['Timestamp']||0)-new Date(a['Timestamp']||0));
+  if(UI.orderFilters.search)rows=rows.filter(o=>(o['Item Name']||'').toLowerCase().includes(UI.orderFilters.search.toLowerCase()));
   if(UI.orderFilters.status)rows=rows.filter(o=>o['Status']===UI.orderFilters.status);
   if(UI.orderFilters.supplier)rows=rows.filter(o=>o['Supplier']===UI.orderFilters.supplier);
-  if(UI.orderFilters.from)rows=rows.filter(o=>o['Timestamp'].slice(0,10)>=UI.orderFilters.from);
-  if(UI.orderFilters.to)rows=rows.filter(o=>o['Timestamp'].slice(0,10)<=UI.orderFilters.to);
+  if(UI.orderFilters.from)rows=rows.filter(o=>(o['Timestamp']||'').slice(0,10)>=UI.orderFilters.from);
+  if(UI.orderFilters.to)rows=rows.filter(o=>(o['Timestamp']||'').slice(0,10)<=UI.orderFilters.to);
   const selectedTs=Object.keys(UI.orderSelected).filter(k=>UI.orderSelected[k]);
   const allSelected = rows.length > 0 && rows.every(o => UI.orderSelected[o['Timestamp']]);
   
   if(selectedTs.length>0){
     html+=`<div class="card" style="background:var(--parchment-2);padding:14px;"><div class="row" style="align-items:center"><span style="font-weight:700;font-size:13.5px;">${selectedTs.length} Selected</span><div class="row" style="flex:none"><select class="input-select" id="bulk-status" style="width:140px;padding:8px;"><option value="PENDING">Pending</option><option value="ORDERED">Ordered</option><option value="RECEIVED">Received</option></select><button class="btn btn-primary btn-sm" onclick="bulkStatus()">Apply Status</button></div></div></div>`;
   }
-  html+=`<div class="table-wrap"><table><tr><th><input type="checkbox" ${allSelected?'checked':''} onchange="toggleSelectAll(this.checked)" style="width:16px;height:16px;cursor:pointer"></th><th>Date</th><th>Item Details</th><th>Qty</th><th>Supplier</th><th>Status</th><th>Logged By</th></tr>${rows.map(o=>`<tr><td><input type="checkbox" ${UI.orderSelected[o['Timestamp']]?'checked':''} onchange="UI.orderSelected['${o['Timestamp']}']=this.checked;render();" style="width:16px;height:16px;cursor:pointer"></td><td style="font-family:'IBM Plex Mono',monospace;font-size:11.5px;color:var(--ink-soft)">${fmtDateTime(o['Timestamp'])}</td><td><div style="font-weight:600;color:var(--espresso)">${escHtml(o['Item Name'])}</div></td><td><span class="tag">${o['Quantity']} ${escHtml(o['Unit'])}</span></td><td>${escHtml(o['Supplier'])}</td><td><div class="row" style="gap:6px;"><select class="input-select" id="status-${o['Timestamp']}" style="width:110px;font-size:12px;padding:6px;"><option value="PENDING" ${o['Status']==='PENDING'?'selected':''}>Pending</option><option value="ORDERED" ${o['Status']==='ORDERED'?'selected':''}>Ordered</option><option value="RECEIVED" ${o['Status']==='RECEIVED'?'selected':''}>Received</option></select><button class="btn btn-primary btn-sm" onclick="saveSingleStatus('${o['Timestamp']}')">Save</button></div></td><td>${escHtml(o['Logged By'])}</td></tr>`).join('')}</table></div></div>`; return html;
+  html+=`<div class="table-wrap"><table><tr><th><input type="checkbox" ${allSelected?'checked':''} onchange="toggleSelectAll(this.checked)" style="width:16px;height:16px;cursor:pointer"></th><th>Date</th><th>Item Details</th><th>Qty</th><th>Supplier</th><th>Status</th><th>Logged By</th></tr>${rows.map(o=>`<tr><td><input type="checkbox" ${UI.orderSelected[o['Timestamp']]?'checked':''} onchange="UI.orderSelected['${escHtml(o['Timestamp'])}']=this.checked;render();" style="width:16px;height:16px;cursor:pointer"></td><td style="font-family:'IBM Plex Mono',monospace;font-size:11.5px;color:var(--ink-soft)">${fmtDateTime(o['Timestamp'])}</td><td><div style="font-weight:600;color:var(--espresso)">${escHtml(o['Item Name'])}</div></td><td><span class="tag">${o['Quantity']} ${escHtml(o['Unit'])}</span></td><td>${escHtml(o['Supplier'])}</td><td><div class="row" style="gap:6px;"><select class="input-select" id="status-${escHtml(o['Timestamp'])}" style="width:110px;font-size:12px;padding:6px;"><option value="PENDING" ${o['Status']==='PENDING'?'selected':''}>Pending</option><option value="ORDERED" ${o['Status']==='ORDERED'?'selected':''}>Ordered</option><option value="RECEIVED" ${o['Status']==='RECEIVED'?'selected':''}>Received</option></select><button class="btn btn-primary btn-sm" onclick="saveSingleStatus('${escHtml(o['Timestamp'])}')">Save</button></div></td><td>${escHtml(o['Logged By'])}</td></tr>`).join('')}</table></div></div>`; return html;
 }
 
 function toggleSelectAll(checked){
-  let rows=DB.orders.slice().sort((a,b)=>new Date(b['Timestamp'])-new Date(a['Timestamp']));
-  if(UI.orderFilters.search)rows=rows.filter(o=>o['Item Name'].toLowerCase().includes(UI.orderFilters.search.toLowerCase()));
-  if(UI.orderFilters.status)rows=rows.filter(o=>o['Status']===UI.orderFilters.status);
-  if(UI.orderFilters.supplier)rows=rows.filter(o=>o['Supplier']===UI.orderFilters.supplier);
-  if(UI.orderFilters.from)rows=rows.filter(o=>o['Timestamp'].slice(0,10)>=UI.orderFilters.from);
-  if(UI.orderFilters.to)rows=rows.filter(o=>o['Timestamp'].slice(0,10)<=UI.orderFilters.to);
-  rows.forEach(o => { UI.orderSelected[o['Timestamp']] = checked; });
+  let rows=(DB.orders||[]).slice();
+  rows.forEach(o => { if(o['Timestamp']) UI.orderSelected[o['Timestamp']] = checked; });
   render();
 }
 
@@ -193,11 +236,20 @@ async function saveSingleStatus(ts){
   render();
 }
 
-async function bulkStatus(){const st=document.getElementById('bulk-status').value;const tsList=Object.keys(UI.orderSelected).filter(k=>UI.orderSelected[k]);await api.bulkUpdateOrderStatus(tsList,st);DB=await api.getAll();UI.orderSelected={};showToast('Bulk Update Applied');render();}
+async function bulkStatus(){
+  const st=document.getElementById('bulk-status').value;
+  const tsList=Object.keys(UI.orderSelected).filter(k=>UI.orderSelected[k]);
+  await api.bulkUpdateOrderStatus(tsList,st);
+  DB=await api.getAll();
+  UI.orderSelected={};
+  showToast('Bulk Update Applied');
+  render();
+}
+
 function exportOrdersCSV(){
-  let rows=DB.orders;
-  if(UI.orderFilters.from) rows=rows.filter(o=>o['Timestamp'].slice(0,10)>=UI.orderFilters.from);
-  if(UI.orderFilters.to) rows=rows.filter(o=>o['Timestamp'].slice(0,10)<=UI.orderFilters.to);
+  let rows=DB.orders || [];
+  if(UI.orderFilters.from) rows=rows.filter(o=>(o['Timestamp']||'').slice(0,10)>=UI.orderFilters.from);
+  if(UI.orderFilters.to) rows=rows.filter(o=>(o['Timestamp']||'').slice(0,10)<=UI.orderFilters.to);
   const headers = ['Timestamp', 'Order Date', 'Item Name', 'Quantity', 'Unit', 'Supplier', 'Status', 'Logged By'];
   const data = rows.map(o => [o['Timestamp'], o['Order Date'], o['Item Name'], o['Quantity'], o['Unit'], o['Supplier'], o['Status'], o['Logged By']]);
   downloadCSV(`Goya_Orders_${todayISO()}.csv`, headers, data);
@@ -205,8 +257,10 @@ function exportOrdersCSV(){
 
 /* 2. ITEMS & SUPPLIERS */
 function renderItems(){
-  let html=`<div class="card"><div class="section-title"><h3>Supplier Contacts</h3></div><div class="table-wrap"><table><tr><th>Supplier Name</th><th>WhatsApp Phone</th><th>Actions</th></tr>${DB.suppliers.map(s=>`<tr><td><input class="input-text" id="sup-name-${escHtml(s['Name'])}" value="${escHtml(s['Name'])}"></td><td><input class="input-text" id="sup-phone-${escHtml(s['Name'])}" value="${escHtml(s['Phone'])}" placeholder="e.g. +971501234567"></td><td><div class="row" style="gap:6px;"><button class="btn btn-primary btn-sm" onclick="saveSupplier('${escHtml(s['Name'])}')">Save</button><button class="btn btn-danger btn-sm" onclick="deleteSupplier('${escHtml(s['Name'])}')">Delete</button></div></td></tr>`).join('')}</table></div><div class="row" style="margin-top:16px;padding-top:16px;border-top:1px solid var(--line)"><input class="input-text" id="new-sup-name" placeholder="New Supplier Name"><input class="input-text" id="new-sup-phone" placeholder="WhatsApp Phone"><button class="btn btn-primary" onclick="addSupplier()">Add Supplier</button></div></div>`;
-  html+=`<div class="card"><div class="section-title"><h3>Master Items Database</h3><span class="badge">${DB.items.length} Items</span></div><div class="table-wrap"><table><tr><th>Item Name</th><th>SKU</th><th>Storage Unit</th><th>Ingredient Unit</th><th>Supplier</th><th>Category Type</th><th>Actions</th></tr>${DB.items.map(it=>`<tr><td><input class="input-text" id="item-name-${it['Row ID']}" value="${escHtml(it['Name'])}"></td><td><input class="input-text" id="item-sku-${it['Row ID']}" style="width:85px;font-family:monospace" value="${escHtml(it['SKU'])}"></td><td><input class="input-text" id="item-storage-${it['Row ID']}" style="width:85px;" value="${escHtml(it['Storage Unit'])}"></td><td><input class="input-text" id="item-ingredient-${it['Row ID']}" style="width:85px;" value="${escHtml(it['Ingredient Unit'])}"></td><td><select class="input-select" id="item-sup-${it['Row ID']}"><option value="">— Internal Batch —</option>${DB.suppliers.map(s=>`<option value="${escHtml(s['Name'])}" ${it['Supplier']===s['Name']?'selected':''}>${escHtml(s['Name'])}</option>`).join('')}</select></td><td><select class="input-select" id="item-type-${it['Row ID']}"><option value="kitchen" ${it['Items Type']==='kitchen'?'selected':''}>Kitchen</option><option value="pastry" ${it['Items Type']==='pastry'?'selected':''}>Pastry</option><option value="bar" ${it['Items Type']==='bar'?'selected':''}>Bar</option><option value="packaging" ${it['Items Type']==='packaging'?'selected':''}>Packaging</option><option value="internal" ${it['Items Type']==='internal'?'selected':''}>Internal</option></select></td><td><div class="row" style="gap:6px;"><button class="btn btn-primary btn-sm" onclick="saveItem('${it['Row ID']}')">Save</button><button class="btn btn-danger btn-sm" onclick="deleteItem('${it['Row ID']}')">Delete</button></div></td></tr>`).join('')}</table></div><div class="row" style="margin-top:16px;padding-top:16px;border-top:1px solid var(--line);align-items:flex-start"><input class="input-text" id="new-item-name" placeholder="Item Name"><input class="input-text" id="new-item-sku" placeholder="SKU"><div style="display:flex;flex-direction:column;gap:10px;flex:1"><input class="input-text" id="new-item-storage" placeholder="Storage Unit"><input class="input-text" id="new-item-ingredient" placeholder="Ingredient Unit"></div><div style="display:flex;flex-direction:column;gap:10px;flex:1"><select class="input-select" id="new-item-supplier"><option value="">— Internal Batch —</option>${DB.suppliers.map(s=>`<option value="${escHtml(s['Name'])}">${escHtml(s['Name'])}</option>`).join('')}</select><select class="input-select" id="new-item-type"><option value="kitchen">Kitchen</option><option value="pastry">Pastry</option><option value="bar">Bar</option><option value="packaging">Packaging</option><option value="internal" selected>Internal</option></select></div><button class="btn btn-primary" style="align-self:stretch" onclick="addItem()">Add Item</button></div></div>`; return html;
+  const suppliers = DB.suppliers || [];
+  const items = DB.items || [];
+  let html=`<div class="card"><div class="section-title"><h3>Supplier Contacts</h3></div><div class="table-wrap"><table><tr><th>Supplier Name</th><th>WhatsApp Phone</th><th>Actions</th></tr>${suppliers.map(s=>`<tr><td><input class="input-text" id="sup-name-${escHtml(s['Name'])}" value="${escHtml(s['Name'])}"></td><td><input class="input-text" id="sup-phone-${escHtml(s['Name'])}" value="${escHtml(s['Phone'])}" placeholder="e.g. +971501234567"></td><td><div class="row" style="gap:6px;"><button class="btn btn-primary btn-sm" onclick="saveSupplier('${escHtml(s['Name'])}')">Save</button><button class="btn btn-danger btn-sm" onclick="deleteSupplier('${escHtml(s['Name'])}')">Delete</button></div></td></tr>`).join('')}</table></div><div class="row" style="margin-top:16px;padding-top:16px;border-top:1px solid var(--line)"><input class="input-text" id="new-sup-name" placeholder="New Supplier Name"><input class="input-text" id="new-sup-phone" placeholder="WhatsApp Phone"><button class="btn btn-primary" onclick="addSupplier()">Add Supplier</button></div></div>`;
+  html+=`<div class="card"><div class="section-title"><h3>Master Items Database</h3><span class="badge">${items.length} Items</span></div><div class="table-wrap"><table><tr><th>Item Name</th><th>SKU</th><th>Storage Unit</th><th>Ingredient Unit</th><th>Supplier</th><th>Category Type</th><th>Actions</th></tr>${items.map(it=>`<tr><td><input class="input-text" id="item-name-${it['Row ID']}" value="${escHtml(it['Name'])}"></td><td><input class="input-text" id="item-sku-${it['Row ID']}" style="width:85px;font-family:monospace" value="${escHtml(it['SKU'])}"></td><td><input class="input-text" id="item-storage-${it['Row ID']}" style="width:85px;" value="${escHtml(it['Storage Unit'])}"></td><td><input class="input-text" id="item-ingredient-${it['Row ID']}" style="width:85px;" value="${escHtml(it['Ingredient Unit'])}"></td><td><select class="input-select" id="item-sup-${it['Row ID']}"><option value="">— Internal Batch —</option>${suppliers.map(s=>`<option value="${escHtml(s['Name'])}" ${it['Supplier']===s['Name']?'selected':''}>${escHtml(s['Name'])}</option>`).join('')}</select></td><td><select class="input-select" id="item-type-${it['Row ID']}"><option value="kitchen" ${it['Items Type']==='kitchen'?'selected':''}>Kitchen</option><option value="pastry" ${it['Items Type']==='pastry'?'selected':''}>Pastry</option><option value="bar" ${it['Items Type']==='bar'?'selected':''}>Bar</option><option value="packaging" ${it['Items Type']==='packaging'?'selected':''}>Packaging</option><option value="internal" ${it['Items Type']==='internal'?'selected':''}>Internal</option></select></td><td><div class="row" style="gap:6px;"><button class="btn btn-primary btn-sm" onclick="saveItem('${it['Row ID']}')">Save</button><button class="btn btn-danger btn-sm" onclick="deleteItem('${it['Row ID']}')">Delete</button></div></td></tr>`).join('')}</table></div><div class="row" style="margin-top:16px;padding-top:16px;border-top:1px solid var(--line);align-items:flex-start"><input class="input-text" id="new-item-name" placeholder="Item Name"><input class="input-text" id="new-item-sku" placeholder="SKU"><div style="display:flex;flex-direction:column;gap:10px;flex:1"><input class="input-text" id="new-item-storage" placeholder="Storage Unit"><input class="input-text" id="new-item-ingredient" placeholder="Ingredient Unit"></div><div style="display:flex;flex-direction:column;gap:10px;flex:1"><select class="input-select" id="new-item-supplier"><option value="">— Internal Batch —</option>${suppliers.map(s=>`<option value="${escHtml(s['Name'])}">${escHtml(s['Name'])}</option>`).join('')}</select><select class="input-select" id="new-item-type"><option value="kitchen">Kitchen</option><option value="pastry">Pastry</option><option value="bar">Bar</option><option value="packaging">Packaging</option><option value="internal" selected>Internal</option></select></div><button class="btn btn-primary" style="align-self:stretch" onclick="addItem()">Add Item</button></div></div>`; return html;
 }
 async function saveSupplier(oldName){
   const name=document.getElementById(`sup-name-${oldName}`).value.trim();
@@ -245,7 +299,8 @@ async function addItem(){
 
 /* 3. STAFF */
 function renderStaff(){
-  let html=`<div class="card"><div class="section-title"><h3>Staff Directory</h3><span class="badge">${DB.staff.length} Active Staff</span></div><div class="table-wrap"><table><tr><th>Staff PIN</th><th>Full Name</th><th>Section Access (Comma separated)</th><th>Actions</th></tr>${DB.staff.map(s=>`<tr><td><input class="input-text" id="staff-pin-${escHtml(s['PIN Code'])}" style="width:90px;font-family:monospace" value="${escHtml(s['PIN Code'])}"></td><td><input class="input-text" id="staff-name-${escHtml(s['PIN Code'])}" value="${escHtml(s['Staff Full Name'])}"></td><td><input class="input-text" id="staff-sec-${escHtml(s['PIN Code'])}" value="${escHtml(s['Allowed Sections'])}" placeholder="kitchen,bar"></td><td><div class="row" style="gap:6px;"><button class="btn btn-primary btn-sm" onclick="saveStaff('${escHtml(s['PIN Code'])}')">Save</button><button class="btn btn-danger btn-sm" onclick="deleteStaff('${escHtml(s['PIN Code'])}')">Revoke</button></div></td></tr>`).join('')}</table></div><div class="row" style="margin-top:16px;padding-top:16px;border-top:1px solid var(--line)"><input class="input-text" id="new-staff-name" placeholder="Staff Name"><input class="input-text" id="new-staff-pin" placeholder="4-Digit PIN"><button class="btn btn-primary" onclick="addStaff()">Onboard Staff</button></div></div>`; return html;
+  const staff = DB.staff || [];
+  let html=`<div class="card"><div class="section-title"><h3>Staff Directory</h3><span class="badge">${staff.length} Active Staff</span></div><div class="table-wrap"><table><tr><th>Staff PIN</th><th>Full Name</th><th>Section Access (Comma separated)</th><th>Actions</th></tr>${staff.map(s=>`<tr><td><input class="input-text" id="staff-pin-${escHtml(s['PIN Code'])}" style="width:90px;font-family:monospace" value="${escHtml(s['PIN Code'])}"></td><td><input class="input-text" id="staff-name-${escHtml(s['PIN Code'])}" value="${escHtml(s['Staff Full Name'])}"></td><td><input class="input-text" id="staff-sec-${escHtml(s['PIN Code'])}" value="${escHtml(s['Allowed Sections'])}" placeholder="kitchen,bar"></td><td><div class="row" style="gap:6px;"><button class="btn btn-primary btn-sm" onclick="saveStaff('${escHtml(s['PIN Code'])}')">Save</button><button class="btn btn-danger btn-sm" onclick="deleteStaff('${escHtml(s['PIN Code'])}')">Revoke</button></div></td></tr>`).join('')}</table></div><div class="row" style="margin-top:16px;padding-top:16px;border-top:1px solid var(--line)"><input class="input-text" id="new-staff-name" placeholder="Staff Name"><input class="input-text" id="new-staff-pin" placeholder="4-Digit PIN"><button class="btn btn-primary" onclick="addStaff()">Onboard Staff</button></div></div>`; return html;
 }
 async function saveStaff(oldPin){
   const pin=document.getElementById(`staff-pin-${oldPin}`).value.trim();
@@ -261,20 +316,29 @@ async function addStaff(){const n=document.getElementById('new-staff-name').valu
 /* 4. MONITOR (PROD & WASTE) */
 function renderMonitor(){
   let html=`<div class="card"><div class="section-title"><h3>Production & Wastage Logs</h3><div class="row" style="flex:none;gap:8px;"><button class="btn btn-primary btn-sm" onclick="exportMonitorCSV()">📥 Download CSV</button></div></div><div class="filters"><div class="filter-item"><label>Log Type</label><select class="input-select" onchange="UI.monitorFilters.type=this.value;render();"><option value="production" ${UI.monitorFilters.type==='production'?'selected':''}>🏭 Production Batches</option><option value="wastage" ${UI.monitorFilters.type==='wastage'?'selected':''}>🗑 Wastage / Damages</option></select></div><div class="filter-item"><label>From</label><input type="date" class="input-text" value="${UI.monitorFilters.from}" onchange="UI.monitorFilters.from=this.value;render();"></div><div class="filter-item"><label>To</label><input type="date" class="input-text" value="${UI.monitorFilters.to}" onchange="UI.monitorFilters.to=this.value;render();"></div></div>`;
-  let rows=(UI.monitorFilters.type==='production'?DB.production:DB.wastage).slice().sort((a,b)=>new Date(b['Timestamp'])-new Date(a['Timestamp']));
-  if(UI.monitorFilters.from)rows=rows.filter(r=>r['Timestamp'].slice(0,10)>=UI.monitorFilters.from);
-  if(UI.monitorFilters.to)rows=rows.filter(r=>r['Timestamp'].slice(0,10)<=UI.monitorFilters.to);
+  let rows=((UI.monitorFilters.type==='production'?DB.production:DB.wastage)||[]).slice().sort((a,b)=>new Date(b['Timestamp']||0)-new Date(a['Timestamp']||0));
+  if(UI.monitorFilters.from)rows=rows.filter(r=>(r['Timestamp']||'').slice(0,10)>=UI.monitorFilters.from);
+  if(UI.monitorFilters.to)rows=rows.filter(r=>(r['Timestamp']||'').slice(0,10)<=UI.monitorFilters.to);
   const selectedTs=Object.keys(UI.monitorSelected).filter(k=>UI.monitorSelected[k]);
   if(selectedTs.length>0){ html+=`<div class="card" style="background:var(--parchment-2);padding:14px;"><div class="row" style="align-items:center"><span style="font-weight:700;font-size:13.5px;">${selectedTs.length} Selected</span><div class="row" style="flex:none"><select class="input-select" id="bulk-log-status" style="width:130px;padding:8px;"><option value="Logged">Logged</option><option value="Reviewed">Reviewed</option><option value="Flagged">Flagged</option></select><button class="btn btn-primary btn-sm" onclick="bulkLogStatus()">Update Status</button></div></div></div>`; }
-  html+=`<div class="table-wrap"><table><tr><th><input type="checkbox" onchange="Object.keys(UI.monitorSelected).forEach(k=>{UI.monitorSelected[k]=this.checked;});render();"></th><th>Timestamp</th><th>Item Details</th><th>Qty</th>${UI.monitorFilters.type==='wastage'?'<th>Reason</th>':''}<th>Review Status</th><th>Recorded By</th></tr>${rows.map(r=>`<tr><td><input type="checkbox" ${UI.monitorSelected[r['Timestamp']]?'checked':''} onchange="UI.monitorSelected['${r['Timestamp']}']=this.checked;render();"></td><td style="font-family:monospace;color:var(--ink-soft);font-size:11.5px;">${fmtDateTime(r['Timestamp'])}</td><td style="font-weight:600;color:var(--espresso)">${escHtml(r['Item Name'])}</td><td><span class="tag">${r['Quantity']} ${escHtml(r['Unit'])}</span></td>${UI.monitorFilters.type==='wastage'?`<td><span class="badge" style="background:#fdf2f2;color:var(--alert)">${escHtml(r['Reason'])}</span></td>`:''}<td><select class="input-select" onchange="setLogStatus('${r['Timestamp']}',this.value);" style="width:110px;padding:6px;font-size:12px;"><option value="Logged" ${r['Status']==='Logged'?'selected':''}>Logged</option><option value="Reviewed" ${r['Status']==='Reviewed'?'selected':''}>Reviewed</option><option value="Flagged" ${r['Status']==='Flagged'?'selected':''}>Flagged</option></select></td><td>${escHtml(r['Logged By'])}</td></tr>`).join('')}</table></div></div>`; return html;
+  html+=`<div class="table-wrap"><table><tr><th><input type="checkbox" onchange="Object.keys(UI.monitorSelected).forEach(k=>{UI.monitorSelected[k]=this.checked;});render();"></th><th>Timestamp</th><th>Item Details</th><th>Qty</th>${UI.monitorFilters.type==='wastage'?'<th>Reason</th>':''}<th>Review Status</th><th>Recorded By</th></tr>${rows.map(r=>`<tr><td><input type="checkbox" ${UI.monitorSelected[r['Timestamp']]?'checked':''} onchange="UI.monitorSelected['${escHtml(r['Timestamp']}']=this.checked;render();"></td><td style="font-family:monospace;color:var(--ink-soft);font-size:11.5px;">${fmtDateTime(r['Timestamp'])}</td><td style="font-weight:600;color:var(--espresso)">${escHtml(r['Item Name'])}</td><td><span class="tag">${r['Quantity']} ${escHtml(r['Unit'])}</span></td>${UI.monitorFilters.type==='wastage'?`<td><span class="badge" style="background:#fdf2f2;color:var(--alert)">${escHtml(r['Reason'])}</span></td>`:''}<td><select class="input-select" id="log-status-${escHtml(r['Timestamp'])}" style="width:110px;padding:6px;font-size:12px;"><option value="Logged" ${r['Status']==='Logged'?'selected':''}>Logged</option><option value="Reviewed" ${r['Status']==='Reviewed'?'selected':''}>Reviewed</option><option value="Flagged" ${r['Status']==='Flagged'?'selected':''}>Flagged</option></select> <button class="btn btn-primary btn-sm" onclick="saveSingleLogStatus('${escHtml(r['Timestamp'])}')">Save</button></td><td>${escHtml(r['Logged By'])}</td></tr>`).join('')}</table></div></div>`; return html;
 }
-async function setLogStatus(ts,st){const sheet=UI.monitorFilters.type==='production'?'Production':'Wastage';await api.updateLogStatus(sheet,ts,st);DB=await api.getAll();showToast('Status Updated');}
+async function saveSingleLogStatus(ts){
+  const sel = document.getElementById(`log-status-${ts}`);
+  if(!sel) return;
+  const st = sel.value;
+  const sheet = UI.monitorFilters.type === 'production' ? 'Production' : 'Wastage';
+  await api.updateLogStatus(sheet, ts, st);
+  DB = await api.getAll();
+  showToast('Status Updated');
+  render();
+}
 async function bulkLogStatus(){const st=document.getElementById('bulk-log-status').value;const sheet=UI.monitorFilters.type==='production'?'Production':'Wastage';const tsList=Object.keys(UI.monitorSelected).filter(k=>UI.monitorSelected[k]);for(const ts of tsList)await api.updateLogStatus(sheet,ts,st);DB=await api.getAll();UI.monitorSelected={};showToast('Bulk Applied');render();}
 function exportMonitorCSV(){
   const isProd = UI.monitorFilters.type === 'production';
-  let rows = isProd ? DB.production : DB.wastage;
-  if(UI.monitorFilters.from) rows=rows.filter(o=>o['Timestamp'].slice(0,10)>=UI.monitorFilters.from);
-  if(UI.monitorFilters.to) rows=rows.filter(o=>o['Timestamp'].slice(0,10)<=UI.monitorFilters.to);
+  let rows = isProd ? (DB.production || []) : (DB.wastage || []);
+  if(UI.monitorFilters.from) rows=rows.filter(o=>(o['Timestamp']||'').slice(0,10)>=UI.monitorFilters.from);
+  if(UI.monitorFilters.to) rows=rows.filter(o=>(o['Timestamp']||'').slice(0,10)<=UI.monitorFilters.to);
   const headers = isProd ? ['Timestamp', 'Date', 'Item Name', 'Quantity', 'Unit', 'Logged By', 'Status'] : ['Timestamp', 'Date', 'Item Name', 'Quantity', 'Unit', 'Reason', 'Logged By', 'Status'];
   const data = rows.map(o => isProd ? [o['Timestamp'], o['Date'], o['Item Name'], o['Quantity'], o['Unit'], o['Logged By'], o['Status']] : [o['Timestamp'], o['Date'], o['Item Name'], o['Quantity'], o['Unit'], o['Reason'], o['Logged By'], o['Status']]);
   downloadCSV(`Goya_${isProd?'Production':'Wastage'}_${todayISO()}.csv`, headers, data);
@@ -282,22 +346,22 @@ function exportMonitorCSV(){
 
 /* 5. COUNTS */
 function renderCounts(){
-  const enabled=DB.settings.InventoryCountEnabled==='true';
-  let counts=DB.inventoryCounts;
+  const enabled = DB.settings?.InventoryCountEnabled === 'true';
+  let counts = DB.inventoryCounts || [];
   if(UI.countFilters.month) counts=counts.filter(c=>c['Count Date / Month']===UI.countFilters.month);
   
   let html=`<div class="card"><div class="section-title"><h3>Inventory Counts Module</h3><div class="row" style="flex:none;gap:8px;"><button class="btn btn-primary btn-sm" onclick="exportCountsCSV()">📥 Download Foodics CSV</button><button class="btn ${enabled?'btn-danger':'btn-primary'} btn-sm" onclick="toggleCount()">${enabled?'Deactivate Counts':'Activate Counts'}</button></div></div><p style="color:var(--ink-soft);margin-bottom:14px;font-size:13.5px;">Status: <strong style="color:var(--espresso)">${enabled?'Active':'Disabled'}</strong></p><div class="filters"><div class="filter-item"><label>Filter Month</label><input type="month" class="input-text" value="${UI.countFilters.month}" onchange="UI.countFilters.month=this.value;render();"></div></div><div class="table-wrap"><table><tr><th>Count Month</th><th>Section</th><th>Item Name</th><th>Storage Qty</th><th>Ingredient Qty</th><th>Submitted By</th></tr>${counts.map(c=>`<tr><td style="font-family:monospace;font-weight:600">${escHtml(c['Count Date / Month'])}</td><td><span class="tag">${SECTION_LABEL[(c['Section']||'').toLowerCase()]||c['Section']}</span></td><td style="font-weight:600">${escHtml(c['Item Name'])}</td><td>${c['Storage Quantity']}</td><td>${c['Ingredient Quantity']}</td><td>${escHtml(c['Submitted By'])}</td></tr>`).join('')||'<tr><td colspan="6" style="text-align:center;padding:20px;color:var(--ink-soft)">No counts found for this month.</td></tr>'}</table></div></div>`;
   return html;
 }
 async function toggleCount(){
-  const en=DB.settings.InventoryCountEnabled==='true';
+  const en = DB.settings?.InventoryCountEnabled === 'true';
   await api.setSetting('InventoryCountEnabled', en?'false':'true');
-  DB=await api.getAll();
+  DB = await api.getAll();
   showToast('Inventory Count Status Updated');
   render();
 }
 function exportCountsCSV(){
-  let rows=DB.inventoryCounts;
+  let rows=DB.inventoryCounts || [];
   if(UI.countFilters.month) rows=rows.filter(c=>c['Count Date / Month']===UI.countFilters.month);
   const headers = ['Inventory Item Name', 'Inventory Item SKU', 'Storage quantity', 'Ingredients quantity', 'Inventory Count ID'];
   const data = rows.map(o => [o['Item Name'], o['SKU']||'', o['Storage Quantity']||'', o['Ingredient Quantity']||'', '']);
@@ -312,26 +376,47 @@ function renderExport(){
 function exportData(type) {
   const dateStr = todayISO();
   if (type === 'orders') {
-    downloadCSV(`Goya_Orders_${dateStr}.csv`, ['Timestamp', 'Order Date', 'Item Name', 'Quantity', 'Unit', 'Supplier', 'Status', 'Logged By'], DB.orders.map(o => [o['Timestamp'], o['Order Date'], o['Item Name'], o['Quantity'], o['Unit'], o['Supplier'], o['Status'], o['Logged By']]));
+    downloadCSV(`Goya_Orders_${dateStr}.csv`, ['Timestamp', 'Order Date', 'Item Name', 'Quantity', 'Unit', 'Supplier', 'Status', 'Logged By'], (DB.orders||[]).map(o => [o['Timestamp'], o['Order Date'], o['Item Name'], o['Quantity'], o['Unit'], o['Supplier'], o['Status'], o['Logged By']]));
   } else if (type === 'production') {
-    downloadCSV(`Goya_Production_${dateStr}.csv`, ['Timestamp', 'Date', 'Item Name', 'Quantity', 'Unit', 'Logged By', 'Status'], DB.production.map(o => [o['Timestamp'], o['Date'], o['Item Name'], o['Quantity'], o['Unit'], o['Logged By'], o['Status']]));
+    downloadCSV(`Goya_Production_${dateStr}.csv`, ['Timestamp', 'Date', 'Item Name', 'Quantity', 'Unit', 'Logged By', 'Status'], (DB.production||[]).map(o => [o['Timestamp'], o['Date'], o['Item Name'], o['Quantity'], o['Unit'], o['Logged By'], o['Status']]));
   } else if (type === 'wastage') {
-    downloadCSV(`Goya_Wastage_${dateStr}.csv`, ['Timestamp', 'Date', 'Item Name', 'Quantity', 'Unit', 'Reason', 'Logged By', 'Status'], DB.wastage.map(o => [o['Timestamp'], o['Date'], o['Item Name'], o['Quantity'], o['Unit'], o['Reason'], o['Logged By'], o['Status']]));
+    downloadCSV(`Goya_Wastage_${dateStr}.csv`, ['Timestamp', 'Date', 'Item Name', 'Quantity', 'Unit', 'Reason', 'Logged By', 'Status'], (DB.wastage||[]).map(o => [o['Timestamp'], o['Date'], o['Item Name'], o['Quantity'], o['Unit'], o['Reason'], o['Logged By'], o['Status']]));
   } else if (type === 'items') {
-    downloadCSV(`Goya_MasterItems_${dateStr}.csv`, ['Row ID', 'Name', 'SKU', 'Storage Unit', 'Ingredient Unit', 'Supplier', 'Items Type'], DB.items.map(o => [o['Row ID'], o['Name'], o['SKU'], o['Storage Unit'], o['Ingredient Unit'], o['Supplier'], o['Items Type']]));
+    downloadCSV(`Goya_MasterItems_${dateStr}.csv`, ['Row ID', 'Name', 'SKU', 'Storage Unit', 'Ingredient Unit', 'Supplier', 'Items Type'], (DB.items||[]).map(o => [o['Row ID'], o['Name'], o['SKU'], o['Storage Unit'], o['Ingredient Unit'], o['Supplier'], o['Items Type']]));
   } else if (type === 'staff') {
-    downloadCSV(`Goya_StaffList_${dateStr}.csv`, ['PIN Code', 'Staff Full Name', 'Allowed Sections'], DB.staff.map(o => [o['PIN Code'], o['Staff Full Name'], o['Allowed Sections']]));
+    downloadCSV(`Goya_StaffList_${dateStr}.csv`, ['PIN Code', 'Staff Full Name', 'Allowed Sections'], (DB.staff||[]).map(o => [o['PIN Code'], o['Staff Full Name'], o['Allowed Sections']]));
   }
 }
 
 /* 7. SETTINGS */
 function renderSettings(){
-  return `<div class="card"><div class="section-title"><h3>Google Sheet Database Connection</h3></div><div class="row" style="align-items:flex-end"><div style="flex:1"><label style="font-size:11px;font-weight:700;color:var(--ink-soft);display:block;margin-bottom:6px;">Apps Script Web App URL</label><input type="text" id="sheet-url" class="input-text" value="${escHtml(SHEET_URL)}"></div><button class="btn btn-primary" onclick="saveSheetUrl()">Link Database</button></div></div><div class="card"><div class="section-title"><h3>System Security</h3></div><div class="row" style="align-items:flex-end;max-width:380px"><div style="flex:1"><label style="font-size:11px;font-weight:700;color:var(--ink-soft);display:block;margin-bottom:6px;">Admin Master PIN</label><input type="text" id="new-master-pin" placeholder="4-digit PIN" maxlength="4" class="input-text"></div><button class="btn btn-primary" onclick="changeMasterPin()">Update PIN</button></div></div><div class="card"><div class="section-title"><h3>Notification Settings</h3></div><div class="row" style="align-items:flex-end;max-width:440px"><div style="flex:1"><label style="font-size:11px;font-weight:700;color:var(--ink-soft);display:block;margin-bottom:6px;">Owner Email for Purchase Orders</label><input type="email" id="owner-email" class="input-text" value="${escHtml(DB.settings.OwnerEmail||'mehedi.src@gmail.com')}"></div><button class="btn btn-primary" onclick="saveOwnerEmail()">Save Email</button></div></div>`;
+  const ownerEmail = DB.settings?.OwnerEmail || 'mehedi.src@gmail.com';
+  return `<div class="card"><div class="section-title"><h3>Google Sheet Database Connection</h3></div><div class="row" style="align-items:flex-end"><div style="flex:1"><label style="font-size:11px;font-weight:700;color:var(--ink-soft);display:block;margin-bottom:6px;">Apps Script Web App URL</label><input type="text" id="sheet-url" class="input-text" value="${escHtml(SHEET_URL)}"></div><button class="btn btn-primary" onclick="saveSheetUrl()">Link Database</button></div></div><div class="card"><div class="section-title"><h3>System Security</h3></div><div class="row" style="align-items:flex-end;max-width:380px"><div style="flex:1"><label style="font-size:11px;font-weight:700;color:var(--ink-soft);display:block;margin-bottom:6px;">Admin Master PIN</label><input type="text" id="new-master-pin" placeholder="4-digit PIN" maxlength="4" class="input-text"></div><button class="btn btn-primary" onclick="changeMasterPin()">Update PIN</button></div></div><div class="card"><div class="section-title"><h3>Notification Settings</h3></div><div class="row" style="align-items:flex-end;max-width:440px"><div style="flex:1"><label style="font-size:11px;font-weight:700;color:var(--ink-soft);display:block;margin-bottom:6px;">Owner Email for Purchase Orders</label><input type="email" id="owner-email" class="input-text" value="${escHtml(ownerEmail)}"></div><button class="btn btn-primary" onclick="saveOwnerEmail()">Save Email</button></div></div>`;
 }
-async function changeMasterPin(){const v=document.getElementById('new-master-pin').value.trim();if(v.length!==4||!/^\d{4}$/.test(v)){showToast('Please enter exactly 4 digits');return;} await api.setSetting('MasterPin',v);DB=await api.getAll();showToast('Admin PIN Updated');render();}
-async function saveOwnerEmail(){const em=document.getElementById('owner-email').value.trim();if(!em)return;await api.setSetting('OwnerEmail',em);DB=await api.getAll();showToast('Owner Email Saved Successfully');render();}
-async function saveSheetUrl(){const url=document.getElementById('sheet-url').value.trim();await connectSheet(url);showToast(url?'Database Linked Successfully':'Disconnected');setTimeout(()=>location.reload(),600);}
+async function changeMasterPin(){
+  const v=document.getElementById('new-master-pin').value.trim();
+  if(v.length!==4||!/^\d{4}$/.test(v)){showToast('Please enter exactly 4 digits');return;}
+  await api.setSetting('MasterPin',v);
+  DB=await api.getAll();
+  showToast('Admin PIN Updated');
+  render();
+}
+async function saveOwnerEmail(){
+  const em=document.getElementById('owner-email').value.trim();
+  if(!em)return;
+  await api.setSetting('OwnerEmail',em);
+  DB=await api.getAll();
+  showToast('Owner Email Saved Successfully');
+  render();
+}
+async function saveSheetUrl(){
+  const url=document.getElementById('sheet-url').value.trim();
+  await connectSheet(url);
+  showToast(url?'Database Linked Successfully':'Disconnected');
+  setTimeout(()=>location.reload(),600);
+}
 
+// Initial boot
 boot();
 </script>
 </body>
