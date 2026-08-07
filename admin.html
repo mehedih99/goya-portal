@@ -1,30 +1,300 @@
-<!DOCTYPE html><html lang="en"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><title>Goya Portal — Admin</title><link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,600;9..144,700&family=Inter:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet"><style>*{margin:0;padding:0;box-sizing:border-box}:root{--espresso:#2d2416;--sage:#6b8e5f;--ink:#1a1a1a;--ink-soft:#666;--line:#e5ddd0;--parchment:#f5f1e8;--parchment-2:#ede9df;--alert:#d9534f}body{font-family:Inter,-apple-system,sans-serif;background:#faf8f5;color:var(--ink);line-height:1.5}input,select,button,textarea{font-family:inherit;font-size:inherit;color:inherit}.topbar{background:#fff;padding:12px 18px;display:flex;justify-content:space-between;align-items:center;border-bottom:1px solid var(--line);box-shadow:0 1px 3px rgba(0,0,0,.08);position:sticky;top:0;z-index:100}.brand{font-weight:600;color:var(--espresso)}.admin-layout{display:grid;grid-template-columns:160px 1fr;gap:16px;padding:20px;max-width:1400px;margin:0 auto}@media (max-width:768px){.admin-layout{grid-template-columns:1fr}}.admin-nav{display:flex;flex-direction:column;gap:4px;background:#fff;padding:12px;border-radius:8px;height:fit-content;position:sticky;top:100px}.admin-nav button{padding:10px 12px;text-align:left;border:none;background:none;cursor:pointer;border-radius:6px;font-weight:500;color:var(--ink-soft);transition:all .2s}.admin-nav button.active{background:var(--parchment);color:var(--espresso);font-weight:600}.card{background:#fff;border-radius:10px;padding:20px;margin-bottom:16px;box-shadow:0 1px 3px rgba(0,0,0,.06)}.section-title{display:flex;justify-content:space-between;align-items:center;margin-bottom:16px}.section-title h3{font-size:18px;font-weight:600}.row{display:flex;gap:12px;flex-wrap:wrap;align-items:center}.row>*{min-width:0;flex:1}.btn{padding:10px 16px;border:none;border-radius:6px;font-weight:600;cursor:pointer;transition:all .2s;font-size:14px}.btn-primary{background:var(--sage);color:#fff}.btn-primary:hover{background:#5a7a50}.btn-ghost{background:transparent;border:1.5px solid var(--line);color:var(--ink)}.btn-ghost:hover{background:var(--parchment)}.btn-danger{background:var(--alert);color:#fff}.btn-danger:hover{background:#c94444}.btn-sm{padding:8px 12px;font-size:13px}.btn-wa{background:#25d366;color:#fff}.btn-wa:hover{background:#1aa851}.input-text,.input-number,.input-select{padding:10px 12px;border:1.5px solid var(--line);border-radius:6px;background:#fff;width:100%}.input-text:focus,.input-number:focus,.input-select:focus{outline:none;border-color:var(--sage);box-shadow:0 0 0 3px rgba(107,142,95,.1)}.table-wrap{overflow-x:auto;margin:16px 0}.table-wrap table{width:100%;border-collapse:collapse;font-size:13px}.table-wrap th{background:var(--parchment);padding:10px 8px;text-align:left;font-weight:600;color:var(--espresso)}.table-wrap td{padding:10px 8px;border-bottom:1px solid var(--line)}.table-wrap tr:hover{background:var(--parchment)}.table-wrap input[type="checkbox"]{cursor:pointer}.gate-wrap{display:flex;align-items:center;justify-content:center;min-height:100vh;background:#f5f1e8}.gate-card{background:#fff;padding:40px;border-radius:12px;box-shadow:0 10px 40px rgba(0,0,0,.1);max-width:420px;width:90%}.badge{display:inline-block;padding:4px 10px;border-radius:4px;font-size:12px;font-weight:600;background:var(--parchment);color:var(--ink)}.tag{display:inline-block;padding:6px 12px;border-radius:6px;background:#e3ecdd;color:var(--sage);font-size:12px;font-weight:600}.filters{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:12px;margin-bottom:16px}.filter-item label{display:block;font-size:12px;font-weight:600;color:var(--ink-soft);margin-bottom:4px}.empty-state{text-align:center;padding:40px 20px;color:var(--ink-soft)}.empty-state h3{font-size:16px;margin-bottom:8px}@media (max-width:640px){.admin-layout{padding:12px}.card{padding:14px}.table-wrap{font-size:12px}.table-wrap th,.table-wrap td{padding:6px 4px}.btn{font-size:13px;padding:8px 12px}}</style></head><body><div id="app"></div><script src="goya-common.js"></script><script>
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Goya Portal — Admin</title>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,600;9..144,700&family=Inter:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+*{margin:0;padding:0;box-sizing:border-box}:root{--espresso:#2d2416;--sage:#6b8e5f;--ink:#1a1a1a;--ink-soft:#666;--line:#e5ddd0;--parchment:#f5f1e8;--parchment-2:#ede9df;--alert:#d9534f}body{font-family:Inter,-apple-system,sans-serif;background:#faf8f5;color:var(--ink);line-height:1.5}input,select,button,textarea{font-family:inherit;font-size:inherit;color:inherit}.topbar{background:#fff;padding:12px 18px;display:flex;justify-content:space-between;align-items:center;border-bottom:1px solid var(--line);box-shadow:0 1px 3px rgba(0,0,0,.08);position:sticky;top:0;z-index:100}.brand{font-weight:600;color:var(--espresso)}.admin-layout{display:grid;grid-template-columns:160px 1fr;gap:16px;padding:20px;max-width:1400px;margin:0 auto}@media (max-width:768px){.admin-layout{grid-template-columns:1fr}}.admin-nav{display:flex;flex-direction:column;gap:4px;background:#fff;padding:12px;border-radius:8px;height:fit-content;position:sticky;top:100px}.admin-nav button{padding:10px 12px;text-align:left;border:none;background:none;cursor:pointer;border-radius:6px;font-weight:500;color:var(--ink-soft);transition:all .2s}.admin-nav button.active{background:var(--parchment);color:var(--espresso);font-weight:600}.card{background:#fff;border-radius:10px;padding:20px;margin-bottom:16px;box-shadow:0 1px 3px rgba(0,0,0,.06)}.section-title{display:flex;justify-content:space-between;align-items:center;margin-bottom:16px}.section-title h3{font-size:18px;font-weight:600}.row{display:flex;gap:12px;flex-wrap:wrap;align-items:center}.row>*{min-width:0;flex:1}.btn{padding:10px 16px;border:none;border-radius:6px;font-weight:600;cursor:pointer;transition:all .2s;font-size:14px}.btn-primary{background:var(--sage);color:#fff}.btn-primary:hover{background:#5a7a50}.btn-ghost{background:transparent;border:1.5px solid var(--line);color:var(--ink)}.btn-ghost:hover{background:var(--parchment)}.btn-danger{background:var(--alert);color:#fff}.btn-danger:hover{background:#c94444}.btn-sm{padding:8px 12px;font-size:13px}.btn-wa{background:#25d366;color:#fff}.btn-wa:hover{background:#1aa851}.input-text,.input-number,.input-select{padding:10px 12px;border:1.5px solid var(--line);border-radius:6px;background:#fff;width:100%}.input-text:focus,.input-number:focus,.input-select:focus{outline:none;border-color:var(--sage);box-shadow:0 0 0 3px rgba(107,142,95,.1)}.table-wrap{overflow-x:auto;margin:16px 0}.table-wrap table{width:100%;border-collapse:collapse;font-size:13px}.table-wrap th{background:var(--parchment);padding:10px 8px;text-align:left;font-weight:600;color:var(--espresso)}.table-wrap td{padding:10px 8px;border-bottom:1px solid var(--line)}.table-wrap tr:hover{background:var(--parchment)}.table-wrap input[type="checkbox"]{cursor:pointer}.gate-wrap{display:flex;align-items:center;justify-content:center;min-height:100vh;background:#f5f1e8}.gate-card{background:#fff;padding:40px;border-radius:12px;box-shadow:0 10px 40px rgba(0,0,0,.1);max-width:420px;width:90%}.badge{display:inline-block;padding:4px 10px;border-radius:4px;font-size:12px;font-weight:600;background:var(--parchment);color:var(--ink)}.tag{display:inline-block;padding:6px 12px;border-radius:6px;background:#e3ecdd;color:var(--sage);font-size:12px;font-weight:600}.filters{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:12px;margin-bottom:16px}.filter-item label{display:block;font-size:12px;font-weight:600;color:var(--ink-soft);margin-bottom:4px}.empty-state{text-align:center;padding:40px 20px;color:var(--ink-soft)}.empty-state h3{font-size:16px;margin-bottom:8px}@media (max-width:640px){.admin-layout{padding:12px}.card{padding:14px}.table-wrap{font-size:12px}.table-wrap th,.table-wrap td{padding:6px 4px}.btn{font-size:13px;padding:8px 12px}}
+/* Embedded Common Styles */
+.pin-pad { text-align:center; }
+.pin-grid { display:grid; grid-template-columns:repeat(3,60px); gap:8px; justify-content:center; }
+.pin-grid button { width:60px; height:60px; font-size:18px; font-weight:600; border:2px solid var(--line); background:#fff; border-radius:8px; cursor:pointer; }
+.pin-grid button:hover { background:var(--parchment); }
+.overlay { position:fixed; top:0; left:0; right:0; bottom:0; background:rgba(0,0,0,.5); display:flex; align-items:center; justify-content:center; z-index:9999; }
+.modal { background:#fff; padding:32px; border-radius:12px; box-shadow:0 10px 40px rgba(0,0,0,.2); max-width:500px; width:90%; }
+</style>
+</head>
+<body>
+<div id="app"></div>
+<script>
+/* ============================================================
+   GOYA PORTAL v3 FINAL — COMMON & ADMIN LOGIC EMBEDDED
+   ============================================================ */
+const OWNER_EMAIL = 'mehedi.src@gmail.com';
+const WASTE_REASONS = ['Expired','Spillage','Damaged','Over-prepared','Staff Mistake'];
+const STATUSES = ['PENDING','ORDERED','RECEIVED','NOT_RECEIVED','REJECTED'];
+const STATUS_LABEL = {PENDING:'Pending',ORDERED:'Ordered',RECEIVED:'Received',NOT_RECEIVED:'Not Received',REJECTED:'Rejected'};
+const SECTIONS = ['kitchen','pastry','bar','packaging'];
+const SECTION_LABEL = {kitchen:'Kitchen',pastry:'Pastry',bar:'Bar',packaging:'Packaging'};
+
+let SHEET_URL = '';
+let LOCAL_DB = null;
+
+async function initBackend(){
+  SHEET_URL = await getLocalSetting('goya-sheet-url');
+}
+
+async function connectSheet(url){
+  if(url){
+    await setLocalSetting('goya-sheet-url', url);
+    SHEET_URL = url;
+  } else {
+    await setLocalSetting('goya-sheet-url', '');
+    SHEET_URL = '';
+  }
+}
+
+async function disconnectSheet(){
+  await setLocalSetting('goya-sheet-url', '');
+  SHEET_URL = '';
+}
+
+function isSheetConnected(){ return SHEET_URL && SHEET_URL.trim().length > 0; }
+
+async function getLocalSetting(key){ try{ return JSON.parse(localStorage.getItem(key)||'null'); }catch(e){ return null; } }
+async function setLocalSetting(key, val){ localStorage.setItem(key, JSON.stringify(val)); }
+
+async function sheetPost(action, body){
+  if(!SHEET_URL) throw new Error('Sheet not connected');
+  const resp = await fetch(SHEET_URL, {method:'POST', body:JSON.stringify({action,...body})});
+  if(!resp.ok) throw new Error('Sheet API failed: '+resp.status);
+  return resp.json();
+}
+
+const api = {
+  async getAll(){
+    if(!SHEET_URL) return seedData();
+    try{
+      const resp = await fetch(SHEET_URL+'?action=getAll');
+      if(!resp.ok) throw new Error(resp.status);
+      return resp.json();
+    }catch(e){ return seedData(); }
+  },
+  async updateOrderStatus(timestamp, status, receivedDate){
+    if(SHEET_URL) await sheetPost('updateOrderStatus',{timestamp,status,receivedDate});
+    else{ const o=LOCAL_DB.orders.find(x=>x['Timestamp']===timestamp); if(o){ o['Status']=status; o['Received Date']=receivedDate; } await saveLocalDB(); }
+  },
+  async bulkUpdateOrderStatus(timestamps, status){
+    if(SHEET_URL) await sheetPost('bulkUpdateOrderStatus',{timestamps,status});
+    else{ LOCAL_DB.orders.forEach(o=>{ if(timestamps.includes(o['Timestamp'])) o['Status']=status; }); await saveLocalDB(); }
+  },
+  async updateLogStatus(sheet, timestamp, status){
+    if(SHEET_URL) await sheetPost('updateLogStatus',{sheet,timestamp,status});
+    else{
+      const arr = sheet==='Production' ? LOCAL_DB.production : LOCAL_DB.wastage;
+      const row = arr.find(x=>x['Timestamp']===timestamp);
+      if(row) row['Status']=status;
+      await saveLocalDB();
+    }
+  },
+  async upsertItem(item){
+    if(SHEET_URL) return sheetPost('upsertItem',{item});
+    else{
+      const i = LOCAL_DB.items.find(x=>x['Row ID']===item.rowId);
+      const row = {'Row ID':item.rowId,'Name':item.name,'SKU':item.sku||'','Storage Unit':item.storageUnit||'','Ingredient Unit':item.ingredientUnit||'','Supplier':item.supplier||'','Items Type':item.itemsType||'kitchen'};
+      if(i) Object.assign(i,row); else LOCAL_DB.items.push(row);
+      await saveLocalDB();
+    }
+  },
+  async deleteItem(rowId){
+    if(SHEET_URL) await sheetPost('deleteItem',{rowId});
+    else{ LOCAL_DB.items = LOCAL_DB.items.filter(x=>x['Row ID']!==rowId); await saveLocalDB(); }
+  },
+  async upsertStaff(staff, oldPin){
+    if(SHEET_URL) return sheetPost('upsertStaff',{staff,oldPin});
+    else{
+      const matchPin = oldPin || staff.pin;
+      const s = LOCAL_DB.staff.find(x=>x['PIN Code']===matchPin);
+      const row = {'PIN Code':staff.pin,'Staff Full Name':staff.name,'Allowed Sections':(staff.allowedSections||[]).join(',')};
+      if(s) Object.assign(s,row); else LOCAL_DB.staff.push(row);
+      await saveLocalDB();
+    }
+  },
+  async deleteStaff(pin){
+    if(SHEET_URL) await sheetPost('deleteStaff',{pin});
+    else{ LOCAL_DB.staff = LOCAL_DB.staff.filter(x=>x['PIN Code']!==pin); await saveLocalDB(); }
+  },
+  async upsertSupplier(supplier, oldName){
+    if(SHEET_URL) return sheetPost('upsertSupplier',{supplier,oldName});
+    else{
+      const matchName = oldName || supplier.name;
+      const s = LOCAL_DB.suppliers.find(s=>s['Name']===matchName);
+      const row = {'Name':supplier.name,'Phone':supplier.phone||'','Group Link':supplier.groupLink||''};
+      if(s) Object.assign(s,row); else LOCAL_DB.suppliers.push(row);
+      await saveLocalDB();
+    }
+  },
+  async deleteSupplier(name){
+    if(SHEET_URL) await sheetPost('deleteSupplier',{name});
+    else{ LOCAL_DB.suppliers = LOCAL_DB.suppliers.filter(s=>s['Name']!==name); await saveLocalDB(); }
+  },
+  async setSetting(key, value){
+    if(SHEET_URL) return sheetPost('setSetting',{key,value});
+    else{ LOCAL_DB.settings[key]=value; await saveLocalDB(); }
+  }
+};
+
+function seedData(){
+  return {
+    items:[
+      {'Row ID':'1','Name':'Ethiopian Green Beans','SKU':'BEAN-ETH-01','Storage Unit':'KG','Ingredient Unit':'GRAM','Supplier':'Sunrise Bean Co.','Items Type':'kitchen'},
+      {'Row ID':'2','Name':'Colombian Green Beans','SKU':'BEAN-COL-01','Storage Unit':'KG','Ingredient Unit':'GRAM','Supplier':'Sunrise Bean Co.','Items Type':'kitchen'},
+      {'Row ID':'3','Name':'Full Cream Milk','SKU':'MILK-FC-01','Storage Unit':'Liter','Ingredient Unit':'ML','Supplier':'Dairy Fresh Ltd.','Items Type':'bar'},
+      {'Row ID':'4','Name':'Oat Milk','SKU':'MILK-OAT-01','Storage Unit':'Liter','Ingredient Unit':'ML','Supplier':'Dairy Fresh Ltd.','Items Type':'bar'},
+      {'Row ID':'5','Name':'12oz Paper Cups','SKU':'CUP-12OZ-01','Storage Unit':'Box (1000pcs)','Ingredient Unit':'PCS','Supplier':'Pack & Print Supplies','Items Type':'packaging'},
+      {'Row ID':'6','Name':'Cup Lids','SKU':'LID-CLEAR-01','Storage Unit':'Box (1000pcs)','Ingredient Unit':'PCS','Supplier':'Pack & Print Supplies','Items Type':'packaging'},
+      {'Row ID':'7','Name':'House Cold Brew Batch','SKU':'PREP-CB-01','Storage Unit':'Liter','Ingredient Unit':'ML','Supplier':'','Items Type':'bar'},
+      {'Row ID':'8','Name':'Vanilla Syrup Batch','SKU':'PREP-VS-01','Storage Unit':'Liter','Ingredient Unit':'ML','Supplier':'','Items Type':'pastry'},
+      {'Row ID':'9','Name':'All-Purpose Flour','SKU':'FLOUR-AP-01','Storage Unit':'KG','Ingredient Unit':'GRAM','Supplier':'','Items Type':'pastry'},
+      {'Row ID':'10','Name':'Chicken Breast','SKU':'MEAT-CHK-01','Storage Unit':'KG','Ingredient Unit':'GRAM','Supplier':'','Items Type':'kitchen'},
+    ],
+    staff:[
+      {'PIN Code':'1111','Staff Full Name':'Aisha Rahman','Allowed Sections':'bar'},
+      {'PIN Code':'2222','Staff Full Name':'Rahim Uddin','Allowed Sections':'kitchen,pastry'},
+      {'PIN Code':'3333','Staff Full Name':'Karim Hossain','Allowed Sections':'packaging,bar'},
+    ],
+    orders:[], production:[], wastage:[], inventoryCounts:[], inventoryDrafts:[],
+    suppliers:[
+      {'Name':'Sunrise Bean Co.','Phone':'8801700000001','Group Link':''},
+      {'Name':'Dairy Fresh Ltd.','Phone':'8801700000002','Group Link':''},
+      {'Name':'Pack & Print Supplies','Phone':'','Group Link':''},
+    ],
+    settings:{ MasterPin:'9988', ConnectionPin:'9988', InventoryCountEnabled:'true', OwnerWhatsApp:'', OwnerEmail:OWNER_EMAIL }
+  };
+}
+
+async function saveLocalDB(){
+  if(LOCAL_DB) localStorage.setItem('goya-local-db', JSON.stringify(LOCAL_DB));
+}
+
+async function loadLocalDB(){
+  try{
+    LOCAL_DB = JSON.parse(localStorage.getItem('goya-local-db')||'null');
+    if(!LOCAL_DB) LOCAL_DB = seedData();
+  }catch(e){ LOCAL_DB = seedData(); }
+}
+
+function waLink(phone, text){
+  const encoded = encodeURIComponent(text);
+  if(phone && phone.trim()) return `https://wa.me/${phone.replace(/[^0-9]/g,'')}?text=${encoded}`;
+  return `https://api.whatsapp.com/send?text=${encoded}`;
+}
+
+async function copyToClipboard(text){
+  try{ await navigator.clipboard.writeText(text); return true; }catch(e){ return false; }
+}
+
+function escHtml(s){ return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#x27;'); }
+function fmtDateTime(iso){ return iso? iso.slice(0,16).replace('T',' ') : ''; }
+function todayISO(){ return new Date().toISOString().slice(0,10); }
+function parseSections(str){ return (str||'').split(',').map(s=>s.trim()).filter(Boolean); }
+
+function showToast(msg){
+  const t = document.createElement('div');
+  t.style.cssText = 'position:fixed;bottom:20px;left:50%;transform:translateX(-50%);background:#222;color:#fff;padding:12px 20px;border-radius:6px;font-size:14px;z-index:9999;animation:slideUp .3s ease';
+  t.textContent = msg;
+  document.body.appendChild(t);
+  setTimeout(()=>t.remove(), 3000);
+}
+
+function openPinPad(title, onSubmit){
+  const holder = document.createElement('div');
+  holder.className='overlay';
+  holder.id='pin-keypad';
+  let input = '';
+  const pad = `<div class="pin-pad">
+    <h3 style="text-align:center;margin-bottom:16px;">${escHtml(title)}</h3>
+    <input type="password" id="pin-input" placeholder="••••" style="text-align:center;font-size:20px;letter-spacing:8px;width:140px;height:50px;border:2px solid var(--line);border-radius:8px;margin:0 auto 20px;display:block;">
+    <div class="pin-grid">${[1,2,3,4,5,6,7,8,9,0].map(n=>`<button onclick="insertPin(${n})">${n}</button>`).join('')}
+    <button onclick="deletePin()" style="grid-column:2;background:#e8d4c4;">⌫</button></div>
+    <div class="row" style="margin-top:16px;gap:8px;">
+      <button class="btn btn-ghost" onclick="closePinPad()">Cancel</button>
+      <button class="btn btn-primary" onclick="submitPin()">OK</button>
+    </div>
+  </div>`;
+  holder.innerHTML = `<div class="modal">${pad}</div>`;
+  document.body.appendChild(holder);
+  window.pinInput = () => document.getElementById('pin-input');
+  window.insertPin = (n) => { input+= n; window.pinInput().value = '•'.repeat(input.length); };
+  window.deletePin = () => { input = input.slice(0,-1); window.pinInput().value = '•'.repeat(input.length); };
+  window.closePinPad = () => holder.remove();
+  window.submitPin = async () => {
+    if(await onSubmit(input)){
+      holder.remove();
+      showToast('Unlocked');
+    } else {
+      showToast('Wrong PIN');
+      input = '';
+      window.pinInput().value = '';
+    }
+  };
+}
+
+/* ============================================================
+   ADMIN PORTAL SPECIFIC LOGIC
+   ============================================================ */
 let DB={items:[],staff:[],orders:[],production:[],wastage:[],inventoryCounts:[],inventoryDrafts:[],suppliers:[],settings:{}};
 let UI={loaded:false,unlocked:false,tab:'orders',orderFilters:{search:'',status:'',supplier:'',from:'',to:''},orderSelected:{},monitorFilters:{type:'production',from:'',to:''},monitorSelected:{}};
 
-async function boot(){await initBackend();DB=await api.getAll();UI.loaded=true;render();}
+async function boot(){
+  await loadLocalDB();
+  await initBackend();
+  DB=await api.getAll();
+  UI.loaded=true;
+  render();
+}
 
-function render(){const app=document.getElementById('app');if(!UI.loaded){app.innerHTML=`<div class="gate-wrap"><div class="gate-card"><h2 style="text-align:center;margin-bottom:20px;">Admin Panel</h2><p style="text-align:center;color:var(--ink-soft);margin-bottom:20px;">Enter Master PIN</p><button class="btn btn-primary" style="width:100%;" onclick="tryUnlock()">Unlock</button></div></div>`;return;}
-if(!UI.unlocked){app.innerHTML=`<div class="gate-wrap"><div class="gate-card"><h2 style="text-align:center;margin-bottom:20px;">Admin Panel</h2><button class="btn btn-primary" style="width:100%;" onclick="tryUnlock()">Enter PIN</button></div></div>`;return;}
-let html=`<div class="topbar"><div class="brand">🔐 Admin Panel</div><button class="btn btn-ghost btn-sm" onclick="UI.unlocked=false;render();">Lock</button></div>`;html+=`<div class="admin-layout"><div class="admin-nav">${[['orders','📤 Orders'],['items','📦 Items & Suppliers'],['staff','👥 Staff'],['monitor','📊 Monitor'],['counts','📋 Inventory'],['settings','⚙ Settings']].map(([k,l])=>`<button class="${UI.tab===k?'active':''}" onclick="UI.tab='${k}';render();">${l}</button>`).join('')}</div><div>`;if(UI.tab==='orders')html+=renderOrders();else if(UI.tab==='items')html+=renderItems();else if(UI.tab==='staff')html+=renderStaff();else if(UI.tab==='monitor')html+=renderMonitor();else if(UI.tab==='counts')html+=renderCounts();else html+=renderSettings();html+=`</div></div>`;app.innerHTML=html;}
+function render(){
+  const app=document.getElementById('app');
+  if(!UI.loaded){app.innerHTML=`<div class="gate-wrap"><div class="gate-card"><h2 style="text-align:center;margin-bottom:20px;">Admin Panel</h2><p style="text-align:center;color:var(--ink-soft);margin-bottom:20px;">Enter Master PIN</p><button class="btn btn-primary" style="width:100%;" onclick="tryUnlock()">Unlock</button></div></div>`;return;}
+  if(!UI.unlocked){app.innerHTML=`<div class="gate-wrap"><div class="gate-card"><h2 style="text-align:center;margin-bottom:20px;">Admin Panel</h2><button class="btn btn-primary" style="width:100%;" onclick="tryUnlock()">Enter PIN</button></div></div>`;return;}
+  let html=`<div class="topbar"><div class="brand">🔐 Admin Panel</div><button class="btn btn-ghost btn-sm" onclick="UI.unlocked=false;render();">Lock</button></div>`;
+  html+=`<div class="admin-layout"><div class="admin-nav">${[['orders','📤 Orders'],['items','📦 Items & Suppliers'],['staff','👥 Staff'],['monitor','📊 Monitor'],['counts','📋 Inventory'],['settings','⚙ Settings']].map(([k,l])=>`<button class="${UI.tab===k?'active':''}" onclick="UI.tab='${k}';render();">${l}</button>`).join('')}</div><div>`;
+  if(UI.tab==='orders')html+=renderOrders();
+  else if(UI.tab==='items')html+=renderItems();
+  else if(UI.tab==='staff')html+=renderStaff();
+  else if(UI.tab==='monitor')html+=renderMonitor();
+  else if(UI.tab==='counts')html+=renderCounts();
+  else html+=renderSettings();
+  html+=`</div></div>`;
+  app.innerHTML=html;
+}
 
-function tryUnlock(){openPinPad('Master PIN',async(entered)=>{if(entered===(DB.settings.MasterPin||'9988')){UI.unlocked=true;showToast('Unlocked');render();return true;}return false;});}
+function tryUnlock(){openPinPad('Master PIN',async(entered)=>{if(entered===(DB.settings.MasterPin||'9988')){UI.unlocked=true;render();return true;}return false;});}
 
-function renderOrders(){let html=`<div class="card"><div class="section-title"><h3>Orders</h3><span class="tag">${DB.orders.length} total</span></div><div class="filters"><div class="filter-item"><label>Search</label><input type="text" class="input-text" value="${escHtml(UI.orderFilters.search)}" oninput="UI.orderFilters.search=this.value;render();"></div><div class="filter-item"><label>Status</label><select class="input-select" onchange="UI.orderFilters.status=this.value;render();"><option value="">All</option>${STATUSES.map(s=>`<option value="${s}">${STATUS_LABEL[s]}</option>`).join('')}</select></div><div class="filter-item"><label>Supplier</label><select class="input-select" onchange="UI.orderFilters.supplier=this.value;render();"><option value="">All</option>${[...new Set(DB.orders.map(o=>o['Supplier']))].filter(Boolean).map(s=>`<option value="${escHtml(s)}">${escHtml(s)}</option>`).join('')}</select></div><div class="filter-item"><label>From</label><input type="date" class="input-text" value="${UI.orderFilters.from}" onchange="UI.orderFilters.from=this.value;render();"></div><div class="filter-item"><label>To</label><input type="date" class="input-text" value="${UI.orderFilters.to}" onchange="UI.orderFilters.to=this.value;render();"></div></div>`;
-let rows=DB.orders.slice().sort((a,b)=>new Date(b['Timestamp'])-new Date(a['Timestamp']));if(UI.orderFilters.search)rows=rows.filter(o=>o['Item Name'].toLowerCase().includes(UI.orderFilters.search.toLowerCase()));if(UI.orderFilters.status)rows=rows.filter(o=>o['Status']===UI.orderFilters.status);if(UI.orderFilters.supplier)rows=rows.filter(o=>o['Supplier']===UI.orderFilters.supplier);if(UI.orderFilters.from)rows=rows.filter(o=>o['Timestamp'].slice(0,10)>=UI.orderFilters.from);if(UI.orderFilters.to)rows=rows.filter(o=>o['Timestamp'].slice(0,10)<=UI.orderFilters.to);
-const selectedTs=Object.keys(UI.orderSelected).filter(k=>UI.orderSelected[k]);const selectedSuppliers=[...new Set(DB.orders.filter(o=>selectedTs.includes(o['Timestamp'])).map(o=>o['Supplier']))].filter(Boolean);
-if(selectedTs.length>0){html+=`<div class="card" style="background:var(--parchment-2);"><div class="row"><span style="font-weight:600;">${selectedTs.length} selected</span><select class="input-select" id="bulk-status" style="width:150px;"><option value="PENDING">Pending</option><option value="ORDERED">Ordered</option><option value="RECEIVED">Received</option></select><button class="btn btn-primary btn-sm" onclick="bulkStatus()">Apply</button></div>`;if(selectedSuppliers.length>0){html+=`<p style="margin-top:12px;color:var(--ink-soft);font-size:13px;">Send to supplier (auto-mark ORDERED):</p><div class="row" style="margin-top:8px;">${selectedSuppliers.map(s=>`<button class="btn btn-wa btn-sm" onclick="sendToSupplier('${escHtml(s).replace(/'/g,"\\'")}')">📲 ${escHtml(s)}</button>`).join('')}</div>`;}
-html+=`</div>`;}
-html+=`<div class="table-wrap"><table><tr><th><input type="checkbox" onchange="Object.keys(UI.orderSelected).forEach(k=>{UI.orderSelected[k]=this.checked;});render();"></th><th>Date</th><th>Item</th><th>Qty</th><th>Supplier</th><th>Status</th><th>By</th></tr>${rows.map(o=>`<tr><td><input type="checkbox" ${UI.orderSelected[o['Timestamp']]?'checked':''} onchange="UI.orderSelected['${o['Timestamp']}']=this.checked;render();"></td><td class="mono" style="font-size:12px;">${fmtDateTime(o['Timestamp'])}</td><td>${escHtml(o['Item Name'])}</td><td>${o['Quantity']} ${escHtml(o['Unit'])}</td><td>${escHtml(o['Supplier'])}</td><td><select class="input-select" onchange="setOrderStatus('${o['Timestamp']}',this.value);" style="width:130px;font-size:12px;"><option value="PENDING" ${o['Status']==='PENDING'?'selected':''}>Pending</option><option value="ORDERED" ${o['Status']==='ORDERED'?'selected':''}>Ordered</option><option value="RECEIVED" ${o['Status']==='RECEIVED'?'selected':''}>Received</option></select></td><td>${escHtml(o['Logged By'])}</td></tr>`).join('')}</table></div></div>`;return html;}
+function renderOrders(){
+  let html=`<div class="card"><div class="section-title"><h3>Orders</h3><span class="tag">${DB.orders.length} total</span></div><div class="filters"><div class="filter-item"><label>Search</label><input type="text" class="input-text" value="${escHtml(UI.orderFilters.search)}" oninput="UI.orderFilters.search=this.value;render();"></div><div class="filter-item"><label>Status</label><select class="input-select" onchange="UI.orderFilters.status=this.value;render();"><option value="">All</option>${STATUSES.map(s=>`<option value="${s}">${STATUS_LABEL[s]}</option>`).join('')}</select></div><div class="filter-item"><label>Supplier</label><select class="input-select" onchange="UI.orderFilters.supplier=this.value;render();"><option value="">All</option>${[...new Set(DB.orders.map(o=>o['Supplier']))].filter(Boolean).map(s=>`<option value="${escHtml(s)}">${escHtml(s)}</option>`).join('')}</select></div><div class="filter-item"><label>From</label><input type="date" class="input-text" value="${UI.orderFilters.from}" onchange="UI.orderFilters.from=this.value;render();"></div><div class="filter-item"><label>To</label><input type="date" class="input-text" value="${UI.orderFilters.to}" onchange="UI.orderFilters.to=this.value;render();"></div></div>`;
+  let rows=DB.orders.slice().sort((a,b)=>new Date(b['Timestamp'])-new Date(a['Timestamp']));
+  if(UI.orderFilters.search)rows=rows.filter(o=>o['Item Name'].toLowerCase().includes(UI.orderFilters.search.toLowerCase()));
+  if(UI.orderFilters.status)rows=rows.filter(o=>o['Status']===UI.orderFilters.status);
+  if(UI.orderFilters.supplier)rows=rows.filter(o=>o['Supplier']===UI.orderFilters.supplier);
+  if(UI.orderFilters.from)rows=rows.filter(o=>o['Timestamp'].slice(0,10)>=UI.orderFilters.from);
+  if(UI.orderFilters.to)rows=rows.filter(o=>o['Timestamp'].slice(0,10)<=UI.orderFilters.to);
+  const selectedTs=Object.keys(UI.orderSelected).filter(k=>UI.orderSelected[k]);
+  const selectedSuppliers=[...new Set(DB.orders.filter(o=>selectedTs.includes(o['Timestamp'])).map(o=>o['Supplier']))].filter(Boolean);
+  
+  if(selectedTs.length>0){
+    html+=`<div class="card" style="background:var(--parchment-2);"><div class="row"><span style="font-weight:600;">${selectedTs.length} selected</span><select class="input-select" id="bulk-status" style="width:150px;"><option value="PENDING">Pending</option><option value="ORDERED">Ordered</option><option value="RECEIVED">Received</option></select><button class="btn btn-primary btn-sm" onclick="bulkStatus()">Apply</button></div>`;
+    if(selectedSuppliers.length>0){
+      html+=`<p style="margin-top:12px;color:var(--ink-soft);font-size:13px;">Send to supplier (auto-mark ORDERED):</p><div class="row" style="margin-top:8px;">${selectedSuppliers.map(s=>`<button class="btn btn-wa btn-sm" onclick="sendToSupplier('${escHtml(s).replace(/'/g,"\\'")}')">📲 ${escHtml(s)}</button>`).join('')}</div>`;
+    }
+    html+=`</div>`;
+  }
+  html+=`<div class="table-wrap"><table><tr><th><input type="checkbox" onchange="Object.keys(UI.orderSelected).forEach(k=>{UI.orderSelected[k]=this.checked;});render();"></th><th>Date</th><th>Item</th><th>Qty</th><th>Supplier</th><th>Status</th><th>By</th></tr>${rows.map(o=>`<tr><td><input type="checkbox" ${UI.orderSelected[o['Timestamp']]?'checked':''} onchange="UI.orderSelected['${o['Timestamp']}']=this.checked;render();"></td><td class="mono" style="font-size:12px;">${fmtDateTime(o['Timestamp'])}</td><td>${escHtml(o['Item Name'])}</td><td>${o['Quantity']} ${escHtml(o['Unit'])}</td><td>${escHtml(o['Supplier'])}</td><td><select class="input-select" onchange="setOrderStatus('${o['Timestamp']}',this.value);" style="width:130px;font-size:12px;"><option value="PENDING" ${o['Status']==='PENDING'?'selected':''}>Pending</option><option value="ORDERED" ${o['Status']==='ORDERED'?'selected':''}>Ordered</option><option value="RECEIVED" ${o['Status']==='RECEIVED'?'selected':''}>Received</option></select></td><td>${escHtml(o['Logged By'])}</td></tr>`).join('')}</table></div></div>`;
+  return html;
+}
 
 async function setOrderStatus(ts,status){await api.updateOrderStatus(ts,status,status==='RECEIVED'?todayISO():'');DB=await api.getAll();showToast('Updated');render();}
-
 async function bulkStatus(){const status=document.getElementById('bulk-status').value;const tsList=Object.keys(UI.orderSelected).filter(k=>UI.orderSelected[k]);await api.bulkUpdateOrderStatus(tsList,status);DB=await api.getAll();UI.orderSelected={};showToast('Applied');render();}
-
 async function sendToSupplier(sup){const tsList=Object.keys(UI.orderSelected).filter(k=>UI.orderSelected[k]);const rows=DB.orders.filter(o=>tsList.includes(o['Timestamp'])&&o['Supplier']===sup);if(rows.length===0)return;const items=rows.map(o=>({name:o['Item Name'],qty:o['Quantity'],unit:o['Unit']}));let msg=`*Purchase Order — ${sup}*\n\n`;items.forEach(it=>{msg+=`• ${it.name} — ${it.qty} ${it.unit}\n`;});msg+=`\n${fmtDateTime(new Date().toISOString())}`;const s=DB.suppliers.find(x=>x['Name']===sup);const link=s?waLink(s['Phone'],msg):'https://api.whatsapp.com/send?text='+encodeURIComponent(msg);if(await copyToClipboard(msg))showToast('Message copied');window.open(link,'_blank');await api.bulkUpdateOrderStatus(rows.map(o=>o['Timestamp']),'ORDERED');DB=await api.getAll();UI.orderSelected={};showToast(rows.length+' items marked ORDERED');render();}
 
-function renderItems(){let html=`<div class="card"><div class="section-title"><h3>Suppliers</h3></div><div class="table-wrap"><table><tr><th>Name</th><th>WhatsApp Phone</th><th>Group Link</th><th></th></tr>${DB.suppliers.map(s=>`<tr><td><input class="input-text" value="${escHtml(s['Name'])}" onchange="updateSupplier('${escHtml(s['Name'])}','name',this.value);"></td><td><input class="input-text" value="${escHtml(s['Phone'])}" onchange="updateSupplier('${escHtml(s['Name'])}','phone',this.value);"></td><td><input class="input-text" value="${escHtml(s['Group Link'])}" onchange="updateSupplier('${escHtml(s['Name'])}','group',this.value);"></td><td><button class="btn btn-danger btn-sm" onclick="deleteSupplier('${escHtml(s['Name'])}')">Delete</button></td></tr>`).join('')}</table></div><div class="row" style="margin-top:16px;"><input class="input-text" id="new-sup-name" placeholder="Name"><input class="input-text" id="new-sup-phone" placeholder="WhatsApp"><input class="input-text" id="new-sup-group" placeholder="Group Link"><button class="btn btn-primary btn-sm" onclick="addSupplier()">Add</button></div></div>`;
-html+=`<div class="card"><div class="section-title"><h3>Items (${DB.items.length})</h3></div><div class="table-wrap"><table><tr><th>Name</th><th>SKU</th><th>Storage Unit</th><th>Ingredient Unit</th><th>Supplier</th><th>Type</th><th></th></tr>${DB.items.map(it=>`<tr><td><input class="input-text" value="${escHtml(it['Name'])}" onchange="updateItem('${it['Row ID']}','name',this.value);"></td><td><input class="input-text" style="width:100px;" value="${escHtml(it['SKU'])}" onchange="updateItem('${it['Row ID']}','sku',this.value);"></td><td><input class="input-text" style="width:100px;" value="${escHtml(it['Storage Unit'])}" onchange="updateItem('${it['Row ID']}','storageUnit',this.value);"></td><td><input class="input-text" style="width:100px;" value="${escHtml(it['Ingredient Unit'])}" onchange="updateItem('${it['Row ID']}','ingredientUnit',this.value);"></td><td><select class="input-select" onchange="updateItem('${it['Row ID']}','supplier',this.value);"><option value="">— internal —</option>${DB.suppliers.map(s=>`<option value="${escHtml(s['Name'])}" ${it['Supplier']===s['Name']?'selected':''}>${escHtml(s['Name'])}</option>`).join('')}</select></td><td><select class="input-select" onchange="updateItem('${it['Row ID']}','type',this.value);"><option value="kitchen" ${it['Items Type']==='kitchen'?'selected':''}>Kitchen</option><option value="pastry" ${it['Items Type']==='pastry'?'selected':''}>Pastry</option><option value="bar" ${it['Items Type']==='bar'?'selected':''}>Bar</option><option value="packaging" ${it['Items Type']==='packaging'?'selected':''}>Packaging</option></select></td><td><button class="btn btn-danger btn-sm" onclick="deleteItem('${it['Row ID']}')">Delete</button></td></tr>`).join('')}</table></div><div class="row" style="margin-top:16px;"><input class="input-text" id="new-item-name" placeholder="Name"><input class="input-text" id="new-item-sku" placeholder="SKU"><input class="input-text" id="new-item-storage" placeholder="Storage Unit"><input class="input-text" id="new-item-ingredient" placeholder="Ingredient Unit"><select class="input-select" id="new-item-supplier"><option value="">— internal —</option>${DB.suppliers.map(s=>`<option value="${escHtml(s['Name'])}">${escHtml(s['Name'])}</option>`).join('')}</select><select class="input-select" id="new-item-type"><option value="kitchen">Kitchen</option><option value="pastry">Pastry</option><option value="bar">Bar</option><option value="packaging">Packaging</option></select><button class="btn btn-primary btn-sm" onclick="addItem()">Add</button></div></div>`;return html;}
+function renderItems(){
+  let html=`<div class="card"><div class="section-title"><h3>Suppliers</h3></div><div class="table-wrap"><table><tr><th>Name</th><th>WhatsApp Phone</th><th>Group Link</th><th></th></tr>${DB.suppliers.map(s=>`<tr><td><input class="input-text" value="${escHtml(s['Name'])}" onchange="updateSupplier('${escHtml(s['Name'])}','name',this.value);"></td><td><input class="input-text" value="${escHtml(s['Phone'])}" onchange="updateSupplier('${escHtml(s['Name'])}','phone',this.value);"></td><td><input class="input-text" value="${escHtml(s['Group Link'])}" onchange="updateSupplier('${escHtml(s['Name'])}','group',this.value);"></td><td><button class="btn btn-danger btn-sm" onclick="deleteSupplier('${escHtml(s['Name'])}')">Delete</button></td></tr>`).join('')}</table></div><div class="row" style="margin-top:16px;"><input class="input-text" id="new-sup-name" placeholder="Name"><input class="input-text" id="new-sup-phone" placeholder="WhatsApp"><input class="input-text" id="new-sup-group" placeholder="Group Link"><button class="btn btn-primary btn-sm" onclick="addSupplier()">Add</button></div></div>`;
+  html+=`<div class="card"><div class="section-title"><h3>Items (${DB.items.length})</h3></div><div class="table-wrap"><table><tr><th>Name</th><th>SKU</th><th>Storage Unit</th><th>Ingredient Unit</th><th>Supplier</th><th>Type</th><th></th></tr>${DB.items.map(it=>`<tr><td><input class="input-text" value="${escHtml(it['Name'])}" onchange="updateItem('${it['Row ID']}','name',this.value);"></td><td><input class="input-text" style="width:100px;" value="${escHtml(it['SKU'])}" onchange="updateItem('${it['Row ID']}','sku',this.value);"></td><td><input class="input-text" style="width:100px;" value="${escHtml(it['Storage Unit'])}" onchange="updateItem('${it['Row ID']}','storageUnit',this.value);"></td><td><input class="input-text" style="width:100px;" value="${escHtml(it['Ingredient Unit'])}" onchange="updateItem('${it['Row ID']}','ingredientUnit',this.value);"></td><td><select class="input-select" onchange="updateItem('${it['Row ID']}','supplier',this.value);"><option value="">— internal —</option>${DB.suppliers.map(s=>`<option value="${escHtml(s['Name'])}" ${it['Supplier']===s['Name']?'selected':''}>${escHtml(s['Name'])}</option>`).join('')}</select></td><td><select class="input-select" onchange="updateItem('${it['Row ID']}','type',this.value);"><option value="kitchen" ${it['Items Type']==='kitchen'?'selected':''}>Kitchen</option><option value="pastry" ${it['Items Type']==='pastry'?'selected':''}>Pastry</option><option value="bar" ${it['Items Type']==='bar'?'selected':''}>Bar</option><option value="packaging" ${it['Items Type']==='packaging'?'selected':''}>Packaging</option></select></td><td><button class="btn btn-danger btn-sm" onclick="deleteItem('${it['Row ID']}')">Delete</button></td></tr>`).join('')}</table></div><div class="row" style="margin-top:16px;"><input class="input-text" id="new-item-name" placeholder="Name"><input class="input-text" id="new-item-sku" placeholder="SKU"><input class="input-text" id="new-item-storage" placeholder="Storage Unit"><input class="input-text" id="new-item-ingredient" placeholder="Ingredient Unit"><select class="input-select" id="new-item-supplier"><option value="">— internal —</option>${DB.suppliers.map(s=>`<option value="${escHtml(s['Name'])}">${escHtml(s['Name'])}</option>`).join('')}</select><select class="input-select" id="new-item-type"><option value="kitchen">Kitchen</option><option value="pastry">Pastry</option><option value="bar">Bar</option><option value="packaging">Packaging</option></select><button class="btn btn-primary btn-sm" onclick="addItem()">Add</button></div></div>`;
+  return html;
+}
 
 async function updateSupplier(oldName,field,val){const s=DB.suppliers.find(x=>x['Name']===oldName);if(!s)return;const supplier={name:field==='name'?val:s['Name'],phone:field==='phone'?val:s['Phone'],groupLink:field==='group'?val:s['Group Link']};await api.upsertSupplier(supplier,oldName);DB=await api.getAll();render();}
 async function deleteSupplier(name){await api.deleteSupplier(name);DB=await api.getAll();render();}
@@ -36,31 +306,50 @@ async function deleteItem(rowId){await api.deleteItem(rowId);DB=await api.getAll
 async function addItem(){const name=document.getElementById('new-item-name').value.trim();if(!name){showToast('Enter name');return;}
 await api.upsertItem({name,sku:document.getElementById('new-item-sku').value.trim(),storageUnit:document.getElementById('new-item-storage').value.trim(),ingredientUnit:document.getElementById('new-item-ingredient').value.trim(),supplier:document.getElementById('new-item-supplier').value,itemsType:document.getElementById('new-item-type').value});DB=await api.getAll();document.getElementById('new-item-name').value='';render();}
 
-function renderStaff(){let html=`<div class="card"><div class="section-title"><h3>Staff (${DB.staff.length})</h3></div><div class="table-wrap"><table><tr><th>PIN</th><th>Name</th><th>Sections</th><th></th></tr>${DB.staff.map(s=>`<tr><td><input class="input-text" style="width:80px;" value="${escHtml(s['PIN Code'])}" onchange="updateStaff('${escHtml(s['PIN Code'])}','pin',this.value);"></td><td><input class="input-text" value="${escHtml(s['Staff Full Name'])}" onchange="updateStaff('${escHtml(s['PIN Code'])}','name',this.value);"></td><td><input class="input-text" value="${escHtml(s['Allowed Sections'])}" onchange="updateStaff('${escHtml(s['PIN Code'])}','sections',this.value);" placeholder="kitchen,bar,pastry,packaging"></td><td><button class="btn btn-danger btn-sm" onclick="deleteStaff('${escHtml(s['PIN Code'])}')">Delete</button></td></tr>`).join('')}</table></div><div class="row" style="margin-top:16px;"><input class="input-text" id="new-staff-name" placeholder="Name"><input class="input-text" id="new-staff-pin" placeholder="PIN"><button class="btn btn-primary btn-sm" onclick="addStaff()">Add</button></div></div>`;return html;}
+function renderStaff(){
+  let html=`<div class="card"><div class="section-title"><h3>Staff (${DB.staff.length})</h3></div><div class="table-wrap"><table><tr><th>PIN</th><th>Name</th><th>Sections</th><th></th></tr>${DB.staff.map(s=>`<tr><td><input class="input-text" style="width:80px;" value="${escHtml(s['PIN Code'])}" onchange="updateStaff('${escHtml(s['PIN Code'])}','pin',this.value);"></td><td><input class="input-text" value="${escHtml(s['Staff Full Name'])}" onchange="updateStaff('${escHtml(s['PIN Code'])}','name',this.value);"></td><td><input class="input-text" value="${escHtml(s['Allowed Sections'])}" onchange="updateStaff('${escHtml(s['PIN Code'])}','sections',this.value);" placeholder="kitchen,bar,pastry,packaging"></td><td><button class="btn btn-danger btn-sm" onclick="deleteStaff('${escHtml(s['PIN Code'])}')">Delete</button></td></tr>`).join('')}</table></div><div class="row" style="margin-top:16px;"><input class="input-text" id="new-staff-name" placeholder="Name"><input class="input-text" id="new-staff-pin" placeholder="PIN"><button class="btn btn-primary btn-sm" onclick="addStaff()">Add</button></div></div>`;
+  return html;
+}
 
 async function updateStaff(oldPin,field,val){const s=DB.staff.find(x=>x['PIN Code']===oldPin);if(!s)return;const sections=field==='sections'?val:(s['Allowed Sections']||'');await api.upsertStaff({pin:field==='pin'?val:s['PIN Code'],name:field==='name'?val:s['Staff Full Name'],allowedSections:parseSections(sections)},oldPin);DB=await api.getAll();render();}
 async function deleteStaff(pin){await api.deleteStaff(pin);DB=await api.getAll();render();}
 async function addStaff(){const name=document.getElementById('new-staff-name').value.trim();const pin=document.getElementById('new-staff-pin').value.trim();if(!name||!pin){showToast('Enter name & PIN');return;}
 await api.upsertStaff({pin,name,allowedSections:[]});DB=await api.getAll();document.getElementById('new-staff-name').value='';document.getElementById('new-staff-pin').value='';render();}
 
-function renderMonitor(){let html=`<div class="card"><div class="section-title"><h3>Production & Wastage</h3></div><div class="filters"><div class="filter-item"><label>Type</label><select class="input-select" onchange="UI.monitorFilters.type=this.value;render();"><option value="production">Production</option><option value="wastage">Wastage</option></select></div><div class="filter-item"><label>From</label><input type="date" class="input-text" value="${UI.monitorFilters.from}" onchange="UI.monitorFilters.from=this.value;render();"></div><div class="filter-item"><label>To</label><input type="date" class="input-text" value="${UI.monitorFilters.to}" onchange="UI.monitorFilters.to=this.value;render();"></div></div>`;
-let rows=(UI.monitorFilters.type==='production'?DB.production:DB.wastage).slice().sort((a,b)=>new Date(b['Timestamp'])-new Date(a['Timestamp']));if(UI.monitorFilters.from)rows=rows.filter(r=>r['Timestamp'].slice(0,10)>=UI.monitorFilters.from);if(UI.monitorFilters.to)rows=rows.filter(r=>r['Timestamp'].slice(0,10)<=UI.monitorFilters.to);
-const selectedTs=Object.keys(UI.monitorSelected).filter(k=>UI.monitorSelected[k]);if(selectedTs.length>0){html+=`<div class="card" style="background:var(--parchment-2);"><div class="row"><span style="font-weight:600;">${selectedTs.length} selected</span><select class="input-select" id="bulk-log-status" style="width:130px;"><option value="Logged">Logged</option><option value="Reviewed">Reviewed</option><option value="Flagged">Flagged</option></select><button class="btn btn-primary btn-sm" onclick="bulkLogStatus()">Apply</button></div></div>`;}
-html+=`<div class="table-wrap"><table><tr><th><input type="checkbox" onchange="Object.keys(UI.monitorSelected).forEach(k=>{UI.monitorSelected[k]=this.checked;});render();"></th><th>Date</th><th>Item</th><th>Qty</th>${UI.monitorFilters.type==='wastage'?'<th>Reason</th>':''}<th>Status</th><th>By</th></tr>${rows.map(r=>`<tr><td><input type="checkbox" ${UI.monitorSelected[r['Timestamp']]?'checked':''} onchange="UI.monitorSelected['${r['Timestamp']}']=this.checked;render();"></td><td class="mono" style="font-size:12px;">${fmtDateTime(r['Timestamp'])}</td><td>${escHtml(r['Item Name'])}</td><td>${r['Quantity']} ${escHtml(r['Unit'])}</td>${UI.monitorFilters.type==='wastage'?`<td><span class="tag">${escHtml(r['Reason'])}</span></td>`:''}<td><select class="input-select" onchange="setLogStatus('${r['Timestamp']}',this.value);" style="width:110px;font-size:12px;"><option value="Logged" ${r['Status']==='Logged'?'selected':''}>Logged</option><option value="Reviewed" ${r['Status']==='Reviewed'?'selected':''}>Reviewed</option><option value="Flagged" ${r['Status']==='Flagged'?'selected':''}>Flagged</option></select></td><td>${escHtml(r['Logged By'])}</td></tr>`).join('')}</table></div></div>`;return html;}
+function renderMonitor(){
+  let html=`<div class="card"><div class="section-title"><h3>Production & Wastage</h3></div><div class="filters"><div class="filter-item"><label>Type</label><select class="input-select" onchange="UI.monitorFilters.type=this.value;render();"><option value="production">Production</option><option value="wastage">Wastage</option></select></div><div class="filter-item"><label>From</label><input type="date" class="input-text" value="${UI.monitorFilters.from}" onchange="UI.monitorFilters.from=this.value;render();"></div><div class="filter-item"><label>To</label><input type="date" class="input-text" value="${UI.monitorFilters.to}" onchange="UI.monitorFilters.to=this.value;render();"></div></div>`;
+  let rows=(UI.monitorFilters.type==='production'?DB.production:DB.wastage).slice().sort((a,b)=>new Date(b['Timestamp'])-new Date(a['Timestamp']));
+  if(UI.monitorFilters.from)rows=rows.filter(r=>r['Timestamp'].slice(0,10)>=UI.monitorFilters.from);
+  if(UI.monitorFilters.to)rows=rows.filter(r=>r['Timestamp'].slice(0,10)<=UI.monitorFilters.to);
+  const selectedTs=Object.keys(UI.monitorSelected).filter(k=>UI.monitorSelected[k]);
+  
+  if(selectedTs.length>0){
+    html+=`<div class="card" style="background:var(--parchment-2);"><div class="row"><span style="font-weight:600;">${selectedTs.length} selected</span><select class="input-select" id="bulk-log-status" style="width:130px;"><option value="Logged">Logged</option><option value="Reviewed">Reviewed</option><option value="Flagged">Flagged</option></select><button class="btn btn-primary btn-sm" onclick="bulkLogStatus()">Apply</button></div></div>`;
+  }
+  html+=`<div class="table-wrap"><table><tr><th><input type="checkbox" onchange="Object.keys(UI.monitorSelected).forEach(k=>{UI.monitorSelected[k]=this.checked;});render();"></th><th>Date</th><th>Item</th><th>Qty</th>${UI.monitorFilters.type==='wastage'?'<th>Reason</th>':''}<th>Status</th><th>By</th></tr>${rows.map(r=>`<tr><td><input type="checkbox" ${UI.monitorSelected[r['Timestamp']]?'checked':''} onchange="UI.monitorSelected['${r['Timestamp']}']=this.checked;render();"></td><td class="mono" style="font-size:12px;">${fmtDateTime(r['Timestamp'])}</td><td>${escHtml(r['Item Name'])}</td><td>${r['Quantity']} ${escHtml(r['Unit'])}</td>${UI.monitorFilters.type==='wastage'?`<td><span class="tag">${escHtml(r['Reason'])}</span></td>`:''}<td><select class="input-select" onchange="setLogStatus('${r['Timestamp']}',this.value);" style="width:110px;font-size:12px;"><option value="Logged" ${r['Status']==='Logged'?'selected':''}>Logged</option><option value="Reviewed" ${r['Status']==='Reviewed'?'selected':''}>Reviewed</option><option value="Flagged" ${r['Status']==='Flagged'?'selected':''}>Flagged</option></select></td><td>${escHtml(r['Logged By'])}</td></tr>`).join('')}</table></div></div>`;
+  return html;
+}
 
 async function setLogStatus(ts,status){const sheet=UI.monitorFilters.type==='production'?'Production':'Wastage';await api.updateLogStatus(sheet,ts,status);DB=await api.getAll();render();}
 async function bulkLogStatus(){const status=document.getElementById('bulk-log-status').value;const sheet=UI.monitorFilters.type==='production'?'Production':'Wastage';const tsList=Object.keys(UI.monitorSelected).filter(k=>UI.monitorSelected[k]);for(const ts of tsList)await api.updateLogStatus(sheet,ts,status);DB=await api.getAll();UI.monitorSelected={};showToast('Applied');render();}
 
-function renderCounts(){const enabled=DB.settings.InventoryCountEnabled==='true';return`<div class="card"><div class="section-title"><h3>Inventory Count</h3><button class="btn ${enabled?'btn-danger':'btn-primary'} btn-sm" onclick="toggleCount()">${enabled?'Turn OFF':'Turn ON'}</button></div><p style="color:var(--ink-soft);margin:10px 0;">${enabled?'Staff can submit counts':'Counts are disabled'}</p><div class="table-wrap"><table><tr><th>Month</th><th>Section</th><th>Items</th></tr>${DB.inventoryCounts.slice().reverse().map(c=>`<tr><td>${escHtml(c['Count Date / Month'])}</td><td>${SECTION_LABEL[(c['Section']||'').toLowerCase()]||c['Section']}</td><td>${c.length} items</td></tr>`).join('')}</table></div></div>`;const countsByMonth=DB.inventoryCounts.reduce((acc,c)=>{const key=c['Count Date / Month'];acc[key]=(acc[key]||0)+1;return acc;},{});}
+function renderCounts(){
+  const enabled=DB.settings.InventoryCountEnabled==='true';
+  let html=`<div class="card"><div class="section-title"><h3>Inventory Count</h3><button class="btn ${enabled?'btn-danger':'btn-primary'} btn-sm" onclick="toggleCount()">${enabled?'Turn OFF':'Turn ON'}</button></div><p style="color:var(--ink-soft);margin:10px 0;">${enabled?'Staff can submit counts':'Counts are disabled'}</p><div class="table-wrap"><table><tr><th>Month</th><th>Section</th><th>Items</th></tr>${DB.inventoryCounts.slice().reverse().map(c=>`<tr><td>${escHtml(c['Count Date / Month'])}</td><td>${SECTION_LABEL[(c['Section']||'').toLowerCase()]||c['Section']}</td><td>${c.length} items</td></tr>`).join('')}</table></div></div>`;
+  return html;
+}
 
 async function toggleCount(){const enabled=DB.settings.InventoryCountEnabled==='true';await api.setSetting('InventoryCountEnabled',enabled?'false':'true');DB=await api.getAll();showToast('Toggled');render();}
 
-function renderSettings(){return`<div class="card"><div class="section-title"><h3>Master PIN</h3></div><div class="row"><input type="text" id="new-master-pin" placeholder="4-digit PIN" maxlength="4" class="input-text"><button class="btn btn-primary btn-sm" onclick="changeMasterPin()">Update</button></div></div><div class="card"><div class="section-title"><h3>Purchase Order Recipient</h3></div><p style="color:var(--ink-soft);margin-bottom:10px;">Staff orders go to this email automatically:</p><div style="padding:14px;background:var(--parchment);border-radius:6px;font-weight:600;">${OWNER_EMAIL}</div><p style="color:var(--ink-soft);margin-top:10px;font-size:13px;">Email is configured system-wide and cannot be changed.</p></div><div class="card"><div class="section-title"><h3>Google Sheet Connection</h3></div><div class="row"><input type="text" id="sheet-url" placeholder="Apps Script URL" class="input-text" value="${escHtml(SHEET_URL)}"><button class="btn btn-primary btn-sm" onclick="saveSheetUrl()">Save</button></div></div>`;}
+function renderSettings(){
+  return`<div class="card"><div class="section-title"><h3>Master PIN</h3></div><div class="row"><input type="text" id="new-master-pin" placeholder="4-digit PIN" maxlength="4" class="input-text"><button class="btn btn-primary btn-sm" onclick="changeMasterPin()">Update</button></div></div><div class="card"><div class="section-title"><h3>Purchase Order Recipient</h3></div><p style="color:var(--ink-soft);margin-bottom:10px;">Staff orders go to this email automatically:</p><div style="padding:14px;background:var(--parchment);border-radius:6px;font-weight:600;">${OWNER_EMAIL}</div><p style="color:var(--ink-soft);margin-top:10px;font-size:13px;">Email is configured system-wide and cannot be changed.</p></div><div class="card"><div class="section-title"><h3>Google Sheet Connection</h3></div><div class="row"><input type="text" id="sheet-url" placeholder="Apps Script URL" class="input-text" value="${escHtml(SHEET_URL)}"><button class="btn btn-primary btn-sm" onclick="saveSheetUrl()">Save</button></div></div>`;
+}
 
 async function changeMasterPin(){const v=document.getElementById('new-master-pin').value.trim();if(v.length!==4||!/^\d{4}$/.test(v)){showToast('Must be 4 digits');return;}
 await api.setSetting('MasterPin',v);DB=await api.getAll();showToast('Updated');render();}
-
 async function saveSheetUrl(){const url=document.getElementById('sheet-url').value.trim();await connectSheet(url);showToast(url?'Connected':'Disconnected');setTimeout(()=>location.reload(),500);}
 
 boot();
-</script></body></html>
+</script>
+</body>
+</html>
