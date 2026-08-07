@@ -64,18 +64,6 @@ const SECTION_LABEL = {kitchen:'Kitchen',pastry:'Pastry',bar:'Bar',packaging:'Pa
 let SHEET_URL = '';
 let LOCAL_DB = null;
 
-async function getLocalSetting(key){ try{ return JSON.parse(localStorage.getItem(key)||'null'); }catch(e){ return null; } }
-async function setLocalSetting(key, val){ localStorage.setItem(key, JSON.stringify(val)); }
-
-async function initBackend(){ SHEET_URL = await getLocalSetting('goya-sheet-url') || ''; }
-async function connectSheet(url){ SHEET_URL = (url||'').trim(); await setLocalSetting('goya-sheet-url', SHEET_URL); }
-
-async function sheetPost(action, body){
-  if(!SHEET_URL) throw new Error('Sheet not connected');
-  const resp = await fetch(SHEET_URL, {method:'POST', body:JSON.stringify({action,...body})});
-  return resp.json();
-}
-
 function seedData(){
   return {
     items:[
@@ -92,6 +80,26 @@ function seedData(){
   };
 }
 
+async function getLocalSetting(key){ try{ return JSON.parse(localStorage.getItem(key)||'null'); }catch(e){ return null; } }
+async function setLocalSetting(key, val){ localStorage.setItem(key, JSON.stringify(val)); }
+
+async function initBackend(){
+  try {
+    SHEET_URL = await getLocalSetting('goya-sheet-url') || '';
+  } catch(e) { SHEET_URL = ''; }
+}
+
+async function connectSheet(url){
+  SHEET_URL = (url||'').trim();
+  await setLocalSetting('goya-sheet-url', SHEET_URL);
+}
+
+async function sheetPost(action, body){
+  if(!SHEET_URL) throw new Error('Sheet not connected');
+  const resp = await fetch(SHEET_URL, {method:'POST', body:JSON.stringify({action,...body})});
+  return resp.json();
+}
+
 const api = {
   async getAll(){
     if(!SHEET_URL) return seedData();
@@ -99,19 +107,58 @@ const api = {
       const resp = await fetch(SHEET_URL+'?action=getAll');
       const data = await resp.json();
       if(!data || data.error) return seedData();
-      return data;
+      return {
+        items: data.items || [],
+        staff: data.staff || [],
+        orders: data.orders || [],
+        production: data.production || [],
+        wastage: data.wastage || [],
+        inventoryCounts: data.inventoryCounts || [],
+        suppliers: data.suppliers || [],
+        settings: data.settings || { MasterPin:'9988', ConnectionPin:'9988', InventoryCountEnabled:'true', OwnerEmail:'mehedi.src@gmail.com' }
+      };
     }catch(e){ return seedData(); }
   },
-  async updateOrderStatus(timestamp, status, receivedDate){ if(SHEET_URL) await sheetPost('updateOrderStatus',{timestamp,status,receivedDate}); else{ const o=LOCAL_DB.orders.find(x=>x['Timestamp']===timestamp); if(o) o['Status']=status; await saveLocalDB(); } },
-  async bulkUpdateOrderStatus(timestamps, status){ if(SHEET_URL) await sheetPost('bulkUpdateOrderStatus',{timestamps,status}); else{ LOCAL_DB.orders.forEach(o=>{ if(timestamps.includes(o['Timestamp'])) o['Status']=status; }); await saveLocalDB(); } },
-  async updateLogStatus(sheet, timestamp, status){ if(SHEET_URL) await sheetPost('updateLogStatus',{sheet,timestamp,status}); else{ const arr=sheet==='Production'?LOCAL_DB.production:LOCAL_DB.wastage; const r=arr.find(x=>x['Timestamp']===timestamp); if(r) r['Status']=status; await saveLocalDB(); } },
-  async upsertItem(item){ if(SHEET_URL) return sheetPost('upsertItem',{item}); else{ const i=LOCAL_DB.items.find(x=>x['Row ID']===item.rowId); const row={'Row ID':item.rowId||Date.now().toString(),'Name':item.name,'SKU':item.sku||'','Storage Unit':item.storageUnit||'','Ingredient Unit':item.ingredientUnit||'','Supplier':item.supplier||'','Items Type':item.itemsType||'internal'}; if(i) Object.assign(i,row); else LOCAL_DB.items.push(row); await saveLocalDB(); } },
-  async deleteItem(rowId){ if(SHEET_URL) await sheetPost('deleteItem',{rowId}); else{ LOCAL_DB.items=LOCAL_DB.items.filter(x=>x['Row ID']!==rowId); await saveLocalDB(); } },
-  async upsertStaff(staff, oldPin){ if(SHEET_URL) return sheetPost('upsertStaff',{staff,oldPin}); else{ const matchPin=oldPin||staff.pin; const s=LOCAL_DB.staff.find(x=>x['PIN Code']===matchPin); const row={'PIN Code':staff.pin,'Staff Full Name':staff.name,'Allowed Sections':(staff.allowedSections||[]).join(',')}; if(s) Object.assign(s,row); else LOCAL_DB.staff.push(row); await saveLocalDB(); } },
-  async deleteStaff(pin){ if(SHEET_URL) return sheetPost('deleteStaff',{pin}); else{ LOCAL_DB.staff=LOCAL_DB.staff.filter(x=>x['PIN Code']!==pin); await saveLocalDB(); } },
-  async upsertSupplier(supplier, oldName){ if(SHEET_URL) return sheetPost('upsertSupplier',{supplier,oldName}); else{ const matchName=oldName||supplier.name; const s=LOCAL_DB.suppliers.find(x=>x['Name']===matchName); const row={'Name':supplier.name,'Phone':supplier.phone||'','Group Link':supplier.groupLink||''}; if(s) Object.assign(s,row); else LOCAL_DB.suppliers.push(row); await saveLocalDB(); } },
-  async deleteSupplier(name){ if(SHEET_URL) return sheetPost('deleteSupplier',{name}); else{ LOCAL_DB.suppliers=LOCAL_DB.suppliers.filter(x=>x['Name']!==name); await saveLocalDB(); } },
-  async setSetting(key, value){ if(SHEET_URL) return sheetPost('setSetting',{key,value}); else{ LOCAL_DB.settings[key]=value; await saveLocalDB(); } }
+  async updateOrderStatus(timestamp, status, receivedDate){
+    if(SHEET_URL) await sheetPost('updateOrderStatus',{timestamp,status,receivedDate});
+    else{ const o=LOCAL_DB.orders.find(x=>x['Timestamp']===timestamp); if(o) o['Status']=status; await saveLocalDB(); }
+  },
+  async bulkUpdateOrderStatus(timestamps, status){
+    if(SHEET_URL) await sheetPost('bulkUpdateOrderStatus',{timestamps,status});
+    else{ LOCAL_DB.orders.forEach(o=>{ if(timestamps.includes(o['Timestamp'])) o['Status']=status; }); await saveLocalDB(); }
+  },
+  async updateLogStatus(sheet, timestamp, status){
+    if(SHEET_URL) await sheetPost('updateLogStatus',{sheet,timestamp,status});
+    else{ const arr=sheet==='Production'?LOCAL_DB.production:LOCAL_DB.wastage; const r=arr.find(x=>x['Timestamp']===timestamp); if(r) r['Status']=status; await saveLocalDB(); }
+  },
+  async upsertItem(item){
+    if(SHEET_URL) return sheetPost('upsertItem',{item});
+    else{ const i=LOCAL_DB.items.find(x=>x['Row ID']===item.rowId); const row={'Row ID':item.rowId||Date.now().toString(),'Name':item.name,'SKU':item.sku||'','Storage Unit':item.storageUnit||'','Ingredient Unit':item.ingredientUnit||'','Supplier':item.supplier||'','Items Type':item.itemsType||'internal'}; if(i) Object.assign(i,row); else LOCAL_DB.items.push(row); await saveLocalDB(); }
+  },
+  async deleteItem(rowId){
+    if(SHEET_URL) await sheetPost('deleteItem',{rowId});
+    else{ LOCAL_DB.items=LOCAL_DB.items.filter(x=>x['Row ID']!==rowId); await saveLocalDB(); }
+  },
+  async upsertStaff(staff, oldPin){
+    if(SHEET_URL) return sheetPost('upsertStaff',{staff,oldPin});
+    else{ const matchPin=oldPin||staff.pin; const s=LOCAL_DB.staff.find(x=>x['PIN Code']===matchPin); const row={'PIN Code':staff.pin,'Staff Full Name':staff.name,'Allowed Sections':(staff.allowedSections||[]).join(',')}; if(s) Object.assign(s,row); else LOCAL_DB.staff.push(row); await saveLocalDB(); }
+  },
+  async deleteStaff(pin){
+    if(SHEET_URL) await sheetPost('deleteStaff',{pin});
+    else{ LOCAL_DB.staff=LOCAL_DB.staff.filter(x=>x['PIN Code']!==pin); await saveLocalDB(); }
+  },
+  async upsertSupplier(supplier, oldName){
+    if(SHEET_URL) await sheetPost('upsertSupplier',{supplier,oldName});
+    else{ const matchName=oldName||supplier.name; const s=LOCAL_DB.suppliers.find(x=>x['Name']===matchName); const row={'Name':supplier.name,'Phone':supplier.phone||'','Group Link':supplier.groupLink||''}; if(s) Object.assign(s,row); else LOCAL_DB.suppliers.push(row); await saveLocalDB(); }
+  },
+  async deleteSupplier(name){
+    if(SHEET_URL) await sheetPost('deleteSupplier',{name});
+    else{ LOCAL_DB.suppliers=LOCAL_DB.suppliers.filter(x=>x['Name']!==name); await saveLocalDB(); }
+  },
+  async setSetting(key, value){
+    if(SHEET_URL) return sheetPost('setSetting',{key,value});
+    else{ LOCAL_DB.settings[key]=value; await saveLocalDB(); }
+  }
 };
 
 async function saveLocalDB(){ if(LOCAL_DB) localStorage.setItem('goya-local-db', JSON.stringify(LOCAL_DB)); }
@@ -174,19 +221,20 @@ async function boot(){
 }
 
 function render(){
-  const app=document.getElementById('app');
+  const app = document.getElementById('app');
   if(!app) return;
-  if(!UI.loaded){
-    app.innerHTML=`<div class="gate-wrap"><div class="gate-card"><h2 style="text-align:center;font-family:'Fraunces',serif;font-size:26px;color:#fff">Admin Panel</h2><p style="text-align:center;color:#a89f91;margin-top:8px;">Loading securely...</p></div></div>`;
-    return;
-  }
-  if(!UI.unlocked){
-    app.innerHTML=`<div class="gate-wrap"><div class="gate-card"><h2 style="text-align:center;font-family:'Fraunces',serif;font-size:24px;color:var(--espresso);margin-bottom:6px;">Admin Access</h2><p style="color:var(--ink-soft);font-size:13.5px;margin-bottom:20px;">Enter Master PIN to continue.</p><button class="btn btn-primary" style="width:100%;padding:12px;" onclick="openPinPad('Master PIN', async(e)=>{if(e===(DB.settings?.MasterPin||'9988')){UI.unlocked=true;render();return true;}return false;})">Unlock Panel</button></div></div>`;
-    return;
-  }
-  let html=`<div class="topbar"><div class="brand">🚀 Goya Admin Workspace</div><button class="btn btn-ghost btn-sm" onclick="UI.unlocked=false;render();">Lock Session</button></div>`;
-  html+=`<div class="admin-layout"><div class="admin-nav">${[['orders','📦 Orders'],['items','📋 Items & Suppliers'],['staff','👥 Staff'],['monitor','📊 Prod & Waste'],['counts','🛒 Inventory Counts'],['export','📥 Data Export'],['settings','⚙️ Settings']].map(([k,l])=>`<button class="${UI.tab===k?'active':''}" onclick="UI.tab='${k}';render();">${l}</button>`).join('')}</div><div>`;
   try {
+    if(!UI.loaded){
+      app.innerHTML = `<div class="gate-wrap"><div class="gate-card"><h2 style="text-align:center;font-family:'Fraunces',serif;font-size:26px;color:var(--espresso)">Admin Panel</h2><p style="text-align:center;color:var(--ink-soft);margin-top:8px;">Loading securely...</p></div></div>`;
+      return;
+    }
+    if(!UI.unlocked){
+      app.innerHTML = `<div class="gate-wrap"><div class="gate-card"><h2 style="text-align:center;font-family:'Fraunces',serif;font-size:24px;color:var(--espresso);margin-bottom:6px;">Admin Access</h2><p style="color:var(--ink-soft);font-size:13.5px;margin-bottom:20px;">Enter Master PIN to continue.</p><button class="btn btn-primary" style="width:100%;padding:12px;" onclick="openPinPad('Master PIN', async(e)=>{if(e===(DB.settings?.MasterPin||'9988')){UI.unlocked=true;render();return true;}return false;})">Unlock Panel</button></div></div>`;
+      return;
+    }
+    let html = `<div class="topbar"><div class="brand">🚀 Goya Admin Workspace</div><button class="btn btn-ghost btn-sm" onclick="UI.unlocked=false;render();">Lock Session</button></div>`;
+    html += `<div class="admin-layout"><div class="admin-nav">${[['orders','📦 Orders'],['items','📋 Items & Suppliers'],['staff','👥 Staff'],['monitor','📊 Prod & Waste'],['counts','🛒 Inventory Counts'],['export','📥 Data Export'],['settings','⚙️ Settings']].map(([k,l])=>`<button class="${UI.tab===k?'active':''}" onclick="UI.tab='${k}';render();">${l}</button>`).join('')}</div><div>`;
+    
     if(UI.tab==='orders') html+=renderOrders();
     else if(UI.tab==='items') html+=renderItems();
     else if(UI.tab==='staff') html+=renderStaff();
@@ -194,11 +242,12 @@ function render(){
     else if(UI.tab==='counts') html+=renderCounts();
     else if(UI.tab==='export') html+=renderExport();
     else html+=renderSettings();
+
+    html += `</div></div>`;
+    app.innerHTML = html;
   } catch(err) {
-    html+=`<div class="card"><p style="color:var(--alert)">Error rendering view: ${escHtml(err.message)}</p></div>`;
+    app.innerHTML = `<div class="gate-wrap"><div class="gate-card"><h3 style="color:var(--alert);margin-bottom:10px;">Rendering Error</h3><p style="font-size:13px;color:var(--ink-soft);">${escHtml(err.message)}</p><button class="btn btn-primary" style="margin-top:16px;width:100%" onclick="localStorage.clear();location.reload();">Reset & Reload</button></div></div>`;
   }
-  html+=`</div></div>`;
-  app.innerHTML=html;
 }
 
 /* 1. ORDERS */
