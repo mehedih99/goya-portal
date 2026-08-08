@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-<title>Goya Operations & Admin Portal</title>
+<title>Goya Admin Workspace</title>
 <link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,600;9..144,700&family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
 <style>
 :root{--espresso:#1e1810;--sage:#527945;--sage-hover:#436337;--ink:#1f1f1f;--ink-soft:#665c54;--line:#e4dec9;--parchment:#f7f5ef;--parchment-2:#eeecdf;--alert:#b93835;--radius:12px;--shadow:0 4px 20px rgba(45,36,22,0.06)}
@@ -69,7 +69,6 @@ async function loadData() {
   render();
 }
 
-// EXACT FOODICS CSV EXPORT FORMATS
 function downloadCSV(filename, headers, rows){
   const csv = [headers.join(','), ...rows.map(r => r.map(c => '"' + String(c).replace(/"/g, '""') + '"').join(','))].join('\n');
   const a = document.createElement('a'); a.href = URL.createObjectURL(new Blob([csv], {type:'text/csv'})); a.download = filename; a.click();
@@ -94,12 +93,11 @@ function exportInventoryCount() {
 function render() {
   const app = document.getElementById('app');
   if(!UI.unlocked) {
-    app.innerHTML = '<div class="gate-wrap"><div class="gate-card"><h2 style="font-family:\'Fraunces\',serif;margin-bottom:8px;font-size:26px;color:var(--espresso)">Goya Portal</h2><p style="margin-bottom:20px;color:var(--ink-soft);font-size:14px">Enter PIN (Staff or Admin)</p><input type="password" id="pin-input" readonly placeholder="••••" style="text-align:center;font-size:28px;letter-spacing:12px;width:100%;padding:16px;border-radius:12px;border:2px solid var(--line);margin-bottom:14px;background:#fffdfa"><div class="pin-grid">' + [1,2,3,4,5,6,7,8,9,0].map(n=>'<button onclick="document.getElementById(\'pin-input\'].value+=' + n + '">' + n + '</button>').join('') + '<button onclick="document.getElementById(\'pin-input\').value=\'\'" style="color:var(--ink-soft)">⌫</button><button onclick="login(document.getElementById(\'pin-input\').value)" class="btn-primary" style="border:none">GO</button></div></div></div>';
+    app.innerHTML = '<div class="gate-wrap"><div class="gate-card"><h2 style="font-family:\'Fraunces\',serif;margin-bottom:8px;font-size:26px;color:var(--espresso)">Goya Portal</h2><p style="margin-bottom:20px;color:var(--ink-soft);font-size:14px">Enter PIN (Staff or Admin)</p><input type="password" id="pin-input" placeholder="••••" style="text-align:center;font-size:28px;letter-spacing:12px;width:100%;padding:16px;border-radius:12px;border:2px solid var(--line);margin-bottom:14px;background:#fffdfa"><div class="pin-grid"><button onclick="document.getElementById(\'pin-input\').value+=\'1\'">1</button><button onclick="document.getElementById(\'pin-input\').value+=\'2\'">2</button><button onclick="document.getElementById(\'pin-input\').value+=\'3\'">3</button><button onclick="document.getElementById(\'pin-input\').value+=\'4\'">4</button><button onclick="document.getElementById(\'pin-input\').value+=\'5\'">5</button><button onclick="document.getElementById(\'pin-input\').value+=\'6\'">6</button><button onclick="document.getElementById(\'pin-input\').value+=\'7\'">7</button><button onclick="document.getElementById(\'pin-input\').value+=\'8\'">8</button><button onclick="document.getElementById(\'pin-input\').value+=\'9\'">9</button><button onclick="document.getElementById(\'pin-input\').value+=\'0\'">0</button><button onclick="let v=document.getElementById(\'pin-input\').value; document.getElementById(\'pin-input\').value=v.slice(0,-1)" style="color:var(--ink-soft)">⌫</button><button onclick="login(document.getElementById(\'pin-input\').value)" class="btn-primary" style="border:none">GO</button></div></div></div>';
     return;
   }
-  if(UI.role === 'staff') { renderStaffPortal(app); return; }
   
-  let html = '<div class="topbar"><div class="brand">🚀 Goya Admin Workspace</div><div class="row" style="gap:10px"><button class="btn" style="background:var(--parchment-2);padding:8px 14px" onclick="UI.role=\'staff\';render()">Staff View</button><button class="btn btn-danger" style="padding:8px 14px" onclick="UI.unlocked=false;render()">Lock</button></div></div>';
+  let html = '<div class="topbar"><div class="brand">🚀 Goya Admin Workspace</div><button class="btn btn-danger" style="padding:8px 14px" onclick="UI.unlocked=false;render()">Lock</button></div>';
   html += '<div class="layout"><div class="nav-menu">' + [['orders','📦 Orders'],['items','📋 Items'],['staff','👥 Staff'],['prodwaste','📊 Prod & Waste'],['counts','🛒 Counts'],['export','📥 Export'],['settings','⚙️ Settings']].map(([k,l])=>'<button class="' + (UI.tab===k?'active':'') + '" onclick="UI.tab=\'' + k + '\';render()">' + l + '</button>').join('') + '</div><div style="min-width:0">';
 
   if(UI.tab==='orders') html+=renderAdminOrders();
@@ -116,53 +114,9 @@ function render() {
 
 function login(pin) {
   if(pin === DB.settings.MasterPin) { UI.unlocked=true; UI.role='admin'; render(); }
-  else { const s = DB.staff.find(x=>String(x['PIN Code'])===pin); if(s){ UI.unlocked=true; UI.role='staff'; UI.user=s; UI.tab='staff-dashboard'; render(); } else { showToast('Incorrect PIN!'); document.getElementById('pin-input').value=''; } }
+  else { showToast('Incorrect PIN!'); document.getElementById('pin-input').value=''; }
 }
 
-// STAFF PORTAL
-function renderStaffPortal(app) {
-  const staffName = UI.user['Staff Full Name'];
-  const staffCounts = DB.inventoryCounts.filter(c => c['Submitted By'] === staffName).sort((a,b)=>new Date(b['Count Date / Month'])-new Date(a['Count Date / Month']));
-  
-  let html = '<div class="topbar"><div class="brand">👤 ' + esc(staffName) + '</div><button class="btn btn-danger" style="padding:8px 12px" onclick="UI.unlocked=false;render()">Logout</button></div>';
-  html += '<div class="nav-menu" style="flex-direction:row;overflow-x:auto;top:60px;padding:10px;margin:16px;border-radius:12px">' + [['staff-dashboard','📊 Dashboard'],['staff-order','🛒 Cart & Orders'],['staff-history','📋 Inventory History'],['staff-notices','📰 Notices']].map(([k,l])=>'<button class="' + (UI.tab===k?'active':'') + '" onclick="UI.tab=\'' + k + '\';render()">' + l + '</button>').join('') + '</div><div style="max-width:800px;margin:0 auto;padding:0 16px">';
-
-  if(UI.tab==='staff-dashboard') {
-    html += '<div class="card"><h3>Live Order Status</h3><div class="kpi-grid" style="margin-top:16px"><div class="kpi-card"><div>Pending</div><div class="kpi-val">' + DB.orders.filter(o=>o.Status==='PENDING').length + '</div></div><div class="kpi-card"><div>Ordered</div><div class="kpi-val">' + DB.orders.filter(o=>o.Status==='ORDERED').length + '</div></div><div class="kpi-card"><div>Received</div><div class="kpi-val" style="color:var(--sage)">' + DB.orders.filter(o=>o.Status==='RECEIVED').length + '</div></div></div></div>';
-  }
-  else if(UI.tab==='staff-order') {
-    html += '<div class="card"><div class="section-title"><h3>Send Purchase Order</h3><button class="btn btn-primary" onclick="submitStaffOrder()">Submit & WhatsApp</button></div><div style="overflow-x:auto"><table><tr><th>Row ID</th><th>Item</th><th>Qty</th><th>Note / Remarks</th></tr>' + DB.master_items.map((i,idx)=>'<tr><td>' + (i['Row ID']||'-') + '</td><td><strong>' + esc(i.Name) + '</strong></td><td><input type="number" id="qty_' + idx + '" class="input-text" style="width:70px" placeholder="0"></td><td><input type="text" id="note_' + idx + '" class="input-text" placeholder="Add note..."></td></tr>').join('') + '</table></div></div>';
-  }
-  else if(UI.tab==='staff-history') {
-    html += '<div class="card"><h3>Monthly Inventory History</h3><div style="overflow-x:auto;margin-top:12px"><table><tr><th>Month</th><th>Section</th><th>Item Name</th><th>Storage Qty</th></tr>' + (staffCounts.map(c=>'<tr><td>' + c['Count Date / Month'] + '</td><td>' + c.Section + '</td><td><strong>' + esc(c['Item Name']) + '</strong></td><td>' + c['Storage Quantity'] + '</td></tr>').join('') || '<tr><td colspan="4" style="text-align:center;color:var(--ink-soft)">No submitted history found.</td></tr>') + '</table></div></div>';
-  }
-  else if(UI.tab==='staff-notices') {
-    html += '<div class="card"><h3>Portal Notices</h3>' + (DB.settings.CustomPages.map(p=>'<div style="margin-top:16px;padding:16px;background:var(--parchment-2);border-radius:8px"><h4>' + esc(p.Title) + '</h4><p style="margin-top:8px">' + esc(p.Body) + '</p></div>').join('') || '<p style="margin-top:12px;color:var(--ink-soft)">No active notices.</p>') + '</div>';
-  }
-  html += '</div>';
-  app.innerHTML = html;
-}
-
-function submitStaffOrder() {
-  let orderText = "NEW PURCHASE ORDER\nSubmitted by: " + UI.user['Staff Full Name'] + "\n\n";
-  let hasItems = false;
-  DB.master_items.forEach((i, idx) => {
-    const q = document.getElementById('qty_' + idx).value;
-    const note = document.getElementById('note_' + idx).value;
-    if(q && q > 0) {
-      hasItems = true;
-      orderText += `• ${i.Name} : ${q} ${i.Storage_Unit || ''} ${note ? '('+note+')' : ''}\n`;
-    }
-  });
-  if(!hasItems) { showToast('Please enter quantity for at least one item!'); return; }
-  
-  showToast('Order Submitted & Email Sent!');
-  // WhatsApp Redirect
-  const whatsappUrl = "https://wa.me/?text=" + encodeURIComponent(orderText);
-  window.open(whatsappUrl, '_blank');
-}
-
-// ADMIN VIEWS
 function renderAdminOrders() {
   const kpi = { PENDING:0, ORDERED:0, RECEIVED:0, NOT_RECEIVED:0 };
   const sortedOrders = DB.orders.slice().sort((a,b)=>new Date(b['Order Date'])-new Date(a['Order Date']));
@@ -171,29 +125,14 @@ function renderAdminOrders() {
   return '<div class="kpi-grid"><div class="kpi-card"><div>Pending</div><div class="kpi-val">' + kpi.PENDING + '</div></div><div class="kpi-card"><div>Ordered</div><div class="kpi-val">' + kpi.ORDERED + '</div></div><div class="kpi-card"><div>Received</div><div class="kpi-val" style="color:var(--sage)">' + kpi.RECEIVED + '</div></div><div class="kpi-card"><div>Not Received</div><div class="kpi-val" style="color:var(--alert)">' + kpi.NOT_RECEIVED + '</div></div></div><div class="card"><div class="section-title"><h3>Orders Management</h3><div class="row"><input type="date" class="input-text" style="width:160px" onchange="UI.filterDate=this.value"><button class="btn btn-danger" onclick="showToast(\'Selected Orders Deleted\')">Delete Selected</button><button class="btn btn-primary" onclick="showToast(\'All Changes Saved Successfully!\')">Save All Changes</button></div></div><div style="overflow-x:auto"><table><tr><th><input type="checkbox"></th><th>Date</th><th>Item Details</th><th>Note / Remarks</th><th>Status</th></tr>' + sortedOrders.map(o=>'<tr><td><input type="checkbox"></td><td>' + o['Order Date'] + '</td><td><strong>' + esc(o['Item Name']) + '</strong><br><small style="color:var(--ink-soft)">Qty: ' + o.Quantity + ' ' + o.Unit + '</small></td><td><input type="text" class="input-text" value="' + esc(o['Note/Remarks']) + '"></td><td><select class="input-select"><option ' + (o.Status==='PENDING'?'selected':'') + '>PENDING</option><option ' + (o.Status==='ORDERED'?'selected':'') + '>ORDERED</option><option ' + (o.Status==='RECEIVED'?'selected':'') + '>RECEIVED</option><option ' + (o.Status==='NOT_RECEIVED'?'selected':'') + '>NOT_RECEIVED</option></select></td></tr>').join('') + '</table></div></div>';
 }
 
-function renderAdminItems() {
-  return '<div class="card"><div class="section-title"><h3>Items & Suppliers</h3><button class="btn btn-primary" onclick="showToast(\'All Items Saved Successfully!\')">Save All Items</button></div><p style="color:var(--ink-soft)">Master items and Internal items database configured with Row ID and SKU.</p></div>';
-}
-
-function renderAdminStaff() {
-  return '<div class="card"><div class="section-title"><h3>Staff Directory</h3><button class="btn btn-primary" onclick="showToast(\'Staff Permissions Applied!\')">Save All Changes</button></div><div style="overflow-x:auto"><table><tr><th>PIN</th><th>Full Name</th><th>Section Access Permissions</th><th>Action</th></tr>' + DB.staff.map(s=>'<tr><td><input class="input-text" style="width:80px;font-family:monospace" value="' + s['PIN Code'] + '"></td><td><input class="input-text" value="' + esc(s['Staff Full Name']) + '"></td><td><div class="checkbox-grid">' + SECTIONS.map(sec=>'<label style="font-size:12.5px;font-weight:600;cursor:pointer"><input type="checkbox" ' + (String(s['Allowed Sections']).includes(sec)?'checked':'') + '> ' + sec.toUpperCase() + '</label>').join('') + '</div></td><td><button class="btn btn-danger">Revoke</button></td></tr>').join('') + '</table></div></div>';
-}
-
-function renderAdminProdWaste() {
-  return '<div class="card"><div class="section-title"><h3>Production & Wastage Logs</h3><button class="btn btn-primary" onclick="showToast(\'Logs Updated!\')">Save All Logs</button></div><p style="color:var(--ink-soft)">Bulk status changes and review controls.</p></div>';
-}
-
-function renderAdminCounts() {
-  return '<div class="card"><div class="section-title"><h3>Inventory Counts Module</h3><button class="btn btn-primary" onclick="showToast(\'Target Month Published!\')">Publish Target Month</button></div><div class="row" style="margin-top:10px"><div style="flex:1"><label style="font-weight:700;font-size:12px;display:block;margin-bottom:8px">Select Target Month</label><input type="month" class="input-text" value="' + DB.settings.TargetInventoryMonth + '" onchange="DB.settings.TargetInventoryMonth=this.value"></div></div></div>';
-}
-
+function renderAdminItems() { return '<div class="card"><div class="section-title"><h3>Items & Suppliers</h3><button class="btn btn-primary" onclick="showToast(\'Saved Successfully!\')">Save All Items</button></div></div>'; }
+function renderAdminStaff() { return '<div class="card"><div class="section-title"><h3>Staff Directory</h3><button class="btn btn-primary" onclick="showToast(\'Saved Successfully!\')">Apply Changes</button></div><div style="overflow-x:auto"><table><tr><th>PIN</th><th>Full Name</th><th>Access</th></tr>' + DB.staff.map(s=>'<tr><td><input class="input-text" value="' + s['PIN Code'] + '"></td><td><input class="input-text" value="' + esc(s['Staff Full Name']) + '"></td><td><div class="checkbox-grid">' + SECTIONS.map(sec=>'<label><input type="checkbox" ' + (String(s['AllowedSections']).includes(sec)?'checked':'') + '> ' + sec.toUpperCase() + '</label>').join('') + '</div></td></tr>').join('') + '</table></div></div>'; }
+function renderAdminProdWaste() { return '<div class="card"><div class="section-title"><h3>Production & Wastage</h3><button class="btn btn-primary" onclick="showToast(\'Saved Successfully!\')">Save All Logs</button></div></div>'; }
+function renderAdminCounts() { return '<div class="card"><div class="section-title"><h3>Inventory Counts Module</h3><button class="btn btn-primary" onclick="showToast(\'Published!\')">Publish Target Month</button></div></div>'; }
 function renderAdminExport() {
-  return '<div class="card"><div class="section-title"><h3>Data Export Center (Foodics CSV Format)</h3></div><div style="display:grid;gap:16px"><div class="card" style="margin:0;background:var(--parchment);box-shadow:none"><h4 style="margin-bottom:10px">Purchase Orders CSV</h4><div class="row"><input type="date" class="input-text" onchange="UI.filterDate=this.value"><button class="btn btn-primary" onclick="exportPurchaseOrders()">Download Foodics CSV</button></div></div><div class="card" style="margin:0;background:var(--parchment);box-shadow:none"><h4 style="margin-bottom:10px">Production CSV</h4><div class="row"><input type="date" class="input-text" onchange="UI.filterDate=this.value"><button class="btn btn-primary" onclick="exportProdWaste(\'production\')">Download Foodics CSV</button></div></div><div class="card" style="margin:0;background:var(--parchment);box-shadow:none"><h4 style="margin-bottom:10px">Wastage CSV</h4><div class="row"><input type="date" class="input-text" onchange="UI.filterDate=this.value"><button class="btn btn-primary" onclick="exportProdWaste(\'wastage\')">Download Foodics CSV</button></div></div><div class="card" style="margin:0;background:var(--parchment);box-shadow:none"><h4 style="margin-bottom:10px">Inventory Counts CSV</h4><div class="row"><input type="month" class="input-text" value="' + UI.filterMonth + '" onchange="UI.filterMonth=this.value"><button class="btn btn-primary" onclick="exportInventoryCount()">Download Foodics CSV</button></div></div></div></div>';
+  return '<div class="card"><div class="section-title"><h3>Data Export Center (Foodics CSV Format)</h3></div><div style="display:grid;gap:16px"><div class="card" style="margin:0;background:var(--parchment);box-shadow:none"><h4 style="margin-bottom:10px">Purchase Orders CSV</h4><div class="row"><input type="date" class="input-text" onchange="UI.filterDate=this.value"><button class="btn btn-primary" onclick="exportPurchaseOrders()">Download CSV</button></div></div><div class="card" style="margin:0;background:var(--parchment);box-shadow:none"><h4 style="margin-bottom:10px">Inventory Counts CSV</h4><div class="row"><input type="month" class="input-text" value="' + UI.filterMonth + '" onchange="UI.filterMonth=this.value"><button class="btn btn-primary" onclick="exportInventoryCount()">Download CSV</button></div></div></div></div>';
 }
-
-function renderAdminSettings() {
-  return '<div class="card"><h3>Custom Portal Page Manager</h3><p style="margin:10px 0;font-size:13.5px;color:var(--ink-soft)">Add dynamic notices or pages to staff portal.</p><input type="text" class="input-text" placeholder="Headline (e.g., Weekly Schedule / Notice)" style="margin-bottom:12px"><textarea class="input-text" placeholder="HTML Content..." rows="3" style="margin-bottom:12px"></textarea><button class="btn btn-primary" onclick="showToast(\'Notice Published to Portal!\')">Publish Page</button></div>';
-}
+function renderAdminSettings() { return '<div class="card"><h3>Settings</h3><button class="btn btn-primary" onclick="showToast(\'Saved!\')">Save Settings</button></div>'; }
 
 loadData();
 </script>
