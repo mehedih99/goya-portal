@@ -2,128 +2,233 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-<title>Goya Staff Portal</title>
-<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,600;9..144,700&family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Portal — Staff</title>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,600;9..144,700&family=Inter:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
 <style>
-:root{--espresso:#1e1810;--sage:#527945;--sage-hover:#436337;--ink:#1f1f1f;--ink-soft:#665c54;--line:#e4dec9;--parchment:#f7f5ef;--parchment-2:#eeecdf;--alert:#b93835;--radius:12px;--shadow:0 4px 20px rgba(45,36,22,0.06)}
+:root{--espresso:#2d2416;--sage:#6b8e5f;--ink:#1a1a1a;--ink-soft:#666;--line:#e5ddd0;--parchment:#f5f1e8;--parchment-2:#ede9df;--alert:#d9534f;--shadow:0 4px 12px rgba(0,0,0,0.05)}
 *{margin:0;padding:0;box-sizing:border-box}
-body{font-family:'Plus Jakarta Sans',sans-serif;background:var(--parchment);color:var(--ink);line-height:1.5;-webkit-tap-highlight-color:transparent}
+body{font-family:'Inter',sans-serif;background:#faf8f5;color:var(--ink);line-height:1.5}
 input,select,button,textarea{font-family:inherit;font-size:inherit;color:inherit}
-.topbar{background:#fff;padding:14px 20px;display:flex;justify-content:space-between;align-items:center;border-bottom:1px solid var(--line);box-shadow:var(--shadow);position:sticky;top:0;z-index:100}
-.brand{font-weight:700;font-size:16px;font-family:'Fraunces',serif;color:var(--espresso);display:flex;align-items:center;gap:8px}
-.container{max-width:800px;margin:0 auto;padding:16px}
-.card{background:#fff;border-radius:var(--radius);padding:20px;margin-bottom:16px;box-shadow:var(--shadow);border:1px solid rgba(228,222,201,0.6);overflow-x:auto}
-@media (max-width:600px){.card{padding:16px}}
-.section-title{display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;flex-wrap:wrap;gap:10px}
+.topbar{background:#fff;padding:12px 20px;display:flex;justify-content:space-between;align-items:center;border-bottom:1px solid var(--line);box-shadow:var(--shadow);position:sticky;top:0;z-index:100}
+.brand{font-weight:700;font-size:16px;color:var(--espresso);display:flex;align-items:center;gap:8px;}
+.tabs{display:flex;gap:4px;background:#fff;padding:0 16px;border-bottom:1px solid var(--line);flex-wrap:wrap;overflow-x:auto;}
+.tab-btn{padding:14px 16px;background:none;border:none;cursor:pointer;font-weight:600;color:var(--ink-soft);border-bottom:3px solid transparent;transition:all 0.2s;white-space:nowrap;}
+.tab-btn.active{color:var(--espresso);border-color:var(--sage)}
+.tab-btn:hover:not(.active){color:var(--espresso)}
+.main{padding:24px 20px;max-width:1200px;margin:0 auto}
+.card{background:#fff;border-radius:12px;padding:24px;margin-bottom:20px;box-shadow:var(--shadow);border:1px solid rgba(0,0,0,0.03)}
+.section-title{display:flex;justify-content:space-between;align-items:center;margin-bottom:20px}
 .section-title h3{font-size:18px;font-weight:700;font-family:'Fraunces',serif;color:var(--espresso)}
 .row{display:flex;gap:12px;flex-wrap:wrap;align-items:center}
-.btn{padding:12px 18px;border:none;border-radius:8px;font-weight:600;cursor:pointer;transition:all .2s;font-size:14px;display:inline-flex;align-items:center;justify-content:center;gap:6px}
-.btn-primary{background:var(--sage);color:#fff;width:100%}
-.btn-primary:hover{background:var(--sage-hover)}
-.btn-danger{background:#fdf2f2;color:var(--alert);padding:8px 12px;font-size:13px}
-.input-text,.input-select{padding:12px 14px;border:1.5px solid var(--line);border-radius:8px;background:#fffdfa;width:100%;font-size:14px}
-.input-text:focus,.input-select:focus{outline:none;border-color:var(--sage)}
-table{width:100%;border-collapse:collapse;font-size:13.5px;white-space:nowrap;min-width:500px}
-th{background:var(--parchment-2);padding:12px;text-align:left;font-weight:700;color:var(--espresso);text-transform:uppercase;font-size:11px}
-td{padding:12px;border-bottom:1px solid var(--line);vertical-align:middle}
-.kpi-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-bottom:16px}
-.kpi-card{background:#fff;border:1px solid var(--line);padding:14px;border-radius:12px;text-align:center;box-shadow:var(--shadow)}
-.kpi-val{font-size:24px;font-weight:700;font-family:'Fraunces',serif;color:var(--espresso);margin-top:4px}
-.toast{position:fixed;bottom:24px;left:50%;transform:translateX(-50%);background:var(--sage);color:#fff;padding:14px 24px;border-radius:10px;font-weight:600;z-index:9999;box-shadow:0 10px 30px rgba(0,0,0,0.25);font-size:14px}
-.gate-wrap{display:flex;align-items:center;justify-content:center;min-height:100vh;background:var(--espresso);padding:20px}
-.gate-card{background:#fff;padding:40px 24px;border-radius:16px;text-align:center;width:100%;max-width:380px}
-.pin-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-top:20px}
-.pin-grid button{height:64px;font-size:22px;font-weight:600;border:1.5px solid var(--line);background:#fff;border-radius:12px;cursor:pointer}
-.pin-grid button:active{background:var(--parchment)}
-.nav-tabs{display:flex;gap:6px;background:#fff;padding:10px;border-radius:12px;box-shadow:var(--shadow);margin-bottom:16px;overflow-x:auto}
-.nav-tabs button{padding:10px 14px;border:none;background:none;cursor:pointer;border-radius:8px;font-weight:600;color:var(--ink-soft);font-size:13.5px;white-space:nowrap}
-.nav-tabs button.active{background:var(--espresso);color:#fff}
+.btn{padding:10px 18px;border:none;border-radius:8px;font-weight:600;cursor:pointer;transition:all 0.2s;font-size:14px;display:inline-flex;align-items:center;justify-content:center;gap:6px;}
+.btn-primary{background:var(--sage);color:#fff}
+.btn-primary:hover{background:#5a7a50;transform:translateY(-1px)}
+.btn-ghost{background:transparent;border:1.5px solid var(--line);color:var(--ink)}
+.btn-danger{background:#fdecec;color:var(--alert)}
+.input-text,.input-number,.input-select{padding:12px 14px;border:1.5px solid var(--line);border-radius:8px;background:#fffdf9;width:100%;transition:all 0.2s}
+.input-text:focus,.input-number:focus,.input-select:focus{outline:none;border-color:var(--sage);box-shadow:0 0 0 3px rgba(107,142,95,.15);background:#fff}
+.item-list{max-height:500px;overflow-y:auto;padding-right:4px;}
+.item-row{display:flex;justify-content:space-between;align-items:center;padding:14px;background:#fff;border:1px solid var(--line);border-radius:8px;margin-bottom:10px;transition:all 0.2s}
+.item-name{font-weight:600;font-size:14.5px;color:var(--espresso)}
+.item-meta{font-size:12px;color:var(--ink-soft);margin-top:4px;font-family:'IBM Plex Mono',monospace}
+.cart-item{background:var(--parchment);padding:14px;border-radius:8px;margin-bottom:12px;border:1px solid var(--line)}
+.gate-wrap{display:flex;align-items:center;justify-content:center;min-height:100vh;background:var(--espresso);padding:20px;}
+.gate-card{background:#fff;padding:40px;border-radius:16px;box-shadow:0 20px 40px rgba(0,0,0,.2);max-width:440px;width:100%}
+.staff-pick{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin:24px 0}
+.staff-pick button{padding:16px;text-align:center;border-radius:10px;font-weight:600;border:1.5px solid var(--line);background:#fff;cursor:pointer;transition:all 0.2s}
+.staff-pick button:hover{border-color:var(--sage);background:var(--parchment)}
+.success-popup{position:fixed;top:50%;left:50%;transform:translate(-50%,-50%);background:#fff;padding:32px;border-radius:16px;box-shadow:0 20px 60px rgba(0,0,0,.15);text-align:center;z-index:9999;max-width:420px;width:90%;animation:popIn 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275)}
+@keyframes popIn { 0% { transform: translate(-50%,-40%) scale(0.9); opacity:0; } 100% { transform: translate(-50%,-50%) scale(1); opacity:1; } }
+.success-check{width:64px;height:64px;border-radius:50%;background:#e3ecdd;color:var(--sage);display:flex;align-items:center;justify-content:center;font-size:32px;margin:0 auto 16px}
+.table-wrap{overflow-x:auto;border-radius:8px;border:1px solid var(--line)}
+.table-wrap table{width:100%;border-collapse:collapse;font-size:13px}
+.table-wrap th{background:var(--parchment);padding:12px 14px;text-align:left;font-weight:600;color:var(--espresso);text-transform:uppercase;font-size:11px;}
+.table-wrap td{padding:14px;border-bottom:1px solid var(--line)}
+.badge{display:inline-block;padding:4px 10px;border-radius:20px;font-size:11px;font-weight:700;text-transform:uppercase;background:var(--parchment-2);color:var(--ink)}
+.tag{display:inline-block;padding:4px 10px;border-radius:6px;background:#e3ecdd;color:var(--sage);font-size:11px;font-weight:700;}
+.pin-pad{text-align:center}
+.pin-grid{display:grid;grid-template-columns:repeat(3,70px);gap:12px;justify-content:center;margin-bottom:20px}
+.pin-grid button{width:70px;height:70px;font-size:24px;font-weight:600;border:1.5px solid var(--line);background:#fff;border-radius:12px;cursor:pointer;}
+.pin-grid button:active{background:var(--parchment);transform:scale(0.95)}
+.overlay{position:fixed;inset:0;background:rgba(45,36,22,0.8);backdrop-filter:blur(4px);display:flex;align-items:center;justify-content:center;z-index:9999}
+.modal{background:#fff;padding:32px;border-radius:16px;max-width:400px;width:90%}
 </style>
 </head>
 <body>
 <div id="app"></div>
 <script>
-let DB = {
-  master_items: [ { 'Row ID':1, Name:'Ethiopian Green Beans', SKU:'BEAN-ETH-01', 'Storage Unit':'KG', 'Ingredient Unit':'GRAM', Supplier:'Sunrise Bean Co.', 'Items Type':'bar' } ],
-  staff: [ { 'PIN Code':1111, 'Staff Full Name':'Aisha Rahman', 'Allowed Sections':'bar' } ],
-  orders: [ { 'Order Date':'01 Aug 2026', 'Item Name':'Ethiopian Green Beans', Quantity:5, Unit:'KG', Status:'PENDING', 'Note/Remarks':'Check expiry', 'Logged By':'Aisha Rahman' } ],
-  inventoryCounts: [ { 'Count Date / Month':'2026-08', Section:'bar', 'Item Name':'Ethiopian Green Beans', SKU:'BEAN-ETH-01', 'Storage Quantity':3, 'Submitted By':'Aisha Rahman' } ],
-  settings: { TargetInventoryMonth:'2026-08', CustomPages:[] }
-};
-let UI = { unlocked:false, user:null, tab:'dashboard' };
+const WASTE_REASONS = ['Expired','Spillage / Damaged','Over-prepared','Staff Mistake'];
+const SECTION_LABEL = {kitchen:'Kitchen',pastry:'Pastry',bar:'Bar',packaging:'Packaging',internal:'Internal'};
 
-function esc(s){ return String(s||'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
-function showToast(msg){ const t=document.createElement('div'); t.className='toast'; t.textContent=msg; document.body.appendChild(t); setTimeout(()=>t.remove(), 2500); }
+let SHEET_URL = '';
+let LOCAL_DB = null;
 
-async function loadData() {
-  const url = localStorage.getItem('goya-sheet-url');
-  if(url) { try { const res = await fetch(url+'?action=getAll'); const data = await res.json(); if(!data.error) DB = {...DB, ...data}; } catch(e){} }
-  render();
+async function getLocalSetting(key){ try{ return JSON.parse(localStorage.getItem(key)||'null'); }catch(e){ return null; } }
+async function setLocalSetting(key, val){ localStorage.setItem(key, JSON.stringify(val)); }
+async function initBackend(){ SHEET_URL = await getLocalSetting('goya-sheet-url') || ''; }
+async function connectSheet(url){ SHEET_URL = (url||'').trim(); await setLocalSetting('goya-sheet-url', SHEET_URL); }
+async function sheetPost(action, body){ if(!SHEET_URL) throw new Error('Sheet not connected'); const resp = await fetch(SHEET_URL, {method:'POST', body:JSON.stringify({action,...body})}); return resp.json(); }
+
+function seedData(){
+  return { items:[], staff:[], orders:[], production:[], wastage:[], inventoryCounts:[], suppliers:[], settings:{ ConnectionPin:'9988', InventoryCountEnabled:'true' } };
 }
 
-function render() {
-  const app = document.getElementById('app');
-  if(!UI.unlocked) {
-    app.innerHTML = '<div class="gate-wrap"><div class="gate-card"><h2 style="font-family:\'Fraunces\',serif;margin-bottom:8px;font-size:24px;color:var(--espresso)">Staff Portal</h2><p style="margin-bottom:20px;color:var(--ink-soft);font-size:13.5px">Enter your 4-Digit Staff PIN</p><input type="password" id="pin-input" readonly placeholder="••••" style="text-align:center;font-size:28px;letter-spacing:12px;width:100%;padding:14px;border-radius:12px;border:2px solid var(--line);margin-bottom:14px;background:#fffdfa"><div class="pin-grid">' + [1,2,3,4,5,6,7,8,9,0].map(n=>'<button onclick="document.getElementById(\'pin-input\'].value+=' + n + '">' + n + '</button>').join('') + '<button onclick="document.getElementById(\'pin-input\').value=\'\'" style="color:var(--ink-soft)">⌫</button><button onclick="login(document.getElementById(\'pin-input\').value)" class="btn-primary" style="border:none;height:64px;font-size:18px">GO</button></div></div></div>';
+const api = {
+  async getAll(){ if(!SHEET_URL) return seedData(); try{ const resp = await fetch(SHEET_URL+'?action=getAll'); const data = await resp.json(); return data || seedData(); }catch(e){ return seedData(); } },
+  async addOrders(rows){ if(SHEET_URL) await sheetPost('addOrders',{rows}); else{ LOCAL_DB.orders.unshift(...rows.slice().reverse()); await saveLocalDB(); } },
+  async addProduction(rows){ if(SHEET_URL) return sheetPost('addProduction',{rows}); else{ LOCAL_DB.production.unshift(...rows.slice().reverse()); await saveLocalDB(); } },
+  async addWastage(rows){ if(SHEET_URL) return sheetPost('addWastage',{rows}); else{ LOCAL_DB.wastage.unshift(...rows.slice().reverse()); await saveLocalDB(); } },
+  async addInventoryCounts(rows){ if(SHEET_URL) return sheetPost('addInventoryCounts',{rows}); else{ LOCAL_DB.inventoryCounts.unshift(...rows.slice().reverse()); await saveLocalDB(); } }
+};
+
+async function saveLocalDB(){ if(LOCAL_DB) localStorage.setItem('goya-local-db', JSON.stringify(LOCAL_DB)); }
+async function loadLocalDB(){ try{ LOCAL_DB = JSON.parse(localStorage.getItem('goya-local-db')); if(!LOCAL_DB) LOCAL_DB = seedData(); }catch(e){ LOCAL_DB = seedData(); } }
+
+function escHtml(s){ return String(s||'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
+function fmtDate(iso){ return iso? iso.slice(0,10) : ''; }
+function fmtDateTime(iso){ return iso? iso.slice(0,16).replace('T',' ') : ''; }
+function todayISO(){ return new Date().toISOString().slice(0,10); }
+function monthLabel(){ return new Date().toISOString().slice(0,7); }
+function parseSections(str){ return (str||'').split(',').map(s=>s.trim()).filter(Boolean); }
+
+function showToast(msg){ const t = document.createElement('div'); t.style.cssText = 'position:fixed;bottom:24px;left:50%;transform:translateX(-50%);background:var(--espresso);color:#fff;padding:14px 24px;border-radius:8px;font-size:14px;font-weight:500;z-index:9999;'; t.textContent = msg; document.body.appendChild(t); setTimeout(()=>t.remove(), 2500); }
+
+function openPinPad(title, onSubmit){
+  const holder = document.createElement('div'); holder.className='overlay'; holder.id='pin-keypad'; let input = '';
+  const pad = `<div class="pin-pad"><h3 style="margin-bottom:20px;font-family:'Fraunces',serif;font-size:22px;color:var(--espresso);">${escHtml(title)}</h3><input type="password" id="pin-input" placeholder="••••" readonly style="text-align:center;font-size:28px;letter-spacing:12px;width:160px;height:60px;border:2px solid var(--line);border-radius:12px;margin:0 auto 24px;display:block;background:#fffdf9;color:var(--espresso)"><div class="pin-grid">${[1,2,3,4,5,6,7,8,9,0].map(n=>`<button onclick="insertPin(${n})">${n}</button>`).join('')}<button onclick="deletePin()" style="grid-column:2;background:var(--parchment-2);color:var(--ink-soft)">⌫</button></div><div class="row" style="margin-top:20px;"><button class="btn btn-ghost" style="width:100%" onclick="closePinPad()">Cancel</button><button class="btn btn-primary" style="width:100%" onclick="submitPin()">Confirm</button></div></div>`;
+  holder.innerHTML = `<div class="modal">${pad}</div>`; document.body.appendChild(holder);
+  window.pinInput = () => document.getElementById('pin-input'); window.insertPin = (n) => { if(input.length<4){input+=n; window.pinInput().value='•'.repeat(input.length);} }; window.deletePin = () => { input = input.slice(0,-1); window.pinInput().value='•'.repeat(input.length); }; window.closePinPad = () => holder.remove(); window.submitPin = async () => { if(await onSubmit(input)){ holder.remove(); } else { showToast('Incorrect PIN'); input=''; window.pinInput().value=''; } };
+}
+
+function showSuccessPopup(title, subtitle){
+  const h=document.createElement('div'); h.innerHTML=`<div class="overlay" style="z-index:99999;"><div class="success-popup"><div class="success-check">✓</div><h3 style="font-family:'Fraunces',serif;font-size:24px;color:var(--espresso);margin-bottom:8px;">${escHtml(title)}</h3><p style="color:var(--ink-soft);font-size:14px;line-height:1.5;">${escHtml(subtitle)}</p><button class="btn btn-primary" style="width:100%;margin-top:24px;padding:14px;" onclick="this.parentElement.parentElement.remove();">Done</button></div></div>`; document.body.appendChild(h);
+}
+
+let DB={items:[],staff:[],orders:[],production:[],wastage:[],inventoryCounts:[],suppliers:[],settings:{}};
+let UI={loaded:false,currentPin:null,tab:'order',orderCart:[],productionCart:[],wastageCart:[],orderSearch:'',prodSearch:'',wasteSearch:'',historyTab:'orders',countMonth:monthLabel(),countSection:null,countValues:{}};
+
+async function boot(){ await loadLocalDB(); await initBackend(); DB=await api.getAll(); const p=await getLocalSetting('goya-staff-pin'); if(p&&DB.staff.some(s=>s['PIN Code']===p)) UI.currentPin=p; UI.loaded=true; render(); }
+function currentStaff(){return DB.staff.find(s=>s['PIN Code']===UI.currentPin);}
+function orderableItems(){return DB.items.filter(it=>(it['Supplier']||'').trim()!=='');}
+function internalItems(){return DB.items.filter(it=>(it['Supplier']||'').trim()==='');}
+
+function render(){
+  const app=document.getElementById('app');
+  if(!UI.loaded){app.innerHTML=`<div class="gate-wrap"><div class="gate-card"><h2 style="text-align:center;font-family:'Fraunces',serif;font-size:28px;">Portal</h2><p style="text-align:center;color:var(--ink-soft);margin-top:8px;">Loading securely...</p></div></div>`;return;}
+  if(!UI.currentPin){
+    app.innerHTML=`<div class="gate-wrap"><div class="gate-card"><h2 style="text-align:center;font-family:'Fraunces',serif;font-size:28px;color:var(--espresso);">Staff Portal</h2><p style="color:var(--ink-soft);text-align:center;margin-top:8px;">Who's working today?</p><div class="staff-pick">${DB.staff.map(s=>`<button onclick="loginAs('${s['PIN Code']}')">👤 ${escHtml(s['Staff Full Name'])}</button>`).join('')}</div><div style="text-align:center;margin-top:16px;"><button class="btn btn-ghost btn-sm" onclick="openPinPad('Connection PIN', async(e)=>{if(e===(DB.settings.ConnectionPin||'9988')){const url=prompt('App Script URL:', SHEET_URL);if(url!==null)await connectSheet(url);return true;}return false;})">⚙ Connection Settings</button></div></div></div>`;
     return;
   }
-
-  const staffName = UI.user['Staff Full Name'];
-  const staffCounts = DB.inventoryCounts.filter(c => c['Submitted By'] === staffName).sort((a,b)=>new Date(b['Count Date / Month'])-new Date(a['Count Date / Month']));
-
-  let html = '<div class="topbar"><div class="brand">👤 ' + esc(staffName) + '</div><button class="btn btn-danger" onclick="UI.unlocked=false;render()">Logout</button></div>';
-  html += '<div class="container"><div class="nav-tabs">' + [['dashboard','📊 Dashboard'],['order','🛒 Send Order'],['history','📋 Inventory History'],['notices','📰 Notices']].map(([k,l])=>'<button class="' + (UI.tab===k?'active':'') + '" onclick="UI.tab=\'' + k + '\';render()">' + l + '</button>').join('') + '</div>';
-
-  if(UI.tab==='dashboard') {
-    html += '<div class="card"><h3>Live Order History & Status</h3><div class="kpi-grid" style="margin-top:14px"><div class="kpi-card"><div>Pending</div><div class="kpi-val">' + DB.orders.filter(o=>o.Status==='PENDING').length + '</div></div><div class="kpi-card"><div>Ordered</div><div class="kpi-val">' + DB.orders.filter(o=>o.Status==='ORDERED').length + '</div></div><div class="kpi-card"><div>Received</div><div class="kpi-val" style="color:var(--sage)">' + DB.orders.filter(o=>o.Status==='RECEIVED').length + '</div></div></div></div>';
-  }
-  else if(UI.tab==='order') {
-    html += '<div class="card"><div class="section-title"><h3>Purchase Order Cart</h3><span style="font-size:12px;color:var(--ink-soft)">Target Month: <strong>' + DB.settings.TargetInventoryMonth + '</strong></span></div><div style="overflow-x:auto"><table><tr><th>Item Name</th><th>Qty</th><th>Note / Remarks</th></tr>' + DB.master_items.map((i,idx)=>'<tr><td><strong>' + esc(i.Name) + '</strong><br><small style="color:var(--ink-soft)">SKU: ' + i.SKU + '</small></td><td><input type="number" id="qty_' + idx + '" class="input-text" style="width:75px" placeholder="0"></td><td><input type="text" id="note_' + idx + '" class="input-text" placeholder="Add note..."></td></tr>').join('') + '</table></div><button class="btn btn-primary" style="margin-top:16px" onclick="submitStaffOrder()">Submit & WhatsApp</button></div>';
-  }
-  else if(UI.tab==='history') {
-    html += '<div class="card"><h3>My Monthly Inventory History</h3><div style="overflow-x:auto;margin-top:12px"><table><tr><th>Month</th><th>Section</th><th>Item Name</th><th>Storage Qty</th></tr>' + (staffCounts.map(c=>'<tr><td>' + c['Count Date / Month'] + '</td><td>' + c.Section + '</td><td><strong>' + esc(c['Item Name']) + '</strong></td><td>' + c['Storage Quantity'] + '</td></tr>').join('') || '<tr><td colspan="4" style="text-align:center;color:var(--ink-soft)">No inventory history found for your account.</td></tr>') + '</table></div></div>';
-  }
-  else if(UI.tab==='notices') {
-    html += '<div class="card"><h3>Portal Notices & Schedules</h3>' + (DB.settings.CustomPages.map(p=>'<div style="margin-top:14px;padding:14px;background:var(--parchment-2);border-radius:8px"><h4>' + esc(p.Title) + '</h4><p style="margin-top:6px;font-size:13.5px">' + esc(p.Body) + '</p></div>').join('') || '<p style="margin-top:12px;color:var(--ink-soft)">No active notices.</p>') + '</div>';
-  }
-
-  html += '</div>';
-  app.innerHTML = html;
+  let html=`<div class="topbar"><div class="brand">👤 ${escHtml(currentStaff()?.['Staff Full Name']||'')}</div><button class="btn btn-ghost btn-sm" onclick="logout()">Switch User</button></div>`;
+  html+=`<div class="tabs">${[['order','📤 Send Order'],['production','🏭 Production'],['wastage','🗑 Wastage'],['history','📋 History']].map(([k,l])=>`<button class="tab-btn ${UI.tab===k?'active':''}" onclick="UI.tab='${k}';render();">${l}</button>`).join('')}`;
+  if(DB.settings.InventoryCountEnabled==='true' && (currentStaff()?.['Allowed Sections'])) html+=`<button class="tab-btn ${UI.tab==='count'?'active':''}" onclick="UI.tab='count';render();">📊 Inventory Count</button>`;
+  html+=`</div><div class="main">`;
+  if(UI.tab==='order') html+=renderOrder(); else if(UI.tab==='production') html+=renderProduction(); else if(UI.tab==='wastage') html+=renderWastage(); else if(UI.tab==='count') html+=renderCount(); else html+=renderHistory();
+  html+=`</div>`; app.innerHTML=html;
 }
 
-function submitStaffOrder() {
-  let orderText = "NEW PURCHASE ORDER\nSubmitted by: " + UI.user['Staff Full Name'] + "\n\n";
-  let hasItems = false;
-  DB.master_items.forEach((i, idx) => {
-    const q = document.getElementById('qty_' + idx).value;
-    const note = document.getElementById('note_' + idx).value;
-    if(q && q > 0) {
-      hasItems = true;
-      orderText += `• ${i.Name} : ${q} ${i.Storage_Unit || ''} ${note ? '('+note+')' : ''}\n`;
-    }
-  });
-  if(!hasItems) { showToast('Please enter quantity for at least one item!'); return; }
+function loginAs(pin){ openPinPad(`PIN Code`, async(e)=>{ if(e===pin){ UI.currentPin=pin; await setLocalSetting('goya-staff-pin',pin); render(); return true; } return false; }); }
+function logout(){ UI.currentPin=null; setLocalSetting('goya-staff-pin',''); render(); }
+
+/* 1. ORDER MODULE */
+function renderOrder(){
+  let html=`<div class="row" style="align-items:stretch;"><div style="flex:1.2;min-width:300px;"><div class="card" style="height:100%;"><div class="section-title"><h3>Find Items</h3></div><input type="text" placeholder="Search item or supplier..." class="input-text" style="margin-bottom:16px;" value="${escHtml(UI.orderSearch)}" oninput="UI.orderSearch=this.value;render();"><div class="item-list">`;
+  const items=orderableItems().filter(it=>!UI.orderSearch||it['Name'].toLowerCase().includes(UI.orderSearch.toLowerCase())||it['Supplier'].toLowerCase().includes(UI.orderSearch.toLowerCase()));
+  items.forEach(it=>{ html+=`<div class="item-row"><div><div class="item-name">${escHtml(it['Name'])}</div><div class="item-meta">📦 ${escHtml(it['Supplier'])}</div></div><button class="btn btn-primary btn-sm" onclick="addToOrder('${it['Row ID']}')">Add</button></div>`; });
+  html+=`</div></div></div><div style="flex:1;min-width:300px;"><div class="card" style="height:100%;background:#fffdf7;"><div class="section-title"><h3>Cart (${UI.orderCart.length})</h3></div>`;
+  if(!UI.orderCart.length) html+=`<div class="empty-state" style="color:var(--ink-soft)">Cart is empty.</div>`;
+  else{
+    UI.orderCart.forEach((c,i)=>{ html+=`<div class="cart-item"><div style="display:flex;justify-content:space-between;margin-bottom:8px"><div><div class="item-name">${escHtml(c.name)}</div><div class="item-meta">${escHtml(c.supplier)}</div></div><button class="btn btn-danger btn-sm" style="padding:4px 8px" onclick="UI.orderCart.splice(${i},1);render();">✕</button></div><div class="row" style="gap:8px;"><input type="number" step="0.1" value="${c.qty}" onchange="UI.orderCart[${i}].qty=parseFloat(this.value)||1;" class="input-number" style="width:80px;"><select onchange="UI.orderCart[${i}].unit=this.value;" class="input-select" style="width:100px;"><option>${c.unit}</option></select></div><input type="text" class="input-text" placeholder="Note / Remarks (e.g. Urgent)" value="${escHtml(c.note||'')}" onchange="UI.orderCart[${i}].note=this.value;" style="margin-top:10px;"></div>`; });
+    html+=`<button class="btn btn-primary" style="width:100%;padding:14px;margin-top:16px;font-size:15px;" onclick="submitOrder()">Submit & WhatsApp</button>`;
+  }
+  html+=`</div></div></div>`; return html;
+}
+function addToOrder(rowId){ const it=DB.items.find(x=>x['Row ID']===rowId); if(!it)return; UI.orderCart.push({name:it['Name'],supplier:it['Supplier'],qty:1,unit:(it['Storage Unit']||'unit'), note:''}); render(); }
+
+async function submitOrder(){
+  if(!UI.orderCart.length)return; const name=currentStaff()?.['Staff Full Name']||'Staff';
   
-  showToast('Order Submitted & Email Sent!');
-  const whatsappUrl = "https://wa.me/?text=" + encodeURIComponent(orderText);
-  window.open(whatsappUrl, '_blank');
+  const rows=UI.orderCart.map((c,i)=>({'Timestamp':new Date(Date.now()+i).toISOString(),'Order Date':todayISO(),'Item Name':c.name,'Quantity':c.qty,'Unit':c.unit,'Supplier':c.supplier,'Note/Remarks':c.note||'','Status':'PENDING','Logged By':name}));
+  
+  let orderText = "NEW PURCHASE ORDER\nSubmitted by: " + name + "\n\n";
+  UI.orderCart.forEach(c => { orderText += `• ${c.name} : ${c.qty} ${c.unit} ${c.note ? '('+c.note+')' : ''}\n`; });
+  
+  await api.addOrders(rows); DB=await api.getAll(); UI.orderCart=[]; render(); 
+  
+  showSuccessPopup('Order Submitted Successfully!', `An email notification has been triggered, redirecting to WhatsApp now.`);
+  
+  setTimeout(() => {
+    const whatsappUrl = "https://wa.me/?text=" + encodeURIComponent(orderText);
+    window.open(whatsappUrl, '_blank');
+  }, 1000);
 }
 
-function login(pin) {
-  const found = DB.staff.find(x => String(x['PIN Code']) === String(pin));
-  if(found) {
-    UI.unlocked = true;
-    UI.user = found;
-    UI.tab = 'dashboard';
-    render();
-  } else {
-    showToast('Incorrect Staff PIN!');
-    document.getElementById('pin-input').value = '';
+/* 2. PRODUCTION MODULE */
+function renderProduction(){
+  let html=`<div class="row" style="align-items:stretch;"><div style="flex:1.2;min-width:300px;"><div class="card" style="height:100%;"><div class="section-title"><h3>Internal Items</h3></div><input type="text" placeholder="Search in-house items..." class="input-text" style="margin-bottom:16px;" value="${escHtml(UI.prodSearch)}" oninput="UI.prodSearch=this.value;render();"><div class="item-list">`;
+  const items=internalItems().filter(it=>!UI.prodSearch||it['Name'].toLowerCase().includes(UI.prodSearch.toLowerCase()));
+  items.forEach(it=>{ html+=`<div class="item-row"><div><div class="item-name">${escHtml(it['Name'])}</div><div class="item-meta">Type: ${escHtml(it['Items Type'])}</div></div><button class="btn btn-primary btn-sm" onclick="addToProd('${it['Row ID']}')">Add</button></div>`; });
+  html+=`</div></div></div><div style="flex:1;min-width:300px;"><div class="card" style="height:100%;"><div class="section-title"><h3>Log Production</h3></div>`;
+  if(!UI.productionCart.length) html+=`<div class="empty-state" style="color:var(--ink-soft)">No items added.</div>`;
+  else{
+    UI.productionCart.forEach((c,i)=>{ html+=`<div class="cart-item" style="display:grid;grid-template-columns:1fr auto auto;gap:12px;align-items:center;"><div><div class="item-name">${escHtml(c.name)}</div></div><div class="row" style="gap:8px;"><input type="number" step="0.1" value="${c.qty}" onchange="UI.productionCart[${i}].qty=parseFloat(this.value)||1;" class="input-number" style="width:80px;"><select onchange="UI.productionCart[${i}].unit=this.value;" class="input-select" style="width:90px;"><option>${c.unit}</option></select></div><button class="btn btn-danger btn-sm" onclick="UI.productionCart.splice(${i},1);render();">✕</button></div>`; });
+    html+=`<button class="btn btn-primary" style="width:100%;padding:14px;margin-top:16px;" onclick="submitProd()">Submit Production</button>`;
   }
+  html+=`</div></div></div>`; return html;
+}
+function addToProd(rowId){ const it=DB.items.find(x=>x['Row ID']===rowId); if(!it)return; UI.productionCart.push({name:it['Name'],qty:1,unit:(it['Storage Unit']||'unit')}); render(); }
+async function submitProd(){ if(!UI.productionCart.length)return; const rows=UI.productionCart.map((c,i)=>({'Timestamp':new Date(Date.now()+i).toISOString(),'Date':todayISO(),'Item Name':c.name,'Quantity':c.qty,'Unit':c.unit,'Logged By':currentStaff()?.['Staff Full Name'],'Status':'Logged'})); await api.addProduction(rows); DB=await api.getAll(); UI.productionCart=[]; render(); showSuccessPopup('Production Logged!', `${rows.length} batches recorded.`); }
+
+/* 3. WASTAGE MODULE */
+function renderWastage(){
+  let html=`<div class="row" style="align-items:stretch;"><div style="flex:1.2;min-width:300px;"><div class="card" style="height:100%;"><div class="section-title"><h3>Select Items</h3></div><input type="text" placeholder="Search..." class="input-text" style="margin-bottom:16px;" value="${escHtml(UI.wasteSearch)}" oninput="UI.wasteSearch=this.value;render();"><div class="item-list">`;
+  const items=internalItems().filter(it=>!UI.wasteSearch||it['Name'].toLowerCase().includes(UI.wasteSearch.toLowerCase()));
+  items.forEach(it=>{ html+=`<div class="item-row"><div><div class="item-name">${escHtml(it['Name'])}</div></div><button class="btn btn-danger btn-sm" onclick="addToWaste('${it['Row ID']}')">Add</button></div>`; });
+  html+=`</div></div></div><div style="flex:1;min-width:300px;"><div class="card" style="height:100%;"><div class="section-title"><h3>Log Wastage</h3></div>`;
+  if(!UI.wastageCart.length) html+=`<div class="empty-state" style="color:var(--ink-soft)">No items added.</div>`;
+  else{
+    UI.wastageCart.forEach((c,i)=>{ html+=`<div class="cart-item" style="display:grid;grid-template-columns:1fr auto auto;gap:12px;align-items:center;"><div><div class="item-name">${escHtml(c.name)}</div></div><div class="row" style="gap:6px;"><input type="number" step="0.1" value="${c.qty}" onchange="UI.wastageCart[${i}].qty=parseFloat(this.value)||1;" class="input-number" style="width:70px;"><select onchange="UI.wastageCart[${i}].unit=this.value;" class="input-select" style="width:80px;"><option>${c.unit}</option></select><select onchange="UI.wastageCart[${i}].reason=this.value;" class="input-select" style="width:120px;">${WASTE_REASONS.map(r=>`<option value="${r}">${r}</option>`).join('')}</select></div><button class="btn btn-ghost btn-sm" style="color:var(--alert);border-color:var(--alert)" onclick="UI.wastageCart.splice(${i},1);render();">✕</button></div>`; });
+    html+=`<button class="btn btn-danger" style="width:100%;padding:14px;margin-top:16px;" onclick="submitWaste()">Submit Wastage</button>`;
+  }
+  html+=`</div></div></div>`; return html;
+}
+function addToWaste(rowId){ const it=DB.items.find(x=>x['Row ID']===rowId); if(!it)return; UI.wastageCart.push({name:it['Name'],qty:1,unit:(it['Storage Unit']||'unit'),reason:WASTE_REASONS[0]}); render(); }
+async function submitWaste(){ if(!UI.wastageCart.length)return; const rows=UI.wastageCart.map((c,i)=>({'Timestamp':new Date(Date.now()+i).toISOString(),'Date':todayISO(),'Item Name':c.name,'Quantity':c.qty,'Unit':c.unit,'Reason':c.reason,'Logged By':currentStaff()?.['Staff Full Name'],'Status':'Logged'})); await api.addWastage(rows); DB=await api.getAll(); UI.wastageCart=[]; render(); showSuccessPopup('Wastage Logged!', `${rows.length} items recorded.`); }
+
+/* 4. COUNT MODULE */
+function renderCount(){
+  const allowed=parseSections(currentStaff()?.['Allowed Sections']||''); if(!UI.countSection||!allowed.includes(UI.countSection)) UI.countSection=allowed[0]||'';
+  const items=DB.items.filter(it=>(it['Items Type']||'').toLowerCase()===UI.countSection);
+  return `<div class="card"><div class="section-title"><h3>Inventory Count</h3><div class="row" style="flex:none;"><select class="input-select" onchange="UI.countSection=this.value;render();">${allowed.map(s=>`<option value="${s}" ${UI.countSection===s?'selected':''}>${SECTION_LABEL[s]||s}</option>`).join('')}</select><input type="month" class="input-text" value="${UI.countMonth}" onchange="UI.countMonth=this.value;render();"></div></div><div class="table-wrap"><table><tr style="background:var(--parchment);"><th style="border-radius:8px 0 0 0">Item Details</th><th>Storage Qty</th><th>Ingredient Qty</th></tr>${items.map(it=>{const v=UI.countValues[it['Row ID']]||{};return `<tr><td><div class="item-name">${escHtml(it['Name'])}</div><div class="item-meta">${escHtml(it['SKU'])} | Unit: ${escHtml(it['Storage Unit'])}</div></td><td><input type="number" step="0.1" class="input-number" placeholder="0" value="${v.s!=null?v.s:''}" onchange="UI.countValues['${it['Row ID']}']=UI.countValues['${it['Row ID']}']||{};UI.countValues['${it['Row ID']}'].s=parseFloat(this.value);" style="width:120px;"></td><td><input type="number" step="0.1" class="input-number" placeholder="0" value="${v.i!=null?v.i:''}" onchange="UI.countValues['${it['Row ID']}']=UI.countValues['${it['Row ID']}']||{};UI.countValues['${it['Row ID']}'].i=parseFloat(this.value);" style="width:120px;"></td></tr>`;}).join('')||'<tr><td colspan="3" class="empty-state" style="text-align:center;color:var(--ink-soft)">No items found.</td></tr>'}</table></div><button class="btn btn-primary" style="width:100%;padding:14px;margin-top:20px;" onclick="submitCount()">Submit Final Count</button></div>`;
+}
+async function submitCount(){
+  const items=DB.items.filter(it=>(it['Items Type']||'').toLowerCase()===UI.countSection); const rows=[];
+  items.forEach(it=>{
+    const v=UI.countValues[it['Row ID']];
+    if(v&&(v.s!=null||v.i!=null)) rows.push({'Count Date / Month':UI.countMonth,'Section':UI.countSection,'Item Name':it['Name'],'SKU':it['SKU']||'','Storage Quantity':v.s!=null?v.s:'','Ingredient Quantity':v.i!=null?v.i:'','Submitted By':currentStaff()?.['Staff Full Name']});
+  });
+  if(!rows.length){showToast('No quantities entered');return;}
+  await api.addInventoryCounts(rows); DB=await api.getAll(); UI.countValues={}; render(); showSuccessPopup('Count Recorded', `${rows.length} items logged for ${SECTION_LABEL[UI.countSection]||UI.countSection}.`);
 }
 
-loadData();
+/* 5. HISTORY MODULE */
+function renderHistory(){
+  let html=`<div class="card"><div class="section-title"><h3>History Logs</h3><div class="row" style="flex:none;"><button class="btn ${UI.historyTab==='orders'?'btn-primary':'btn-ghost'} btn-sm" onclick="UI.historyTab='orders';render();">Orders</button><button class="btn ${UI.historyTab==='prod'?'btn-primary':'btn-ghost'} btn-sm" onclick="UI.historyTab='prod';render();">Production</button><button class="btn ${UI.historyTab==='waste'?'btn-primary':'btn-ghost'} btn-sm" onclick="UI.historyTab='waste';render();">Wastage</button></div></div><div class="table-wrap"><table>`;
+  if(UI.historyTab==='orders'){
+    html+=`<tr><th>Date & Time</th><th>Item</th><th>Qty</th><th>Note</th><th>Status</th></tr>`;
+    DB.orders.slice().sort((a,b)=>new Date(b['Timestamp'])-new Date(a['Timestamp'])).slice(0,50).forEach(r=>{ html+=`<tr><td class="item-meta">${fmtDateTime(r['Timestamp'])}</td><td><div class="item-name">${escHtml(r['Item Name'])}</div></td><td>${r['Quantity']} ${escHtml(r['Unit'])}</td><td>${escHtml(r['Note/Remarks'])}</td><td><span class="badge">${escHtml(r['Status'])}</span></td></tr>`; });
+  } else if(UI.historyTab==='prod'){
+    html+=`<tr><th>Date</th><th>Item</th><th>Qty</th><th>Logged By</th></tr>`;
+    DB.production.slice().sort((a,b)=>new Date(b['Timestamp'])-new Date(a['Timestamp'])).slice(0,50).forEach(r=>{ html+=`<tr><td class="item-meta">${fmtDate(r['Timestamp'])}</td><td><div class="item-name">${escHtml(r['Item Name'])}</div></td><td>${r['Quantity']} ${escHtml(r['Unit'])}</td><td>${escHtml(r['Logged By'])}</td></tr>`; });
+  } else {
+    html+=`<tr><th>Date</th><th>Item</th><th>Qty</th><th>Reason</th></tr>`;
+    DB.wastage.slice().sort((a,b)=>new Date(b['Timestamp'])-new Date(a['Timestamp'])).slice(0,50).forEach(r=>{ html+=`<tr><td class="item-meta">${fmtDate(r['Timestamp'])}</td><td><div class="item-name">${escHtml(r['Item Name'])}</div></td><td>${r['Quantity']} ${escHtml(r['Unit'])}</td><td><span class="tag">${escHtml(r['Reason'])}</span></td></tr>`; });
+  }
+  html+=`</table></div></div>`; return html;
+}
+
+boot();
 </script>
 </body>
 </html>
