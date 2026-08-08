@@ -2,139 +2,244 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-<title>Goya Admin Workspace</title>
-<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,600;9..144,700&family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Admin Workspace</title>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500;9..144,600;9..144,700&family=Plus+Jakarta+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
 <style>
 :root{--espresso:#1e1810;--sage:#527945;--sage-hover:#436337;--ink:#1f1f1f;--ink-soft:#665c54;--line:#e4dec9;--parchment:#f7f5ef;--parchment-2:#eeecdf;--alert:#b93835;--radius:12px;--shadow:0 4px 20px rgba(45,36,22,0.06)}
 *{margin:0;padding:0;box-sizing:border-box}
 body{font-family:'Plus Jakarta Sans',sans-serif;background:var(--parchment);color:var(--ink);line-height:1.5;-webkit-tap-highlight-color:transparent}
 input,select,button,textarea{font-family:inherit;font-size:inherit;color:inherit}
-.topbar{background:#fff;padding:12px 20px;display:flex;justify-content:space-between;align-items:center;border-bottom:1px solid var(--line);box-shadow:var(--shadow);position:sticky;top:0;z-index:100}
+.topbar{background:#fff;padding:14px 20px;display:flex;justify-content:space-between;align-items:center;border-bottom:1px solid var(--line);box-shadow:var(--shadow);position:sticky;top:0;z-index:100}
 .brand{font-weight:700;font-size:16px;font-family:'Fraunces',serif;color:var(--espresso);display:flex;align-items:center;gap:8px}
-.layout{display:grid;grid-template-columns:220px 1fr;gap:20px;padding:20px;max-width:1400px;margin:0 auto;align-items:start}
-@media (max-width:860px){.layout{grid-template-columns:1fr;padding:12px;gap:12px}}
-.nav-menu{display:flex;flex-direction:column;gap:4px;background:#fff;padding:12px;border-radius:var(--radius);box-shadow:var(--shadow);border:1px solid rgba(228,222,201,0.6);position:sticky;top:80px}
-@media (max-width:860px){.nav-menu{flex-direction:row;overflow-x:auto;top:62px;padding:8px;z-index:90}}
-.nav-menu button{padding:12px 14px;text-align:left;border:none;background:none;cursor:pointer;border-radius:8px;font-weight:600;color:var(--ink-soft);transition:all .2s;font-size:14px;white-space:nowrap}
-.nav-menu button.active{background:var(--espresso);color:#fff}
-.card{background:#fff;border-radius:var(--radius);padding:20px;margin-bottom:16px;box-shadow:var(--shadow);border:1px solid rgba(228,222,201,0.6);overflow-x:auto}
-@media (max-width:600px){.card{padding:16px}}
+.admin-layout{display:grid;grid-template-columns:220px 1fr;gap:20px;padding:20px 16px;max-width:1400px;margin:0 auto;align-items:start}
+@media (max-width:860px){.admin-layout{grid-template-columns:1fr}}
+.admin-nav{display:flex;flex-direction:column;gap:4px;background:#fff;padding:12px;border-radius:var(--radius);box-shadow:var(--shadow);border:1px solid rgba(228,222,201,0.6);position:sticky;top:80px;overflow-x:auto}
+.admin-nav button{padding:12px 14px;text-align:left;border:none;background:none;cursor:pointer;border-radius:8px;font-weight:600;color:var(--ink-soft);transition:all .2s;display:flex;align-items:center;gap:10px;font-size:14px;white-space:nowrap}
+.admin-nav button.active{background:var(--espresso);color:#fff}
+.admin-nav button:hover:not(.active){background:var(--parchment-2);color:var(--espresso)}
+.card{background:#fff;border-radius:var(--radius);padding:20px;margin-bottom:16px;box-shadow:var(--shadow);border:1px solid rgba(228,222,201,0.6)}
 .section-title{display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;flex-wrap:wrap;gap:10px}
 .section-title h3{font-size:18px;font-weight:700;font-family:'Fraunces',serif;color:var(--espresso)}
 .row{display:flex;gap:12px;flex-wrap:wrap;align-items:center}
-.btn{padding:12px 18px;border:none;border-radius:8px;font-weight:600;cursor:pointer;transition:all .2s;font-size:14px;display:inline-flex;align-items:center;justify-content:center;gap:6px}
+.btn{padding:10px 16px;border:none;border-radius:8px;font-weight:600;cursor:pointer;transition:all .2s;font-size:13.5px;display:inline-flex;align-items:center;justify-content:center;gap:6px;}
 .btn-primary{background:var(--sage);color:#fff}
-.btn-primary:hover{background:var(--sage-hover)}
+.btn-primary:hover{background:var(--sage-hover);transform:translateY(-1px)}
+.btn-ghost{background:transparent;border:1.5px solid var(--line);color:var(--ink)}
+.btn-ghost:hover{background:var(--parchment)}
 .btn-danger{background:#fdf2f2;color:var(--alert)}
-.input-text,.input-select{padding:12px 14px;border:1.5px solid var(--line);border-radius:8px;background:#fffdfa;width:100%;font-size:14px}
-.input-text:focus,.input-select:focus{outline:none;border-color:var(--sage)}
-table{width:100%;border-collapse:collapse;font-size:13.5px;white-space:nowrap;min-width:600px}
-th{background:var(--parchment-2);padding:14px;text-align:left;font-weight:700;color:var(--espresso);text-transform:uppercase;font-size:11.5px}
-td{padding:14px;border-bottom:1px solid var(--line);vertical-align:middle}
-.checkbox-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(80px,1fr));gap:10px}
-.kpi-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gap:12px;margin-bottom:16px}
-.kpi-card{background:#fff;border:1px solid var(--line);padding:16px;border-radius:12px;text-align:center;box-shadow:var(--shadow)}
-.kpi-val{font-size:26px;font-weight:700;font-family:'Fraunces',serif;color:var(--espresso);margin-top:6px}
-.toast{position:fixed;bottom:24px;left:50%;transform:translateX(-50%);background:var(--sage);color:#fff;padding:14px 24px;border-radius:10px;font-weight:600;z-index:9999;box-shadow:0 10px 30px rgba(0,0,0,0.25);font-size:14.5px}
-.gate-wrap{display:flex;align-items:center;justify-content:center;min-height:100vh;background:var(--espresso);padding:20px}
-.gate-card{background:#fff;padding:40px 24px;border-radius:16px;text-align:center;width:100%;max-width:400px}
-.pin-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-top:20px}
-.pin-grid button{height:64px;font-size:22px;font-weight:600;border:1.5px solid var(--line);background:#fff;border-radius:12px;cursor:pointer}
-.pin-grid button:active{background:var(--parchment)}
+.input-text,.input-number,.input-select{padding:10px 12px;border:1.5px solid var(--line);border-radius:8px;background:#fffdfa;width:100%;transition:all .2s;font-size:13.5px}
+.input-text:focus{outline:none;border-color:var(--sage);background:#fff}
+.table-wrap{overflow-x:auto;margin:14px 0;border-radius:8px;border:1px solid var(--line)}
+.table-wrap table{width:100%;border-collapse:collapse;font-size:13px;white-space:nowrap}
+.table-wrap th{background:var(--parchment-2);padding:12px 14px;text-align:left;font-weight:700;color:var(--espresso);text-transform:uppercase;font-size:11px;}
+.table-wrap td{padding:12px 14px;border-bottom:1px solid var(--line);vertical-align:middle}
+.gate-wrap{display:flex;align-items:center;justify-content:center;min-height:100vh;background:var(--espresso);padding:16px;}
+.gate-card{background:#fff;padding:36px 24px;border-radius:16px;text-align:center;max-width:400px;width:100%}
+.badge{display:inline-block;padding:4px 10px;border-radius:20px;font-size:11px;font-weight:700;background:var(--parchment-2);color:var(--ink)}
+.tag{display:inline-block;padding:6px 10px;border-radius:6px;background:#e5f0e1;color:var(--sage);font-size:11.5px;font-weight:700}
+.filters{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:12px;margin-bottom:16px;background:var(--parchment);padding:16px;border-radius:10px;border:1px solid var(--line)}
+.filter-item label{display:block;font-size:11px;font-weight:700;color:var(--espresso);margin-bottom:6px;text-transform:uppercase}
+.pin-pad{text-align:center}
+.pin-grid{display:grid;grid-template-columns:repeat(3,64px);gap:10px;justify-content:center;margin-bottom:16px}
+.pin-grid button{width:64px;height:64px;font-size:22px;font-weight:600;border:1.5px solid var(--line);background:#fff;border-radius:12px;cursor:pointer;}
+.pin-grid button:active{background:var(--parchment);transform:scale(0.95)}
+.overlay{position:fixed;inset:0;background:rgba(30,24,16,0.85);backdrop-filter:blur(4px);display:flex;align-items:center;justify-content:center;z-index:9999;padding:16px}
+.modal{background:#fff;padding:28px;border-radius:16px;max-width:380px;width:100%}
 </style>
 </head>
 <body>
 <div id="app"></div>
 <script>
-const SECTIONS = ['bar','kitchen','pastry','packaging'];
-let DB = { 
-  master_items: [ { 'Row ID':1, Name:'Ethiopian Green Beans', SKU:'BEAN-ETH-01', 'Storage Unit':'KG', 'Ingredient Unit':'GRAM', Supplier:'Sunrise Bean Co.', 'Items Type':'bar' } ], 
-  internal_items: [ { 'Row ID':101, Name:'Vanilla Syrup Batch', SKU:'VS-01', 'Storage Unit':'Liter', 'Ingredient Unit':'ML', 'Items Type':'bar' } ],
-  staff: [ { 'PIN Code':1111, 'Staff Full Name':'Aisha Rahman', 'Allowed Sections':'bar' } ], 
-  orders: [ { 'Order Date':'01 Aug 2026', 'Item Name':'Ethiopian Green Beans', Quantity:5, Unit:'KG', Supplier:'Sunrise Bean Co.', Status:'RECEIVED', 'Note/Remarks':'Check expiry date', 'Logged By':'Aisha Rahman' } ], 
-  production: [], wastage: [], 
-  inventoryCounts: [ { 'Count Date / Month':'2026-08', Section:'bar', 'Item Name':'Ethiopian Green Beans', SKU:'BEAN-ETH-01', 'Storage Quantity':3, 'Submitted By':'Aisha Rahman' } ], 
-  suppliers: [ {Name:'Sunrise Bean Co.'}, {Name:'Safco'} ],
-  settings: { MasterPin:'9988', TargetInventoryMonth:new Date().toISOString().slice(0,7), CustomPages:[] } 
+const STATUSES = ['PENDING','ORDERED','RECEIVED','NOT_RECEIVED','REJECTED'];
+const STATUS_LABEL = {PENDING:'Pending',ORDERED:'Ordered',RECEIVED:'Received',NOT_RECEIVED:'Not Received',REJECTED:'Rejected'};
+const SECTIONS = ['kitchen','pastry','bar','packaging','internal'];
+const SECTION_LABEL = {kitchen:'Kitchen',pastry:'Pastry',bar:'Bar',packaging:'Packaging',internal:'Internal'};
+
+let SHEET_URL = ''; let LOCAL_DB = null;
+
+function seedData(){
+  return { items:[], staff:[], orders:[], production:[], wastage:[], inventoryCounts:[], suppliers:[], settings:{ MasterPin:'9988', ConnectionPin:'9988', InventoryCountEnabled:'true', OwnerEmail:'mehedi.src@gmail.com' } };
+}
+
+async function getLocalSetting(key){ try{ return JSON.parse(localStorage.getItem(key)||'null'); }catch(e){ return null; } }
+async function setLocalSetting(key, val){ localStorage.setItem(key, JSON.stringify(val)); }
+
+async function initBackend(){ try { SHEET_URL = await getLocalSetting('goya-sheet-url') || ''; } catch(e) { SHEET_URL = ''; } }
+async function connectSheet(url){ SHEET_URL = (url||'').trim(); await setLocalSetting('goya-sheet-url', SHEET_URL); }
+async function sheetPost(action, body){ if(!SHEET_URL) throw new Error('Sheet not connected'); const resp = await fetch(SHEET_URL, {method:'POST', body:JSON.stringify({action,...body})}); return resp.json(); }
+
+const api = {
+  async getAll(){
+    if(!SHEET_URL) return seedData();
+    try{ const resp = await fetch(SHEET_URL+'?action=getAll'); const data = await resp.json(); return data || seedData(); }catch(e){ return seedData(); }
+  },
+  async updateOrderStatus(timestamp, status, note){
+    if(SHEET_URL) await sheetPost('updateOrderStatus',{timestamp,status,note});
+    else{ const o=LOCAL_DB.orders.find(x=>x['Timestamp']===timestamp); if(o){ o['Status']=status; o['Note/Remarks']=note;} await saveLocalDB(); }
+  },
+  async bulkUpdateOrderStatus(timestamps, status){
+    if(SHEET_URL) await sheetPost('bulkUpdateOrderStatus',{timestamps,status});
+    else{ LOCAL_DB.orders.forEach(o=>{ if(timestamps.includes(o['Timestamp'])) o['Status']=status; }); await saveLocalDB(); }
+  },
+  async updateLogStatus(sheet, timestamp, status){
+    if(SHEET_URL) await sheetPost('updateLogStatus',{sheet,timestamp,status});
+    else{ const arr=sheet==='Production'?LOCAL_DB.production:LOCAL_DB.wastage; const r=arr.find(x=>x['Timestamp']===timestamp); if(r) r['Status']=status; await saveLocalDB(); }
+  },
+  async upsertItem(item){
+    if(SHEET_URL) return sheetPost('upsertItem',{item});
+    else{ const i=LOCAL_DB.items.find(x=>x['Row ID']===item.rowId); const row={'Row ID':item.rowId||Date.now().toString(),'Name':item.name,'SKU':item.sku||'','Storage Unit':item.storageUnit||'','Ingredient Unit':item.ingredientUnit||'','Supplier':item.supplier||'','Items Type':item.itemsType||'internal'}; if(i) Object.assign(i,row); else LOCAL_DB.items.push(row); await saveLocalDB(); }
+  },
+  async deleteItem(rowId){ if(SHEET_URL) await sheetPost('deleteItem',{rowId}); else{ LOCAL_DB.items=LOCAL_DB.items.filter(x=>x['Row ID']!==rowId); await saveLocalDB(); } },
+  async upsertStaff(staff, oldPin){
+    if(SHEET_URL) return sheetPost('upsertStaff',{staff,oldPin});
+    else{ const matchPin=oldPin||staff.pin; const s=LOCAL_DB.staff.find(x=>x['PIN Code']===matchPin); const row={'PIN Code':staff.pin,'Staff Full Name':staff.name,'Allowed Sections':(staff.allowedSections||[]).join(',')}; if(s) Object.assign(s,row); else LOCAL_DB.staff.push(row); await saveLocalDB(); }
+  },
+  async deleteStaff(pin){ if(SHEET_URL) await sheetPost('deleteStaff',{pin}); else{ LOCAL_DB.staff=LOCAL_DB.staff.filter(x=>x['PIN Code']!==pin); await saveLocalDB(); } },
+  async upsertSupplier(supplier, oldName){
+    if(SHEET_URL) await sheetPost('upsertSupplier',{supplier,oldName});
+    else{ const matchName=oldName||supplier.name; const s=LOCAL_DB.suppliers.find(x=>x['Name']===matchName); const row={'Name':supplier.name,'Phone':supplier.phone||''}; if(s) Object.assign(s,row); else LOCAL_DB.suppliers.push(row); await saveLocalDB(); }
+  },
+  async deleteSupplier(name){ if(SHEET_URL) await sheetPost('deleteSupplier',{name}); else{ LOCAL_DB.suppliers=LOCAL_DB.suppliers.filter(x=>x['Name']!==name); await saveLocalDB(); } },
+  async setSetting(key, value){ if(SHEET_URL) return sheetPost('setSetting',{key,value}); else{ LOCAL_DB.settings[key]=value; await saveLocalDB(); } }
 };
-let UI = { unlocked:false, role:'none', user:null, tab:'orders', filterDate:'', filterMonth:new Date().toISOString().slice(0,7), selectedRows:{} };
 
-function esc(s){ return String(s||'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
-function showToast(msg){ const t=document.createElement('div'); t.className='toast'; t.textContent=msg; document.body.appendChild(t); setTimeout(()=>t.remove(), 2500); }
+async function saveLocalDB(){ if(LOCAL_DB) localStorage.setItem('goya-local-db', JSON.stringify(LOCAL_DB)); }
+async function loadLocalDB(){ try{ LOCAL_DB = JSON.parse(localStorage.getItem('goya-local-db')); if(!LOCAL_DB) LOCAL_DB = seedData(); }catch(e){ LOCAL_DB = seedData(); } }
 
-async function loadData() {
-  const url = localStorage.getItem('goya-sheet-url');
-  if(url) { try { const res = await fetch(url+'?action=getAll'); const data = await res.json(); if(!data.error) DB = {...DB, ...data}; } catch(e){} }
-  render();
+function escHtml(s){ return String(s||'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
+function fmtDateTime(iso){ return iso? iso.slice(0,16).replace('T',' ') : ''; }
+function todayISO(){ return new Date().toISOString().slice(0,10); }
+function currentMonthISO(){ return new Date().toISOString().slice(0,7); }
+
+function showToast(msg){
+  const t = document.createElement('div'); t.style.cssText = 'position:fixed;bottom:24px;left:50%;transform:translateX(-50%);background:var(--espresso);color:#fff;padding:12px 20px;border-radius:10px;font-size:13.5px;font-weight:500;z-index:9999;box-shadow:0 10px 30px rgba(0,0,0,0.2)';
+  t.textContent = msg; document.body.appendChild(t); setTimeout(()=>t.remove(), 2500);
+}
+
+function openPinPad(title, onSubmit){
+  const holder = document.createElement('div'); holder.className='overlay'; let input = '';
+  const pad = '<div class="pin-pad"><h3 style="margin-bottom:16px;font-family:\'Fraunces\',serif;font-size:20px;color:var(--espresso);">' + escHtml(title) + '</h3><input type="password" id="pin-input" placeholder="••••" readonly style="text-align:center;font-size:24px;letter-spacing:10px;width:140px;height:54px;border:2px solid var(--line);border-radius:10px;margin:0 auto 20px;display:block;background:#fffdfa;color:var(--espresso)"><div class="pin-grid">' + [1,2,3,4,5,6,7,8,9,0].map(n=>'<button onclick="insertPin(' + n + ')">' + n + '</button>').join('') + '<button onclick="deletePin()" style="grid-column:2;background:var(--parchment-2);color:var(--ink-soft)">⌫</button></div><div class="row" style="margin-top:16px;"><button class="btn btn-primary" style="width:100%;padding:12px;" onclick="submitPin()">Confirm</button></div></div>';
+  holder.innerHTML = '<div class="modal">' + pad + '</div>'; document.body.appendChild(holder);
+  window.pinInput = () => document.getElementById('pin-input');
+  window.insertPin = (n) => { if(input.length<4){input+=n; window.pinInput().value='•'.repeat(input.length);} };
+  window.deletePin = () => { input = input.slice(0,-1); window.pinInput().value='•'.repeat(input.length); };
+  window.submitPin = async () => { if(await onSubmit(input)){ holder.remove(); } else { showToast('Incorrect PIN'); input=''; window.pinInput().value=''; } };
 }
 
 function downloadCSV(filename, headers, rows){
-  const csv = [headers.join(','), ...rows.map(r => r.map(c => '"' + String(c).replace(/"/g, '""') + '"').join(','))].join('\n');
-  const a = document.createElement('a'); a.href = URL.createObjectURL(new Blob([csv], {type:'text/csv'})); a.download = filename; a.click();
-}
-function exportPurchaseOrders() {
-  const rows = DB.orders.filter(o => (!UI.filterDate || o['Order Date'] === UI.filterDate));
-  const data = rows.map(o => [o['Item Name'], o.SKU || 'SKU-01', o.Quantity || 1, 1, '']);
-  downloadCSV('purchase_order.csv', ['name','sku','order_quantity','storage_quantity','total_cost'], data);
-}
-function exportProdWaste(type) {
-  const dbSrc = type === 'production' ? DB.production : DB.wastage;
-  const rows = dbSrc.filter(o => (!UI.filterDate || o.Date === UI.filterDate));
-  const data = rows.map(o => [o['Item Name'], o.SKU || 'SKU-01', o.Quantity || 1, 1]);
-  downloadCSV(type + '.csv', ['name','sku','storage_quantity','ingredients_quantity'], data);
-}
-function exportInventoryCount() {
-  const rows = DB.inventoryCounts.filter(c => c['Count Date / Month'] === UI.filterMonth);
-  const data = rows.map(c => [c['Item Name'], c.SKU || '', c['Storage Quantity'] || 0, c['Ingredient Quantity'] || 0, '']);
-  downloadCSV('foodics-inventory-count-' + UI.filterMonth + '.csv', ['Inventory Item Name','Inventory Item SKU','Storage quantity','Ingredients quantity','Inventory Count ID'], data);
+  const csvRows = [headers.map(h => '"' + String(h).replace(/"/g, '""') + '"').join(',')];
+  rows.forEach(r => { csvRows.push(r.map(cell => '"' + String(cell||'').replace(/"/g, '""') + '"').join(',')); });
+  const blob = new Blob([csvRows.join('\n')], { type: 'text/csv;charset=utf-8;' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a'); a.href = url; a.download = filename; a.click();
+  URL.revokeObjectURL(url);
 }
 
-function render() {
+let DB={items:[],staff:[],orders:[],production:[],wastage:[],inventoryCounts:[],suppliers:[],settings:{}};
+let UI={ loaded:false, unlocked:false, tab:'orders', orderFilters:{search:'',status:'',supplier:'',from:'',to:''}, orderSelected:{}, monitorFilters:{type:'production',from:'',to:''}, monitorSelected:{}, countFilters:{month:currentMonthISO()} };
+
+async function boot(){ try { await loadLocalDB(); await initBackend(); DB = await api.getAll(); if(!DB) DB = seedData(); } catch(e) { DB = seedData(); } UI.loaded = true; render(); }
+
+function render(){
   const app = document.getElementById('app');
-  if(!UI.unlocked) {
-    app.innerHTML = '<div class="gate-wrap"><div class="gate-card"><h2 style="font-family:\'Fraunces\',serif;margin-bottom:8px;font-size:26px;color:var(--espresso)">Goya Portal</h2><p style="margin-bottom:20px;color:var(--ink-soft);font-size:14px">Enter PIN (Staff or Admin)</p><input type="password" id="pin-input" placeholder="••••" style="text-align:center;font-size:28px;letter-spacing:12px;width:100%;padding:16px;border-radius:12px;border:2px solid var(--line);margin-bottom:14px;background:#fffdfa"><div class="pin-grid"><button onclick="document.getElementById(\'pin-input\').value+=\'1\'">1</button><button onclick="document.getElementById(\'pin-input\').value+=\'2\'">2</button><button onclick="document.getElementById(\'pin-input\').value+=\'3\'">3</button><button onclick="document.getElementById(\'pin-input\').value+=\'4\'">4</button><button onclick="document.getElementById(\'pin-input\').value+=\'5\'">5</button><button onclick="document.getElementById(\'pin-input\').value+=\'6\'">6</button><button onclick="document.getElementById(\'pin-input\').value+=\'7\'">7</button><button onclick="document.getElementById(\'pin-input\').value+=\'8\'">8</button><button onclick="document.getElementById(\'pin-input\').value+=\'9\'">9</button><button onclick="document.getElementById(\'pin-input\').value+=\'0\'">0</button><button onclick="let v=document.getElementById(\'pin-input\').value; document.getElementById(\'pin-input\').value=v.slice(0,-1)" style="color:var(--ink-soft)">⌫</button><button onclick="login(document.getElementById(\'pin-input\').value)" class="btn-primary" style="border:none">GO</button></div></div></div>';
-    return;
+  if(!UI.loaded){ app.innerHTML = '<div class="gate-wrap"><div class="gate-card"><h2>Loading securely...</h2></div></div>'; return; }
+  if(!UI.unlocked){
+    app.innerHTML = '<div class="gate-wrap"><div class="gate-card"><h2 style="font-family:\'Fraunces\',serif;font-size:24px;color:var(--espresso);margin-bottom:6px;">Admin Access</h2><p style="color:var(--ink-soft);font-size:13.5px;margin-bottom:20px;">Enter Master PIN to continue.</p><button class="btn btn-primary" style="width:100%;padding:12px;" onclick="openPinPad(\'Master PIN\', async(e)=>{if(e===(DB.settings?.MasterPin||\'9988\')){UI.unlocked=true;render();return true;}return false;})">Unlock Panel</button></div></div>'; return;
   }
+  let html = '<div class="topbar"><div class="brand">🚀 Admin Workspace</div><button class="btn btn-ghost btn-sm" onclick="UI.unlocked=false;render();">Lock Session</button></div>';
+  html += '<div class="admin-layout"><div class="admin-nav">' + [['orders','📦 Orders'],['items','📋 Items & Suppliers'],['staff','👥 Staff'],['monitor','📊 Prod & Waste'],['counts','🛒 Inventory Counts'],['export','📥 Data Export'],['settings','⚙️ Settings']].map(([k,l])=>'<button class="' + (UI.tab===k?'active':'') + '" onclick="UI.tab=\'' + k + '\';render();">' + l + '</button>').join('') + '</div><div>';
   
-  let html = '<div class="topbar"><div class="brand">🚀 Goya Admin Workspace</div><button class="btn btn-danger" style="padding:8px 14px" onclick="UI.unlocked=false;render()">Lock</button></div>';
-  html += '<div class="layout"><div class="nav-menu">' + [['orders','📦 Orders'],['items','📋 Items'],['staff','👥 Staff'],['prodwaste','📊 Prod & Waste'],['counts','🛒 Counts'],['export','📥 Export'],['settings','⚙️ Settings']].map(([k,l])=>'<button class="' + (UI.tab===k?'active':'') + '" onclick="UI.tab=\'' + k + '\';render()">' + l + '</button>').join('') + '</div><div style="min-width:0">';
+  if(UI.tab==='orders') html+=renderOrders(); else if(UI.tab==='items') html+=renderItems(); else if(UI.tab==='staff') html+=renderStaff(); else if(UI.tab==='monitor') html+=renderMonitor(); else if(UI.tab==='counts') html+=renderCounts(); else if(UI.tab==='export') html+=renderExport(); else html+=renderSettings();
+  html += '</div></div>'; app.innerHTML = html;
+}
 
-  if(UI.tab==='orders') html+=renderAdminOrders();
-  else if(UI.tab==='items') html+=renderAdminItems();
-  else if(UI.tab==='staff') html+=renderAdminStaff();
-  else if(UI.tab==='prodwaste') html+=renderAdminProdWaste();
-  else if(UI.tab==='counts') html+=renderAdminCounts();
-  else if(UI.tab==='export') html+=renderAdminExport();
-  else if(UI.tab==='settings') html+=renderAdminSettings();
+function renderOrders(){
+  const orders = DB.orders || [];
+  let html = '<div class="card"><div class="section-title"><h3>Orders Management</h3><span class="badge">' + orders.length + ' Records</span></div><div class="filters"><div class="filter-item"><label>Search Item</label><input type="text" class="input-text" value="' + escHtml(UI.orderFilters.search) + '" oninput="UI.orderFilters.search=this.value;render();"></div><div class="filter-item"><label>Status</label><select class="input-select" onchange="UI.orderFilters.status=this.value;render();"><option value="">All Statuses</option>' + STATUSES.map(s=>'<option value="' + s + '" ' + (UI.orderFilters.status===s?'selected':'') + '>' + STATUS_LABEL[s] + '</option>').join('') + '</select></div><div class="filter-item"><label>From</label><input type="date" class="input-text" value="' + UI.orderFilters.from + '" onchange="UI.orderFilters.from=this.value;render();"></div><div class="filter-item"><label>To</label><input type="date" class="input-text" value="' + UI.orderFilters.to + '" onchange="UI.orderFilters.to=this.value;render();"></div></div>';
+  let rows = orders.slice().sort((a,b)=>new Date(b['Timestamp']||0)-new Date(a['Timestamp']||0));
+  if(UI.orderFilters.search) rows = rows.filter(o=>(o['Item Name']||'').toLowerCase().includes(UI.orderFilters.search.toLowerCase()));
+  if(UI.orderFilters.status) rows = rows.filter(o=>o['Status']===UI.orderFilters.status);
+  if(UI.orderFilters.from) rows = rows.filter(o=>(o['Timestamp']||'').slice(0,10)>=UI.orderFilters.from);
+  if(UI.orderFilters.to) rows = rows.filter(o=>(o['Timestamp']||'').slice(0,10)<=UI.orderFilters.to);
+  const selectedTs = Object.keys(UI.orderSelected).filter(k=>UI.orderSelected[k]);
+  const allSelected = rows.length > 0 && rows.every(o => UI.orderSelected[o['Timestamp']]);
   
-  html += '</div></div>';
-  app.innerHTML = html;
+  if(selectedTs.length>0){ html += '<div class="card" style="background:var(--parchment-2);padding:14px;"><div class="row" style="align-items:center"><span style="font-weight:700;">' + selectedTs.length + ' Selected</span><div class="row" style="flex:none"><select class="input-select" id="bulk-status" style="width:140px;"><option value="PENDING">Pending</option><option value="ORDERED">Ordered</option><option value="RECEIVED">Received</option></select><button class="btn btn-primary" onclick="bulkStatus()">Apply Status</button></div></div></div>'; }
+  html += '<div class="table-wrap"><table><tr><th><input type="checkbox" ' + (allSelected?'checked':'') + ' onchange="toggleSelectAll(this.checked)" style="width:16px;height:16px;cursor:pointer"></th><th>Date</th><th>Item Details</th><th>Qty</th><th>Supplier</th><th>Note/Remarks</th><th>Status</th></tr>' + rows.map(o=>'<tr><td><input type="checkbox" ' + (UI.orderSelected[o['Timestamp']]?'checked':'') + ' onchange="UI.orderSelected[\'' + escHtml(o['Timestamp']) + '\']=this.checked;render();" style="width:16px;height:16px;cursor:pointer"></td><td style="font-family:\'IBM Plex Mono\',monospace;font-size:11.5px;color:var(--ink-soft)">' + fmtDateTime(o['Timestamp']) + '</td><td><div style="font-weight:600;color:var(--espresso)">' + escHtml(o['Item Name']) + '</div></td><td><span class="tag">' + o['Quantity'] + ' ' + escHtml(o['Unit']) + '</span></td><td>' + escHtml(o['Supplier']) + '</td><td><input type="text" class="input-text" id="note-' + escHtml(o['Timestamp']) + '" value="' + escHtml(o['Note/Remarks']) + '"></td><td><div class="row" style="gap:6px;"><select class="input-select" id="status-' + escHtml(o['Timestamp']) + '" style="width:110px;"><option value="PENDING" ' + (o['Status']==='PENDING'?'selected':'') + '>Pending</option><option value="ORDERED" ' + (o['Status']==='ORDERED'?'selected':'') + '>Ordered</option><option value="RECEIVED" ' + (o['Status']==='RECEIVED'?'selected':'') + '>Received</option></select><button class="btn btn-primary btn-sm" onclick="saveSingleStatus(\'' + escHtml(o['Timestamp']) + '\')">Save</button></div></td></tr>').join('') + '</table></div></div>'; 
+  return html;
 }
 
-function login(pin) {
-  if(pin === DB.settings.MasterPin) { UI.unlocked=true; UI.role='admin'; render(); }
-  else { showToast('Incorrect PIN!'); document.getElementById('pin-input').value=''; }
+function toggleSelectAll(checked){ let rows = (DB.orders||[]).slice(); rows.forEach(o => { if(o['Timestamp']) UI.orderSelected[o['Timestamp']] = checked; }); render(); }
+async function saveSingleStatus(ts){ const sel = document.getElementById('status-' + ts); const noteEl = document.getElementById('note-' + ts); if(!sel) return; await api.updateOrderStatus(ts, sel.value, noteEl ? noteEl.value : ''); DB = await api.getAll(); showToast('Status Updated'); render(); }
+async function bulkStatus(){ const st = document.getElementById('bulk-status').value; const tsList = Object.keys(UI.orderSelected).filter(k=>UI.orderSelected[k]); await api.bulkUpdateOrderStatus(tsList,st); DB = await api.getAll(); UI.orderSelected = {}; showToast('Bulk Applied'); render(); }
+
+function renderItems(){
+  const suppliers = DB.suppliers || []; const items = DB.items || [];
+  let html = '<div class="card"><div class="section-title"><h3>Supplier Contacts</h3></div><div class="table-wrap"><table><tr><th>Supplier Name</th><th>WhatsApp Phone</th><th>Actions</th></tr>' + suppliers.map(s=>'<tr><td><input class="input-text" id="sup-name-' + escHtml(s['Name']) + '" value="' + escHtml(s['Name']) + '"></td><td><input class="input-text" id="sup-phone-' + escHtml(s['Name']) + '" value="' + escHtml(s['Phone']) + '" placeholder="e.g. +97150..."></td><td><div class="row" style="gap:6px;"><button class="btn btn-primary btn-sm" onclick="saveSupplier(\'' + escHtml(s['Name']) + '\')">Save</button><button class="btn btn-danger btn-sm" onclick="deleteSupplier(\'' + escHtml(s['Name']) + '\')">Delete</button></div></td></tr>').join('') + '</table></div><div class="row" style="margin-top:16px;padding-top:16px;border-top:1px solid var(--line)"><input class="input-text" id="new-sup-name" placeholder="New Supplier Name"><input class="input-text" id="new-sup-phone" placeholder="WhatsApp Phone"><button class="btn btn-primary" onclick="addSupplier()">Add Supplier</button></div></div>';
+  html += '<div class="card"><div class="section-title"><h3>Master Items Database</h3><span class="badge">' + items.length + ' Items</span></div><div class="table-wrap"><table><tr><th>Item Name</th><th>SKU</th><th>Storage Unit</th><th>Ingredient Unit</th><th>Supplier</th><th>Category Type</th><th>Actions</th></tr>' + items.map(it=>'<tr><td><input class="input-text" id="item-name-' + it['Row ID'] + '" value="' + escHtml(it['Name']) + '"></td><td><input class="input-text" id="item-sku-' + it['Row ID'] + '" style="width:85px;" value="' + escHtml(it['SKU']) + '"></td><td><input class="input-text" id="item-storage-' + it['Row ID'] + '" style="width:85px;" value="' + escHtml(it['Storage Unit']) + '"></td><td><input class="input-text" id="item-ingredient-' + it['Row ID'] + '" style="width:85px;" value="' + escHtml(it['Ingredient Unit']) + '"></td><td><select class="input-select" id="item-sup-' + it['Row ID'] + '"><option value="">— Internal Batch —</option>' + suppliers.map(s=>'<option value="' + escHtml(s['Name']) + '" ' + (it['Supplier']===s['Name']?'selected':'') + '>' + escHtml(s['Name']) + '</option>').join('') + '</select></td><td><select class="input-select" id="item-type-' + it['Row ID'] + '"><option value="kitchen" ' + (it['Items Type']==='kitchen'?'selected':'') + '>Kitchen</option><option value="pastry" ' + (it['Items Type']==='pastry'?'selected':'') + '>Pastry</option><option value="bar" ' + (it['Items Type']==='bar'?'selected':'') + '>Bar</option><option value="packaging" ' + (it['Items Type']==='packaging'?'selected':'') + '>Packaging</option><option value="internal" ' + (it['Items Type']==='internal'?'selected':'') + '>Internal</option></select></td><td><div class="row" style="gap:6px;"><button class="btn btn-primary btn-sm" onclick="saveItem(\'' + it['Row ID'] + '\')">Save</button><button class="btn btn-danger btn-sm" onclick="deleteItem(\'' + it['Row ID'] + '\')">Delete</button></div></td></tr>').join('') + '</table></div><div class="row" style="margin-top:16px;padding-top:16px;border-top:1px solid var(--line);align-items:flex-start"><input class="input-text" id="new-item-name" placeholder="Item Name"><input class="input-text" id="new-item-sku" placeholder="SKU"><div style="display:flex;flex-direction:column;gap:10px;flex:1"><input class="input-text" id="new-item-storage" placeholder="Storage Unit"><input class="input-text" id="new-item-ingredient" placeholder="Ingredient Unit"></div><div style="display:flex;flex-direction:column;gap:10px;flex:1"><select class="input-select" id="new-item-supplier"><option value="">— Internal Batch —</option>' + suppliers.map(s=>'<option value="' + escHtml(s['Name']) + '">' + escHtml(s['Name']) + '</option>').join('') + '</select><select class="input-select" id="new-item-type"><option value="kitchen">Kitchen</option><option value="pastry">Pastry</option><option value="bar">Bar</option><option value="packaging">Packaging</option><option value="internal" selected>Internal</option></select></div><button class="btn btn-primary" style="align-self:stretch" onclick="addItem()">Add Item</button></div></div>'; return html;
 }
 
-function renderAdminOrders() {
-  const kpi = { PENDING:0, ORDERED:0, RECEIVED:0, NOT_RECEIVED:0 };
-  const sortedOrders = DB.orders.slice().sort((a,b)=>new Date(b['Order Date'])-new Date(a['Order Date']));
-  sortedOrders.forEach(o => { if(kpi[o.Status]!==undefined) kpi[o.Status]++; });
+async function saveSupplier(oldName){ const name = document.getElementById('sup-name-' + oldName).value.trim(); const phone = document.getElementById('sup-phone-' + oldName).value.trim(); if(!name) return; await api.upsertSupplier({name, phone}, oldName); DB = await api.getAll(); showToast('Supplier Saved'); render(); }
+async function deleteSupplier(n){ await api.deleteSupplier(n); DB = await api.getAll(); render(); }
+async function addSupplier(){ const n = document.getElementById('new-sup-name').value.trim(); if(!n) return; await api.upsertSupplier({name:n, phone:document.getElementById('new-sup-phone').value.trim()}); DB = await api.getAll(); render(); }
 
-  return '<div class="kpi-grid"><div class="kpi-card"><div>Pending</div><div class="kpi-val">' + kpi.PENDING + '</div></div><div class="kpi-card"><div>Ordered</div><div class="kpi-val">' + kpi.ORDERED + '</div></div><div class="kpi-card"><div>Received</div><div class="kpi-val" style="color:var(--sage)">' + kpi.RECEIVED + '</div></div><div class="kpi-card"><div>Not Received</div><div class="kpi-val" style="color:var(--alert)">' + kpi.NOT_RECEIVED + '</div></div></div><div class="card"><div class="section-title"><h3>Orders Management</h3><div class="row"><input type="date" class="input-text" style="width:160px" onchange="UI.filterDate=this.value"><button class="btn btn-danger" onclick="showToast(\'Selected Orders Deleted\')">Delete Selected</button><button class="btn btn-primary" onclick="showToast(\'All Changes Saved Successfully!\')">Save All Changes</button></div></div><div style="overflow-x:auto"><table><tr><th><input type="checkbox"></th><th>Date</th><th>Item Details</th><th>Note / Remarks</th><th>Status</th></tr>' + sortedOrders.map(o=>'<tr><td><input type="checkbox"></td><td>' + o['Order Date'] + '</td><td><strong>' + esc(o['Item Name']) + '</strong><br><small style="color:var(--ink-soft)">Qty: ' + o.Quantity + ' ' + o.Unit + '</small></td><td><input type="text" class="input-text" value="' + esc(o['Note/Remarks']) + '"></td><td><select class="input-select"><option ' + (o.Status==='PENDING'?'selected':'') + '>PENDING</option><option ' + (o.Status==='ORDERED'?'selected':'') + '>ORDERED</option><option ' + (o.Status==='RECEIVED'?'selected':'') + '>RECEIVED</option><option ' + (o.Status==='NOT_RECEIVED'?'selected':'') + '>NOT_RECEIVED</option></select></td></tr>').join('') + '</table></div></div>';
+async function saveItem(rowId){ const name = document.getElementById('item-name-' + rowId).value.trim(); const sku = document.getElementById('item-sku-' + rowId).value.trim(); const storageUnit = document.getElementById('item-storage-' + rowId).value.trim(); const ingredientUnit = document.getElementById('item-ingredient-' + rowId).value.trim(); const supplier = document.getElementById('item-sup-' + rowId).value; const itemsType = document.getElementById('item-type-' + rowId).value; if(!name) return; await api.upsertItem({rowId, name, sku, storageUnit, ingredientUnit, supplier, itemsType}); DB = await api.getAll(); showToast('Item Saved'); render(); }
+async function deleteItem(rowId){ await api.deleteItem(rowId); DB = await api.getAll(); render(); }
+async function addItem(){ const name = document.getElementById('new-item-name').value.trim(); if(!name){ showToast('Enter name'); return; } await api.upsertItem({ rowId: Date.now().toString(), name, sku: document.getElementById('new-item-sku').value.trim(), storageUnit: document.getElementById('new-item-storage').value.trim(), ingredientUnit: document.getElementById('new-item-ingredient').value.trim(), supplier: document.getElementById('new-item-supplier').value, itemsType: document.getElementById('new-item-type').value }); DB = await api.getAll(); showToast('Item Added'); render(); }
+
+function renderStaff(){
+  const staff = DB.staff || [];
+  let html = '<div class="card"><div class="section-title"><h3>Staff Directory</h3><span class="badge">' + staff.length + ' Active Staff</span></div><div class="table-wrap"><table><tr><th>Staff PIN</th><th>Full Name</th><th>Section Access (Comma separated)</th><th>Actions</th></tr>' + staff.map(s=>'<tr><td><input class="input-text" id="staff-pin-' + escHtml(s['PIN Code']) + '" style="width:90px;" value="' + escHtml(s['PIN Code']) + '"></td><td><input class="input-text" id="staff-name-' + escHtml(s['PIN Code']) + '" value="' + escHtml(s['Staff Full Name']) + '"></td><td><input class="input-text" id="staff-sec-' + escHtml(s['PIN Code']) + '" value="' + escHtml(s['Allowed Sections']) + '"></td><td><div class="row" style="gap:6px;"><button class="btn btn-primary btn-sm" onclick="saveStaff(\'' + escHtml(s['PIN Code']) + '\')">Save</button><button class="btn btn-danger btn-sm" onclick="deleteStaff(\'' + escHtml(s['PIN Code']) + '\')">Revoke</button></div></td></tr>').join('') + '</table></div><div class="row" style="margin-top:16px;padding-top:16px;border-top:1px solid var(--line)"><input class="input-text" id="new-staff-name" placeholder="Staff Name"><input class="input-text" id="new-staff-pin" placeholder="4-Digit PIN"><button class="btn btn-primary" onclick="addStaff()">Onboard Staff</button></div></div>'; return html;
 }
 
-function renderAdminItems() { return '<div class="card"><div class="section-title"><h3>Items & Suppliers</h3><button class="btn btn-primary" onclick="showToast(\'Saved Successfully!\')">Save All Items</button></div></div>'; }
-function renderAdminStaff() { return '<div class="card"><div class="section-title"><h3>Staff Directory</h3><button class="btn btn-primary" onclick="showToast(\'Saved Successfully!\')">Apply Changes</button></div><div style="overflow-x:auto"><table><tr><th>PIN</th><th>Full Name</th><th>Access</th></tr>' + DB.staff.map(s=>'<tr><td><input class="input-text" value="' + s['PIN Code'] + '"></td><td><input class="input-text" value="' + esc(s['Staff Full Name']) + '"></td><td><div class="checkbox-grid">' + SECTIONS.map(sec=>'<label><input type="checkbox" ' + (String(s['AllowedSections']).includes(sec)?'checked':'') + '> ' + sec.toUpperCase() + '</label>').join('') + '</div></td></tr>').join('') + '</table></div></div>'; }
-function renderAdminProdWaste() { return '<div class="card"><div class="section-title"><h3>Production & Wastage</h3><button class="btn btn-primary" onclick="showToast(\'Saved Successfully!\')">Save All Logs</button></div></div>'; }
-function renderAdminCounts() { return '<div class="card"><div class="section-title"><h3>Inventory Counts Module</h3><button class="btn btn-primary" onclick="showToast(\'Published!\')">Publish Target Month</button></div></div>'; }
-function renderAdminExport() {
-  return '<div class="card"><div class="section-title"><h3>Data Export Center (Foodics CSV Format)</h3></div><div style="display:grid;gap:16px"><div class="card" style="margin:0;background:var(--parchment);box-shadow:none"><h4 style="margin-bottom:10px">Purchase Orders CSV</h4><div class="row"><input type="date" class="input-text" onchange="UI.filterDate=this.value"><button class="btn btn-primary" onclick="exportPurchaseOrders()">Download CSV</button></div></div><div class="card" style="margin:0;background:var(--parchment);box-shadow:none"><h4 style="margin-bottom:10px">Inventory Counts CSV</h4><div class="row"><input type="month" class="input-text" value="' + UI.filterMonth + '" onchange="UI.filterMonth=this.value"><button class="btn btn-primary" onclick="exportInventoryCount()">Download CSV</button></div></div></div></div>';
-}
-function renderAdminSettings() { return '<div class="card"><h3>Settings</h3><button class="btn btn-primary" onclick="showToast(\'Saved!\')">Save Settings</button></div>'; }
+async function saveStaff(oldPin){ const pin = document.getElementById('staff-pin-' + oldPin).value.trim(); const name = document.getElementById('staff-name-' + oldPin).value.trim(); const sections = document.getElementById('staff-sec-' + oldPin).value.trim(); if(!pin || !name) return; await api.upsertStaff({pin, name, allowedSections:sections.split(',').map(x=>x.trim())}, oldPin); DB = await api.getAll(); showToast('Staff Saved'); render(); }
+async function deleteStaff(pin){ await api.deleteStaff(pin); DB = await api.getAll(); render(); }
+async function addStaff(){ const n = document.getElementById('new-staff-name').value.trim(); const p = document.getElementById('new-staff-pin').value.trim(); if(!n || !p) return; await api.upsertStaff({pin:p, name:n, allowedSections:[]}); DB = await api.getAll(); render(); }
 
-loadData();
+function renderMonitor(){
+  let html = '<div class="card"><div class="section-title"><h3>Production & Wastage Logs</h3></div><div class="filters"><div class="filter-item"><label>Log Type</label><select class="input-select" onchange="UI.monitorFilters.type=this.value;render();"><option value="production" ' + (UI.monitorFilters.type==='production'?'selected':'') + '>🏭 Production Batches</option><option value="wastage" ' + (UI.monitorFilters.type==='wastage'?'selected':'') + '>🗑 Wastage / Damages</option></select></div><div class="filter-item"><label>From</label><input type="date" class="input-text" value="' + UI.monitorFilters.from + '" onchange="UI.monitorFilters.from=this.value;render();"></div><div class="filter-item"><label>To</label><input type="date" class="input-text" value="' + UI.monitorFilters.to + '" onchange="UI.monitorFilters.to=this.value;render();"></div></div>';
+  let rows = ((UI.monitorFilters.type==='production'?DB.production:DB.wastage)||[]).slice().sort((a,b)=>new Date(b['Timestamp']||0)-new Date(a['Timestamp']||0));
+  if(UI.monitorFilters.from) rows = rows.filter(r=>(r['Timestamp']||'').slice(0,10)>=UI.monitorFilters.from);
+  if(UI.monitorFilters.to) rows = rows.filter(r=>(r['Timestamp']||'').slice(0,10)<=UI.monitorFilters.to);
+  const selectedTs = Object.keys(UI.monitorSelected).filter(k=>UI.monitorSelected[k]);
+  
+  if(selectedTs.length>0){ html += '<div class="card" style="background:var(--parchment-2);padding:14px;"><div class="row" style="align-items:center"><span style="font-weight:700;">' + selectedTs.length + ' Selected</span><div class="row" style="flex:none"><select class="input-select" id="bulk-log-status" style="width:130px;"><option value="Logged">Logged</option><option value="Reviewed">Reviewed</option><option value="Flagged">Flagged</option></select><button class="btn btn-primary" onclick="bulkLogStatus()">Update Status</button></div></div></div>'; }
+  html += '<div class="table-wrap"><table><tr><th><input type="checkbox" onchange="Object.keys(UI.monitorSelected).forEach(k=>{UI.monitorSelected[k]=this.checked;});render();"></th><th>Timestamp</th><th>Item Details</th><th>Qty</th>' + (UI.monitorFilters.type==='wastage'?'<th>Reason</th>':'') + '<th>Review Status</th><th>Recorded By</th></tr>' + rows.map(r=>'<tr><td><input type="checkbox" ' + (UI.monitorSelected[r['Timestamp']]?'checked':'') + ' onchange="UI.monitorSelected[\'' + escHtml(r['Timestamp']) + '\']=this.checked;render();"></td><td style="font-family:monospace;font-size:11.5px;">' + fmtDateTime(r['Timestamp']) + '</td><td style="font-weight:600;">' + escHtml(r['Item Name']) + '</td><td><span class="tag">' + r['Quantity'] + ' ' + escHtml(r['Unit']) + '</span></td>' + (UI.monitorFilters.type==='wastage'?'<td><span class="badge" style="background:#fdf2f2;color:var(--alert)">' + escHtml(r['Reason']) + '</span></td>':'') + '<td><div class="row"><select class="input-select" id="log-status-' + escHtml(r['Timestamp']) + '" style="width:110px;"><option value="Logged" ' + (r['Status']==='Logged'?'selected':'') + '>Logged</option><option value="Reviewed" ' + (r['Status']==='Reviewed'?'selected':'') + '>Reviewed</option><option value="Flagged" ' + (r['Status']==='Flagged'?'selected':'') + '>Flagged</option></select> <button class="btn btn-primary btn-sm" onclick="saveSingleLogStatus(\'' + escHtml(r['Timestamp']) + '\')">Save</button></div></td><td>' + escHtml(r['Logged By']) + '</td></tr>').join('') + '</table></div></div>'; return html;
+}
+
+async function saveSingleLogStatus(ts){ const sel = document.getElementById('log-status-' + ts); if(!sel) return; await api.updateLogStatus(UI.monitorFilters.type === 'production' ? 'Production' : 'Wastage', ts, sel.value); DB = await api.getAll(); showToast('Status Updated'); render(); }
+async function bulkLogStatus(){ const st = document.getElementById('bulk-log-status').value; const sheet = UI.monitorFilters.type === 'production' ? 'Production' : 'Wastage'; const tsList = Object.keys(UI.monitorSelected).filter(k=>UI.monitorSelected[k]); for(const ts of tsList) await api.updateLogStatus(sheet, ts, st); DB = await api.getAll(); UI.monitorSelected = {}; showToast('Bulk Applied'); render(); }
+
+function renderCounts(){
+  const enabled = DB.settings?.InventoryCountEnabled === 'true'; let counts = DB.inventoryCounts || [];
+  if(UI.countFilters.month) counts = counts.filter(c=>c['Count Date / Month']===UI.countFilters.month);
+  return '<div class="card"><div class="section-title"><h3>Inventory Counts Module</h3><button class="btn ' + (enabled?'btn-danger':'btn-primary') + ' btn-sm" onclick="toggleCount()">' + (enabled?'Deactivate Counts':'Activate Counts') + '</button></div><p style="color:var(--ink-soft);font-size:13.5px;">Status: <strong>' + (enabled?'Active':'Disabled') + '</strong></p><div class="filters"><div class="filter-item"><label>Filter Month</label><input type="month" class="input-text" value="' + UI.countFilters.month + '" onchange="UI.countFilters.month=this.value;render();"></div></div><div class="table-wrap"><table><tr><th>Count Month</th><th>Section</th><th>Item Name</th><th>Storage Qty</th><th>Ingredient Qty</th><th>Submitted By</th></tr>' + counts.map(c=>'<tr><td style="font-family:monospace;">' + escHtml(c['Count Date / Month']) + '</td><td><span class="tag">' + (SECTION_LABEL[(c['Section']||'').toLowerCase()]||c['Section']) + '</span></td><td style="font-weight:600">' + escHtml(c['Item Name']) + '</td><td>' + c['Storage Quantity'] + '</td><td>' + c['Ingredient Quantity'] + '</td><td>' + escHtml(c['Submitted By']) + '</td></tr>').join('') + '</table></div></div>';
+}
+async function toggleCount(){ const en = DB.settings?.InventoryCountEnabled === 'true'; await api.setSetting('InventoryCountEnabled', en?'false':'true'); DB = await api.getAll(); showToast('Inventory Count Status Updated'); render(); }
+
+function renderExport(){
+  return '<div class="card"><div class="section-title"><h3>Data Export Center (Foodics Format CSV)</h3></div><p style="color:var(--ink-soft);margin-bottom:20px;font-size:13.5px;">Download perfectly structured CSV files for direct upload to Foodics.</p><div class="filters" style="background:#fff;border:none;padding:0;gap:16px;"><div class="card" style="margin:0;background:var(--parchment);box-shadow:none;"><h4 style="margin-bottom:8px;font-family:\'Fraunces\',serif;">Purchase Orders</h4><button class="btn btn-primary btn-sm" style="width:100%" onclick="exportData(\'orders\')">Foodics CSV Format</button></div><div class="card" style="margin:0;background:var(--parchment);box-shadow:none;"><h4 style="margin-bottom:8px;font-family:\'Fraunces\',serif;">Production</h4><button class="btn btn-primary btn-sm" style="width:100%" onclick="exportData(\'production\')">Foodics CSV Format</button></div><div class="card" style="margin:0;background:var(--parchment);box-shadow:none;"><h4 style="margin-bottom:8px;font-family:\'Fraunces\',serif;">Wastage</h4><button class="btn btn-primary btn-sm" style="width:100%" onclick="exportData(\'wastage\')">Foodics CSV Format</button></div><div class="card" style="margin:0;background:var(--parchment);box-shadow:none;"><h4 style="margin-bottom:8px;font-family:\'Fraunces\',serif;">Inventory Count</h4><button class="btn btn-primary btn-sm" style="width:100%" onclick="exportData(\'counts\')">Foodics CSV Format</button></div></div></div>';
+}
+
+function exportData(type) {
+  const d = todayISO();
+  if (type === 'orders') downloadCSV('Purchase_Orders_' + d + '.csv', ['name', 'sku', 'order_quantity', 'storage_quantity', 'total_cost'], (DB.orders||[]).map(o => [o['Item Name'], o['SKU']||'', o['Quantity']||1, 1, '']));
+  else if (type === 'production') downloadCSV('Production_' + d + '.csv', ['name', 'sku', 'storage_quantity', 'ingredients_quantity'], (DB.production||[]).map(o => [o['Item Name'], o['SKU']||'', o['Quantity']||1, 1]));
+  else if (type === 'wastage') downloadCSV('Wastage_' + d + '.csv', ['name', 'sku', 'storage_quantity', 'ingredients_quantity'], (DB.wastage||[]).map(o => [o['Item Name'], o['SKU']||'', o['Quantity']||1, 1]));
+  else if (type === 'counts') downloadCSV('Foodics_Inventory_Import_' + d + '.csv', ['Inventory Item Name', 'Inventory Item SKU', 'Storage quantity', 'Ingredients quantity', 'Inventory Count ID'], (DB.inventoryCounts||[]).map(o => [o['Item Name'], o['SKU']||'', o['Storage Quantity']||'', o['Ingredient Quantity']||'', '']));
+}
+
+function renderSettings(){
+  const ownerEmail = DB.settings?.OwnerEmail || 'mehedi.src@gmail.com';
+  return '<div class="card"><div class="section-title"><h3>Google Sheet Database Connection</h3></div><div class="row" style="align-items:flex-end"><div style="flex:1"><label style="font-size:11px;font-weight:700;color:var(--ink-soft);display:block;margin-bottom:6px;">Apps Script Web App URL</label><input type="text" id="sheet-url" class="input-text" value="' + escHtml(SHEET_URL) + '"></div><button class="btn btn-primary" onclick="saveSheetUrl()">Link Database</button></div></div><div class="card"><div class="section-title"><h3>System Security</h3></div><div class="row" style="align-items:flex-end;max-width:380px"><div style="flex:1"><label style="font-size:11px;font-weight:700;color:var(--ink-soft);display:block;margin-bottom:6px;">Admin Master PIN</label><input type="text" id="new-master-pin" placeholder="4-digit PIN" maxlength="4" class="input-text"></div><button class="btn btn-primary" onclick="changeMasterPin()">Update PIN</button></div></div><div class="card"><div class="section-title"><h3>Notification Settings</h3></div><div class="row" style="align-items:flex-end;max-width:440px"><div style="flex:1"><label style="font-size:11px;font-weight:700;color:var(--ink-soft);display:block;margin-bottom:6px;">Owner Email for Purchase Orders</label><input type="email" id="owner-email" class="input-text" value="' + escHtml(ownerEmail) + '"></div><button class="btn btn-primary" onclick="saveOwnerEmail()">Save Email</button></div></div>';
+}
+
+async function changeMasterPin(){ const v = document.getElementById('new-master-pin').value.trim(); if(v.length!==4||!/^\d{4}$/.test(v)){ showToast('Please enter exactly 4 digits'); return; } await api.setSetting('MasterPin',v); DB = await api.getAll(); showToast('Admin PIN Updated'); render(); }
+async function saveOwnerEmail(){ const em = document.getElementById('owner-email').value.trim(); if(!em) return; await api.setSetting('OwnerEmail',em); DB = await api.getAll(); showToast('Owner Email Saved'); render(); }
+async function saveSheetUrl(){ const url = document.getElementById('sheet-url').value.trim(); await connectSheet(url); showToast(url?'Database Linked Successfully':'Disconnected'); setTimeout(()=>location.reload(),600); }
+
+boot();
 </script>
 </body>
 </html>
