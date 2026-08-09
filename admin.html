@@ -2,608 +2,795 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-<meta name="theme-color" content="#0f172a">
-<title>Goya Admin Workspace</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Admin Workspace — Goya</title>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500;9..144,600;9..144,700&family=Plus+Jakarta+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
 <style>
-:root{--bg:#0f172a;--bg2:#1e293b;--bg3:#334155;--ac:#f59e0b;--ac2:#d97706;--t:#f8fafc;--t2:#94a3b8;--ok:#10b981;--no:#ef4444;--wa:#f59e0b;--bl:#3b82f6;--bd:#475569;--sh:0 4px 12px rgba(0,0,0,.3)}
-*{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent}
-body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;background:var(--bg);color:var(--t);height:100vh;overflow:hidden}
-::-webkit-scrollbar{width:5px;height:5px}::-webkit-scrollbar-track{background:var(--bg)}::-webkit-scrollbar-thumb{background:var(--bg3);border-radius:3px}
-
-/* Auth */
-.auth{position:fixed;inset:0;z-index:1000;background:linear-gradient(160deg,var(--bg) 0%,#111827 100%);display:flex;flex-direction:column;align-items:center;justify-content:center;padding:20px}
-.auth.hid{display:none}
-.auth-logo{width:160px;margin-bottom:12px;filter:drop-shadow(0 0 24px rgba(245,158,11,.1))}
-.auth-sub{color:var(--t2);font-size:.9rem;margin-bottom:36px}
-.pin-box{display:flex;gap:12px;margin-bottom:28px}
-.pin-d{width:52px;height:64px;border-radius:14px;border:2px solid var(--bd);background:var(--bg2);color:var(--t);font-size:1.6rem;text-align:center;outline:none;transition:all .2s}
-.pin-d:focus{border-color:var(--ac);box-shadow:0 0 0 3px rgba(245,158,11,.15)}
-.pin-err{color:var(--no);margin-top:-20px;margin-bottom:16px;opacity:0;transition:opacity .2s;font-size:.85rem}
-.pin-err.show{opacity:1}
-.btn{padding:12px 28px;border-radius:10px;border:none;font-size:.95rem;font-weight:600;cursor:pointer;transition:all .15s;display:inline-flex;align-items:center;gap:6px}
-.btn-p{background:var(--ac);color:#fff}
-.btn-p:active{background:var(--ac2);transform:scale(.98)}
-.btn-s{background:var(--bg3);color:var(--t)}
-.btn-r{background:var(--no);color:#fff}
-.btn-g{background:var(--ok);color:#fff}
-.btn-b{background:var(--bl);color:#fff}
-.btn-sm{padding:8px 14px;font-size:.82rem}
-
-/* Layout */
-.lay{display:grid;grid-template-columns:250px 1fr;height:100vh}
-.side{background:var(--bg2);border-right:1px solid var(--bd);display:flex;flex-direction:column;padding:16px 0}
-.side-h{padding:0 20px 16px;border-bottom:1px solid var(--bd);margin-bottom:12px;display:flex;align-items:center;gap:10px}
-.side-h img{width:50px}
-.side-h div h1{font-size:1.1rem;color:var(--ac)}.side-h div p{font-size:.75rem;color:var(--t2)}
-.nav{flex:1;overflow-y:auto;padding:0 10px}
-.nv{display:flex;align-items:center;gap:10px;padding:10px 14px;border-radius:10px;cursor:pointer;transition:all .15s;color:var(--t2);font-weight:500;margin-bottom:3px;border:none;background:none;width:100%;font-size:.88rem}
-.nv:hover{background:rgba(245,158,11,.06);color:var(--t)}
-.nv.on{background:rgba(245,158,11,.12);color:var(--ac)}
-.nv svg{width:18px;height:18px;flex-shrink:0}
-.side-f{padding:14px 20px;border-top:1px solid var(--bd);font-size:.75rem;color:var(--t2)}
-.side-f div{cursor:pointer;margin-top:4px}
-
-/* Mobile header */
-.mhdr{display:none;background:var(--bg2);padding:12px 16px;border-bottom:1px solid var(--bd);align-items:center;justify-content:space-between}
-.mhdr img{width:40px}
-.mhdr button{background:none;border:none;color:var(--t);font-size:1.4rem}
-
-.main{overflow-y:auto;padding:24px}
-@media(max-width:768px){.lay{grid-template-columns:1fr}.side{display:none}.mhdr{display:flex}.main{padding:14px}}
-
-/* Page */
-.ph{display:flex;justify-content:space-between;align-items:center;margin-bottom:20px;flex-wrap:wrap;gap:10px}
-.ph h2{font-size:1.3rem}
-.pa{display:flex;gap:8px;flex-wrap:wrap}
-
-/* KPI */
-.kpi{display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:12px;margin-bottom:20px}
-.kc{background:var(--bg2);border-radius:14px;padding:16px;border:1px solid var(--bd)}
-.kl{font-size:.8rem;color:var(--t2);margin-bottom:6px}
-.kv{font-size:1.6rem;font-weight:700}
-.kv.wa{color:var(--wa)}.kv.bl{color:var(--bl)}.kv.ok{color:var(--ok)}
-
-/* Card */
-.card{background:var(--bg2);border-radius:14px;border:1px solid var(--bd);margin-bottom:18px;overflow:hidden}
-.ch{padding:16px 20px;border-bottom:1px solid var(--bd);display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px}
-.ch h3{font-size:1rem}
-.cb{padding:18px 20px}
-
-/* Toolbar */
-.tb{display:flex;gap:8px;margin-bottom:14px;flex-wrap:wrap;align-items:center}
-.sinp,.sel{padding:9px 14px;border-radius:8px;border:1px solid var(--bd);background:var(--bg);color:var(--t);font-size:.85rem;outline:none}
-.sinp{min-width:180px}.sinp:focus,.sel:focus{border-color:var(--ac)}
-.dinp{padding:9px 14px;border-radius:8px;border:1px solid var(--bd);background:var(--bg);color:var(--t);font-size:.85rem}
-
-/* Table */
-.tbl{width:100%;border-collapse:collapse;font-size:.85rem}
-.tbl th{text-align:left;padding:10px 12px;color:var(--t2);font-weight:600;border-bottom:1px solid var(--bd);white-space:nowrap;font-size:.8rem}
-.tbl td{padding:10px 12px;border-bottom:1px solid rgba(71,85,105,.25);vertical-align:middle}
-.tbl tr:hover td{background:rgba(245,158,11,.02)}
-.tbl input,.tbl select,.tbl textarea{background:var(--bg);border:1px solid var(--bd);color:var(--t);padding:6px 10px;border-radius:6px;font-size:.85rem;width:100%;outline:none}
-.tbl input:focus,.tbl select:focus{border-color:var(--ac)}
-.tbl textarea{resize:vertical;min-height:50px}
-.chk{width:36px;text-align:center}.chk input{width:16px;height:16px;accent-color:var(--ac);cursor:pointer}
-
-/* Badges */
-.sb{padding:3px 10px;border-radius:16px;font-size:.72rem;font-weight:600;display:inline-block}
-.sp{background:rgba(245,158,11,.12);color:var(--wa)}
-.so{background:rgba(59,130,246,.12);color:var(--bl)}
-.sr{background:rgba(16,185,129,.12);color:var(--ok)}
-.sl{background:rgba(148,163,184,.12);color:var(--t2)}
-.sf{background:rgba(239,68,68,.12);color:var(--no)}
-.sn{background:rgba(100,116,139,.12);color:var(--t2)}
-
-.bb{display:inline-block;padding:3px 8px;border-radius:14px;font-size:.7rem;font-weight:600}
-.bk{background:rgba(16,185,129,.1);color:var(--ok)}
-.bb2{background:rgba(59,130,246,.1);color:var(--bl)}
-.bpa{background:rgba(236,72,153,.1);color:#ec4899}
-.bpk{background:rgba(245,158,11,.1);color:var(--wa)}
-.bi{background:rgba(139,92,246,.1);color:#8b5cf6}
-
-/* Tabs */
-.tc{display:none}.tc.on{display:block;animation:fi .25s}
-@keyframes fi{from{opacity:0}to{opacity:1}}
-
-/* Modal */
-.mod-o{position:fixed;inset:0;z-index:2000;background:rgba(0,0,0,.7);backdrop-filter:blur(4px);display:flex;align-items:center;justify-content:center;padding:16px;opacity:0;pointer-events:none;transition:opacity .3s}
-.mod-o.on{opacity:1;pointer-events:all}
-.mod{background:var(--bg2);border-radius:16px;width:100%;max-width:520px;max-height:90vh;overflow-y:auto;padding:20px;transform:translateY(16px);transition:transform .3s}
-.mod-o.on .mod{transform:translateY(0)}
-.mod-h{display:flex;justify-content:space-between;align-items:center;margin-bottom:16px}
-.mod-h h3{font-size:1.1rem}
-.mod-x{background:none;border:none;color:var(--t2);font-size:1.4rem;cursor:pointer}
-.fr{margin-bottom:14px}
-.fr:last-child{margin-bottom:0}
-.fl{display:block;font-size:.8rem;color:var(--t2);margin-bottom:5px}
-.fi,.fs,.ft{width:100%;padding:10px 14px;border-radius:8px;border:1px solid var(--bd);background:var(--bg);color:var(--t);font-size:.9rem;outline:none}
-.fi:focus,.fs:focus,.ft:focus{border-color:var(--ac)}
-.ft{resize:vertical;min-height:60px}
-.fg{display:grid;grid-template-columns:1fr 1fr;gap:14px}
-
-/* Toggle */
-.tog{position:relative;width:48px;height:26px;background:var(--bg3);border-radius:13px;cursor:pointer;transition:background .3s}
-.tog.on{background:var(--ok)}
-.tog::after{content:'';position:absolute;top:2px;left:2px;width:22px;height:22px;background:#fff;border-radius:50%;transition:transform .3s}
-.tog.on::after{transform:translateX(22px)}
-
-/* Toast */
-.toast{position:fixed;top:16px;right:16px;z-index:3000;background:var(--bg2);color:var(--t);padding:12px 20px;border-radius:10px;box-shadow:var(--sh);display:flex;align-items:center;gap:8px;font-weight:500;border:1px solid var(--bd);transform:translateX(400px);transition:transform .3s;font-size:.9rem}
-.toast.show{transform:translateX(0)}
-.toast.ok{border-color:var(--ok)}.toast.er{border-color:var(--no)}
-
-/* Loading */
-.ld{position:fixed;inset:0;z-index:2500;background:rgba(15,23,42,.88);backdrop-filter:blur(4px);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:14px}
-.sp{width:44px;height:44px;border:3px solid var(--bg3);border-top-color:var(--ac);border-radius:50%;animation:sp .7s linear infinite}
-@keyframes sp{to{transform:rotate(360deg)}}
-.lt{color:var(--t2);font-size:.85rem}
-
-/* Empty */
-.empty{text-align:center;padding:36px 16px;color:var(--t2)}.empty h3{color:var(--t);font-size:1rem;margin-bottom:6px}
-
-/* Export cards */
-.egrid{display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:12px}
-.ecard{background:var(--bg);border-radius:10px;padding:16px;border:1px solid var(--bd);cursor:pointer;transition:all .15s}
-.ecard:hover{border-color:var(--ac);background:rgba(245,158,11,.04)}
-.ecard h4{margin-bottom:6px;font-size:.95rem}.ecard p{font-size:.8rem;color:var(--t2);margin-bottom:12px}
-
-/* Bulk bar */
-.bulk{background:var(--bg);border-radius:10px;padding:14px;display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;border:1px solid var(--bd);flex-wrap:wrap;gap:10px}
-
-/* Foodics export section */
-.fdx{background:rgba(16,185,129,.05);border:1px solid rgba(16,185,129,.2);border-radius:12px;padding:16px;margin-top:14px}
-.fdx h4{color:var(--ok);margin-bottom:10px;font-size:.95rem}
-.fdx-row{display:flex;gap:10px;flex-wrap:wrap;align-items:center;margin-bottom:10px}
-
-/* Mobile table scroll */
-.twrap{overflow-x:auto}
-@media(max-width:768px){.tbl{font-size:.78rem}.tbl th,.tbl td{padding:8px 6px}.kpi{grid-template-columns:repeat(2,1fr)}.fg{grid-template-columns:1fr}.tb{flex-direction:column;align-items:stretch}.sinp,.sel,.dinp{width:100%}}
+:root{--espresso:#1e1810;--espresso-light:#2d2416;--sage:#527945;--sage-hover:#436337;--ink:#1f1f1f;--ink-soft:#665c54;--line:#e4dec9;--parchment:#f7f5ef;--parchment-2:#eeecdf;--alert:#b93835;--radius:12px;--shadow:0 4px 20px rgba(45,36,22,0.06)}
+*{margin:0;padding:0;box-sizing:border-box}
+body{font-family:'Plus Jakarta Sans',sans-serif;background:var(--parchment);color:var(--ink);line-height:1.5;-webkit-tap-highlight-color:transparent}
+input,select,button,textarea{font-family:inherit;font-size:inherit;color:inherit}
+.topbar{background:#fff;padding:14px 20px;display:flex;justify-content:space-between;align-items:center;border-bottom:1px solid var(--line);box-shadow:var(--shadow);position:sticky;top:0;z-index:100}
+.brand{font-weight:700;font-size:16px;font-family:'Fraunces',serif;color:var(--espresso);display:flex;align-items:center;gap:10px}
+.brand-logo{width:32px;height:32px;border-radius:50%;object-fit:cover;border:1px solid var(--line)}
+.admin-layout{display:grid;grid-template-columns:220px 1fr;gap:20px;padding:20px 16px;max-width:1400px;margin:0 auto;align-items:start}
+@media (max-width:860px){.admin-layout{grid-template-columns:1fr}}
+.admin-nav{display:flex;flex-direction:column;gap:4px;background:#fff;padding:12px;border-radius:var(--radius);box-shadow:var(--shadow);border:1px solid rgba(228,222,201,0.6);position:sticky;top:80px;overflow-x:auto}
+.admin-nav button{padding:12px 14px;text-align:left;border:none;background:none;cursor:pointer;border-radius:8px;font-weight:600;color:var(--ink-soft);transition:all .2s;display:flex;align-items:center;gap:10px;font-size:14px;white-space:nowrap}
+.admin-nav button.active{background:var(--espresso);color:#fff}
+.admin-nav button:hover:not(.active){background:var(--parchment-2);color:var(--espresso)}
+.card{background:#fff;border-radius:var(--radius);padding:20px;margin-bottom:16px;box-shadow:var(--shadow);border:1px solid rgba(228,222,201,0.6)}
+.section-title{display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;flex-wrap:wrap;gap:10px}
+.section-title h3{font-size:18px;font-weight:700;font-family:'Fraunces',serif;color:var(--espresso)}
+.row{display:flex;gap:12px;flex-wrap:wrap;align-items:center}
+.row>*{min-width:0;flex:1}
+.btn{padding:10px 16px;border:none;border-radius:8px;font-weight:600;cursor:pointer;transition:all .2s;font-size:13.5px;display:inline-flex;align-items:center;justify-content:center;gap:6px;}
+.btn-primary{background:var(--sage);color:#fff}
+.btn-primary:hover{background:var(--sage-hover);transform:translateY(-1px)}
+.btn-ghost{background:transparent;border:1.5px solid var(--line);color:var(--ink)}
+.btn-ghost:hover{background:var(--parchment)}
+.btn-danger{background:#fdf2f2;color:var(--alert)}
+.btn-danger:hover{background:#fae1e1}
+.btn-sm{padding:6px 12px;font-size:12px}
+.input-text,.input-number,.input-select{padding:12px 14px;border:1.5px solid var(--line);border-radius:8px;background:#fffdfa;width:100%;transition:all .2s;font-size:14px}
+.input-text:focus,.input-number:focus,.input-select:focus{outline:none;border-color:var(--sage);box-shadow:0 0 0 3px rgba(82,121,69,0.12);background:#fff}
+.table-wrap{overflow-x:auto;margin:14px 0;border-radius:8px;border:1px solid var(--line);-webkit-overflow-scrolling:touch}
+.table-wrap table{width:100%;border-collapse:collapse;font-size:13px;white-space:nowrap}
+.table-wrap th{background:var(--parchment-2);padding:12px 14px;text-align:left;font-weight:700;color:var(--espresso);text-transform:uppercase;font-size:11px;letter-spacing:0.5px;border-bottom:2px solid var(--line)}
+.table-wrap td{padding:12px 14px;border-bottom:1px solid var(--line);vertical-align:middle}
+.table-wrap tr:hover td{background:#faf8f5}
+.table-wrap tr:last-child td{border-bottom:none}
+.gate-wrap{display:flex;align-items:center;justify-content:center;min-height:100vh;background:var(--espresso);padding:16px;}
+.gate-card{background:#fff;padding:36px 24px;border-radius:16px;box-shadow:0 20px 60px rgba(0,0,0,.25);max-width:420px;width:100%}
+.badge{display:inline-block;padding:4px 10px;border-radius:20px;font-size:11px;font-weight:700;text-transform:uppercase;background:var(--parchment-2);color:var(--ink)}
+.tag{display:inline-block;padding:6px 10px;border-radius:6px;background:#e5f0e1;color:var(--sage);font-size:11.5px;font-weight:700}
+.filters{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:12px;margin-bottom:16px;background:var(--parchment);padding:16px;border-radius:10px;border:1px solid var(--line)}
+.filter-item label{display:block;font-size:11px;font-weight:700;color:var(--espresso);margin-bottom:6px;text-transform:uppercase;letter-spacing:0.5px}
+.kpi-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:12px;margin-bottom:16px}
+.kpi-card{background:var(--parchment);padding:14px;border-radius:10px;border:1px solid var(--line);text-align:center}
+.kpi-card h4{font-size:11px;text-transform:uppercase;color:var(--ink-soft);margin-bottom:4px}
+.kpi-card .val{font-size:20px;font-weight:700;font-family:'Fraunces',serif;color:var(--espresso)}
+.pin-pad{text-align:center}
+.pin-grid{display:grid;grid-template-columns:repeat(3,64px);gap:10px;justify-content:center;margin-bottom:16px}
+.pin-grid button{width:64px;height:64px;font-size:22px;font-weight:600;border:1.5px solid var(--line);background:#fff;border-radius:12px;cursor:pointer;transition:all 0.1s}
+.pin-grid button:active{background:var(--parchment);transform:scale(0.95)}
+.overlay{position:fixed;inset:0;background:rgba(30,24,16,0.85);backdrop-filter:blur(4px);display:flex;align-items:center;justify-content:center;z-index:9999;padding:16px}
+.modal{background:#fff;padding:28px;border-radius:16px;box-shadow:0 20px 40px rgba(0,0,0,.25);max-width:380px;width:100%}
 </style>
 </head>
 <body>
-<!-- AUTH -->
-<div class="auth" id="auth">
-<img src="goya-logo.png" class="auth-logo" alt="Goya">
-<div class="auth-sub">Admin Workspace</div>
-<div class="pin-box">
-<input type="password" class="pin-d" maxlength="1" id="p1" oninput="pinIn(1)">
-<input type="password" class="pin-d" maxlength="1" id="p2" oninput="pinIn(2)">
-<input type="password" class="pin-d" maxlength="1" id="p3" oninput="pinIn(3)">
-<input type="password" class="pin-d" maxlength="1" id="p4" oninput="pinIn(4)">
-</div>
-<div class="pin-err" id="perr">Invalid Master PIN</div>
-<button class="btn btn-p" onclick="chkPin()">Unlock</button>
-</div>
-
-<!-- MAIN APP -->
-<div class="lay" id="main" style="display:none">
-<aside class="side">
-<div class="side-h"><img src="goya-logo.png" alt="Goya"><div><h1>GOYA</h1><p>Admin Workspace</p></div></div>
-<nav class="nav">
-<button class="nv on" onclick="sw('orders')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01"/></svg>Orders</button>
-<button class="nv" onclick="sw('items')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4"/></svg>Items & Suppliers</button>
-<button class="nv" onclick="sw('staff')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z"/></svg>Staff</button>
-<button class="nv" onclick="sw('monitor')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"/></svg>Production & Wastage</button>
-<button class="nv" onclick="sw('counts')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 7h6m0 10v-3m-3 3h.01M9 17h.01M9 14h.01M12 14h.01M15 11h.01M12 11h.01M9 11h.01M7 21h10a2 2 0 002-2V5a2 2 0 00-2-2H7a2 2 0 00-2 2v14a2 2 0 002 2z"/></svg>Inventory Counts</button>
-<button class="nv" onclick="sw('export')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"/></svg>Data Export</button>
-<button class="nv" onclick="sw('settings')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"/><path d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/></svg>Settings</button>
-</nav>
-<div class="side-f"><div>v2.0 Final</div><div onclick="logout()">🔒 Lock</div></div>
-</aside>
-
-<div style="display:flex;flex-direction:column;height:100vh;overflow:hidden">
-<!-- Mobile header -->
-<div class="mhdr"><img src="goya-logo.png" alt="Goya"><button onclick="toggleSide()">☰</button></div>
-
-<main class="main">
-<!-- ORDERS -->
-<div class="tc on" id="tc-orders">
-<div class="ph"><h2>Orders Management</h2><div class="pa"><button class="btn btn-p btn-sm" onclick="ref()">🔄 Refresh</button></div></div>
-<div class="kpi">
-<div class="kc"><div class="kl">Pending</div><div class="kv wa" id="kpiP">0</div></div>
-<div class="kc"><div class="kl">Ordered</div><div class="kv bl" id="kpiO">0</div></div>
-<div class="kc"><div class="kl">Received</div><div class="kv ok" id="kpiR">0</div></div>
-<div class="kc"><div class="kl">Not Received</div><div class="kv" style="color:var(--t2)" id="kpiN">0</div></div>
-<div class="kc"><div class="kl">Rejected</div><div class="kv" style="color:var(--no)" id="kpiX">0</div></div>
-<div class="kc"><div class="kl">Total</div><div class="kv" id="kpiT">0</div></div>
-</div>
-<div class="card">
-<div class="ch"><h3>All Orders</h3></div>
-<div class="cb">
-<div class="tb">
-<input type="text" class="sinp" id="os" placeholder="Search..." oninput="rOrders()">
-<select class="sel" id="ost" onchange="rOrders()"><option value="">All Status</option><option>Pending</option><option>Ordered</option><option>Received</option><option>NOT RECEIVED</option><option>REJECTED</option></select>
-<select class="sel" id="osu" onchange="rOrders()"><option value="">All Suppliers</option></select>
-<input type="date" class="dinp" id="ofr" onchange="rOrders()">
-<input type="date" class="dinp" id="oto" onchange="rOrders()">
-</div>
-<div class="bulk" id="bulk" style="display:none"><span id="bcnt">0 selected</span><div class="pa"><select class="sel" id="bst" style="width:140px"><option value="">Set Status...</option><option>Pending</option><option>Ordered</option><option>Received</option><option>NOT RECEIVED</option><option>REJECTED</option></select><button class="btn btn-p btn-sm" onclick="bulkUp()">Apply</button></div></div>
-<div class="twrap">
-<table class="tbl"><thead><tr><th class="chk"><input type="checkbox" id="sa" onchange="sa()"></th><th>Date</th><th>Item</th><th>Qty</th><th>Unit</th><th>Supplier</th><th>Note</th><th>Status</th><th>By</th><th></th></tr></thead><tbody id="otb"></tbody></table>
-</div>
-<!-- Foodics Export -->
-<div class="fdx">
-<h4>🍽️ Export to Foodics (Purchase Order)</h4>
-<div class="fdx-row">
-<input type="date" class="dinp" id="fpoFr" placeholder="From">
-<input type="date" class="dinp" id="fpoTo" placeholder="To">
-<select class="sel" id="fpoSt"><option value="">All Status</option><option>Pending</option><option>Ordered</option><option>Received</option><option>NOT RECEIVED</option><option>REJECTED</option></select>
-<button class="btn btn-g btn-sm" onclick="expFoodics('po')">Download CSV</button>
-</div>
-<p style="font-size:.78rem;color:var(--t2);margin-top:6px">Format: name, sku, order_quantity, storage_quantity, total_cost</p>
-</div>
-</div>
-</div>
-</div>
-
-<!-- ITEMS -->
-<div class="tc" id="tc-items">
-<div class="ph"><h2>Items & Suppliers</h2></div>
-<div class="card">
-<div class="ch"><h3>Suppliers</h3><button class="btn btn-p btn-sm" onclick="showSup()">+ Add</button></div>
-<div class="cb">
-<div class="twrap"><table class="tbl"><thead><tr><th>Name</th><th>Phone</th><th></th></tr></thead><tbody id="stb"></tbody></table></div>
-</div>
-</div>
-<div class="card">
-<div class="ch"><h3>Master Items</h3><button class="btn btn-p btn-sm" onclick="showItem()">+ Add Item</button></div>
-<div class="cb">
-<div class="tb">
-<input type="text" class="sinp" id="is" placeholder="Search..." oninput="rItems()">
-<select class="sel" id="itf" onchange="rItems()"><option value="">All Types</option><option>Kitchen</option><option>Bar</option><option>Pastry</option><option>Packaging</option><option>Internal</option></select>
-</div>
-<div class="twrap"><table class="tbl"><thead><tr><th>Name</th><th>SKU</th><th>Storage</th><th>Ingredient</th><th>Supplier</th><th>Type</th><th></th></tr></thead><tbody id="itb"></tbody></table></div>
-</div>
-</div>
-</div>
-
-<!-- STAFF -->
-<div class="tc" id="tc-staff">
-<div class="ph"><h2>Staff Directory</h2><button class="btn btn-p btn-sm" onclick="showStaff()">+ Add Staff</button></div>
-<div class="card"><div class="cb">
-<div class="twrap"><table class="tbl"><thead><tr><th>PIN</th><th>Name</th><th>Sections</th><th></th></tr></thead><tbody id="ftb"></tbody></table></div>
-</div></div>
-</div>
-
-<!-- MONITOR -->
-<div class="tc" id="tc-monitor">
-<div class="ph"><h2>Production & Wastage Monitor</h2></div>
-<div class="card">
-<div class="ch"><h3>Production Logs</h3><div class="pa">
-<input type="date" class="dinp" id="pdt" onchange="rMon()">
-<select class="sel" id="pst" onchange="rMon()"><option value="">All</option><option>Logged</option><option>Reviewed</option><option>Flagged</option></select>
-</div></div>
-<div class="cb">
-<div class="twrap"><table class="tbl"><thead><tr><th>Date</th><th>Item</th><th>Qty</th><th>Unit</th><th>By</th><th>Status</th><th></th></tr></thead><tbody id="ptb"></tbody></table></div>
-<!-- Foodics Production Export -->
-<div class="fdx" style="border-color:rgba(245,158,11,.2);background:rgba(245,158,11,.03)">
-<h4 style="color:var(--wa)">⚗️ Export to Foodics (Production)</h4>
-<div class="fdx-row">
-<input type="date" class="dinp" id="fprFr" placeholder="From">
-<input type="date" class="dinp" id="fprTo" placeholder="To">
-<button class="btn btn-g btn-sm" onclick="expFoodics('prod')">Download CSV</button>
-</div>
-<p style="font-size:.78rem;color:var(--t2);margin-top:6px">Format: name, sku, storage_quantity, ingredients_quantity</p>
-</div>
-</div>
-</div>
-<div class="card">
-<div class="ch"><h3>Wastage Logs</h3><div class="pa">
-<input type="date" class="dinp" id="wdt" onchange="rMon()">
-<select class="sel" id="wst" onchange="rMon()"><option value="">All</option><option>Logged</option><option>Reviewed</option><option>Flagged</option></select>
-</div></div>
-<div class="cb">
-<div class="twrap"><table class="tbl"><thead><tr><th>Date</th><th>Item</th><th>Qty</th><th>Unit</th><th>Reason</th><th>By</th><th>Status</th><th></th></tr></thead><tbody id="wtb"></tbody></table></div>
-<!-- Foodics Wastage Export -->
-<div class="fdx" style="border-color:rgba(239,68,68,.2);background:rgba(239,68,68,.03)">
-<h4 style="color:var(--no)">♻️ Export to Foodics (Wastage)</h4>
-<div class="fdx-row">
-<input type="date" class="dinp" id="fwFr" placeholder="From">
-<input type="date" class="dinp" id="fwTo" placeholder="To">
-<button class="btn btn-g btn-sm" onclick="expFoodics('waste')">Download CSV</button>
-</div>
-<p style="font-size:.78rem;color:var(--t2);margin-top:6px">Format: name, sku, storage_quantity, ingredients_quantity</p>
-</div>
-</div>
-</div>
-</div>
-
-<!-- COUNTS -->
-<div class="tc" id="tc-counts">
-<div class="ph"><h2>Inventory Counts Module</h2></div>
-<div class="card">
-<div class="ch"><h3>Module Control</h3><div style="display:flex;align-items:center;gap:10px"><span id="csSt" style="color:var(--t2);font-size:.9rem">Disabled</span><div class="tog" id="ctog" onclick="togCount()"></div></div></div>
-<div class="cb">
-<p style="color:var(--t2);margin-bottom:16px;font-size:.9rem">Enable to let staff submit physical inventory counts from their assigned sections.</p>
-<!-- Foodics Inventory Export -->
-<div class="fdx">
-<h4>📊 Export to Foodics (Inventory Count)</h4>
-<div class="fdx-row">
-<input type="month" class="dinp" id="ficMo" placeholder="Month">
-<select class="sel" id="ficSec"><option value="">All Sections</option></select>
-<button class="btn btn-g btn-sm" onclick="expFoodics('count')">Download CSV</button>
-</div>
-<p style="font-size:.78rem;color:var(--t2);margin-top:6px">Format: Inventory Item Name, Inventory Item SKU, Storage quantity, Ingredients quantity, Inventory Count ID (empty)</p>
-</div>
-<h3 style="margin:20px 0 12px">Recent Counts</h3>
-<div class="twrap"><table class="tbl"><thead><tr><th>Month</th><th>Section</th><th>Item</th><th>SKU</th><th>Storage</th><th>Ingredient</th><th>By</th></tr></thead><tbody id="ctb"></tbody></table></div>
-</div>
-</div>
-</div>
-
-<!-- EXPORT -->
-<div class="tc" id="tc-export">
-<div class="ph"><h2>Data Export Center</h2></div>
-<div class="egrid">
-<div class="ecard" onclick="expRaw('orders')"><h4>📦 Orders CSV</h4><p>All purchase orders with full details.</p><button class="btn btn-p btn-sm">Download</button></div>
-<div class="ecard" onclick="expRaw('production')"><h4>🏭 Production CSV</h4><p>All production batch logs.</p><button class="btn btn-p btn-sm">Download</button></div>
-<div class="ecard" onclick="expRaw('wastage')"><h4>🗑️ Wastage CSV</h4><p>All wastage tracking records.</p><button class="btn btn-p btn-sm">Download</button></div>
-<div class="ecard" onclick="expRaw('items')"><h4>📋 Master Items CSV</h4><p>Complete item catalog.</p><button class="btn btn-p btn-sm">Download</button></div>
-<div class="ecard" onclick="expRaw('staff')"><h4>👥 Staff Directory CSV</h4><p>Staff list with permissions.</p><button class="btn btn-p btn-sm">Download</button></div>
-<div class="ecard" onclick="expRaw('counts')"><h4>📊 Inventory Counts CSV</h4><p>All physical count submissions.</p><button class="btn btn-p btn-sm">Download</button></div>
-</div>
-</div>
-
-<!-- SETTINGS -->
-<div class="tc" id="tc-settings">
-<div class="ph"><h2>Settings</h2></div>
-<div class="card"><div class="ch"><h3>Database Connection</h3></div><div class="cb">
-<div class="fr"><label class="fl">Google Apps Script Web App URL</label><input type="url" class="fi" id="sgas" placeholder="https://script.google.com/macros/s/AKfycbzXvkB65CNzdtMmt16gEiEks2XeQ2Bf25RpvqPHyayMR7H6oJQX62gRIzyTrkieVHBFag/exec"></div>
-<button class="btn btn-p" onclick="saveSet()" style="width:auto">Save & Test</button>
-</div></div>
-<div class="card"><div class="ch"><h3>Security</h3></div><div class="cb">
-<div class="fr"><label class="fl">Change Master PIN (4 digits)</label><div class="fg"><input type="password" class="fi" id="np1" maxlength="4" placeholder="New"><input type="password" class="fi" id="np2" maxlength="4" placeholder="Confirm"></div></div>
-<button class="btn btn-p" onclick="chPin()" style="width:auto">Update PIN</button>
-</div></div>
-<div class="card"><div class="ch"><h3>Notifications</h3></div><div class="cb">
-<div class="fr"><label class="fl">Owner Email</label><input type="email" class="fi" id="oem" placeholder="owner@restaurant.com"></div>
-<button class="btn btn-p" onclick="saveEm()" style="width:auto">Save Email</button>
-</div></div>
-</div>
-</main>
-</div>
-</div>
-
-<!-- Item Modal -->
-<div class="mod-o" id="imodal"><div class="mod">
-<div class="mod-h"><h3 id="imt">Add Item</h3><button class="mod-x" onclick="hid('imodal')">&times;</button></div>
-<div class="fr"><label class="fl">Item Name</label><input type="text" class="fi" id="inm"></div>
-<div class="fg"><div class="fr"><label class="fl">SKU</label><input type="text" class="fi" id="isk"></div><div class="fr"><label class="fl">Type</label><select class="fs" id="ity"><option>Kitchen</option><option>Bar</option><option>Pastry</option><option>Packaging</option><option>Internal</option></select></div></div>
-<div class="fg"><div class="fr"><label class="fl">Storage Unit</label><input type="text" class="fi" id="isu" placeholder="Box, KG, Bottle"></div><div class="fr"><label class="fl">Ingredient Unit</label><input type="text" class="fi" id="iiu" placeholder="Gram, ML, Piece"></div></div>
-<div class="fr"><label class="fl">Supplier</label><select class="fs" id="isp"><option value="">Select</option></select></div>
-<button class="btn btn-p" onclick="sItem()" style="margin-top:6px">Save Item</button>
-</div></div>
-
-<!-- Supplier Modal -->
-<div class="mod-o" id="smodal"><div class="mod">
-<div class="mod-h"><h3>Add Supplier</h3><button class="mod-x" onclick="hid('smodal')">&times;</button></div>
-<div class="fr"><label class="fl">Name</label><input type="text" class="fi" id="snm"></div>
-<div class="fr"><label class="fl">Phone / WhatsApp</label><input type="tel" class="fi" id="sph" placeholder="+971501234567"></div>
-<button class="btn btn-p" onclick="sSup()">Save</button>
-</div></div>
-
-<!-- Staff Modal -->
-<div class="mod-o" id="fmodal"><div class="mod">
-<div class="mod-h"><h3 id="fmt">Add Staff</h3><button class="mod-x" onclick="hid('fmodal')">&times;</button></div>
-<div class="fr"><label class="fl">Full Name</label><input type="text" class="fi" id="fnm"></div>
-<div class="fr"><label class="fl">PIN (4 digits)</label><input type="text" class="fi" id="fpi" maxlength="4" placeholder="1234"></div>
-<div class="fr"><label class="fl">Allowed Sections (comma separated)</label><input type="text" class="fi" id="fse" placeholder="Kitchen, Bar, Pastry"></div>
-<button class="btn btn-p" onclick="sStaff()">Save Staff</button>
-</div></div>
-
-<div class="toast" id="toast"></div>
-<div class="ld" id="ld" style="display:none"><div class="sp"></div><div class="lt">Loading...</div></div>
-
+<div id="app"></div>
 <script>
-const CFG={gas:localStorage.getItem('goya_gas')||'',mpin:localStorage.getItem('goya_mpin')||'9988'};
-let ST={tab:'orders',ord:[],prod:[],waste:[],cnt:[],it:[],sup:[],stf:[],sets:{},selO:new Set(),eIt:null,eStf:null};
+const STATUSES = ['PENDING','ORDERED','RECEIVED','NOT_RECEIVED','REJECTED'];
+const STATUS_LABEL = {PENDING:'Pending',ORDERED:'Ordered',RECEIVED:'Received',NOT_RECEIVED:'Not Received',REJECTED:'Rejected'};
+const SECTIONS = ['bar','kitchen','packaging','pastry'];
+const SECTION_LABEL = {bar:'Bar',kitchen:'Kitchen',packaging:'Packaging',pastry:'Pastry'};
 
-document.addEventListener('DOMContentLoaded',()=>{document.getElementById('p1').focus();loadC();if(CFG.gas)fetchD();});
+let SHEET_URL = '';
+let LOCAL_DB = null;
 
-function loadC(){
-  const c=localStorage.getItem('goya_ad');if(!c)return;
-  const d=JSON.parse(c);ST.ord=d.ord||[];ST.prod=d.prod||[];ST.waste=d.waste||[];ST.cnt=d.cnt||[];ST.it=d.it||[];ST.sup=d.sup||[];ST.stf=d.stf||[];ST.sets=d.sets||{};upAll();
-}
-async function fetchD(){
-  ld(true);try{
-    const r=await fetch(CFG.gas+'?action=getAdminData');const d=await r.json();
-    if(d.success){ST.ord=d.orders||[];ST.prod=d.production||[];ST.waste=d.wastage||[];ST.cnt=d.counts||[];ST.it=d.items||[];ST.sup=d.suppliers||[];ST.stf=d.staff||[];ST.sets=d.settings||{};
-    localStorage.setItem('goya_ad',JSON.stringify({ord:ST.ord,prod:ST.prod,waste:ST.waste,cnt:ST.cnt,it:ST.it,sup:ST.sup,stf:ST.stf,sets:ST.sets}));upAll();}
-  }catch(e){toast('Using cached data','er')}finally{ld(false)}
-}
-function upAll(){rOrders();rItems();rSup();rStaff();rMon();rCounts();kpi();popF();upSetUI();}
-
-// ===== AUTH =====
-function pinIn(n){if(n<4)document.getElementById('p'+(n+1)).focus();else chkPin();}
-function chkPin(){
-  const p=['p1','p2','p3','p4'].map(id=>document.getElementById(id).value).join('');
-  if(p===CFG.mpin){document.getElementById('auth').classList.add('hid');document.getElementById('main').style.display='grid';}
-  else{document.getElementById('perr').classList.add('show');['p1','p2','p3','p4'].forEach(id=>document.getElementById(id).value='');document.getElementById('p1').focus();}
-}
-function logout(){document.getElementById('auth').classList.remove('hid');document.getElementById('main').style.display='none';['p1','p2','p3','p4'].forEach(id=>document.getElementById(id).value='');document.getElementById('perr').classList.remove('show');}
-function toggleSide(){const s=document.querySelector('.side');s.style.display=s.style.display==='flex'?'none':'flex';s.style.position='fixed';s.style.zIndex='999';s.style.height='100vh';}
-
-// ===== NAV =====
-function sw(t){
-  ST.tab=t;document.querySelectorAll('.tc').forEach(x=>x.classList.remove('on'));document.querySelectorAll('.nv').forEach(x=>x.classList.remove('on'));
-  document.getElementById('tc-'+t)?.classList.add('on');event.currentTarget.classList.add('on');
-  if(t==='orders')rOrders();if(t==='items'){rItems();rSup()}if(t==='staff')rStaff();if(t==='monitor')rMon();if(t==='counts')rCounts();if(t==='export'){}if(t==='settings')upSetUI();
-  if(window.innerWidth<=768)document.querySelector('.side').style.display='none';
-}
-
-// ===== ORDERS =====
-function kpi(){
-  const p=ST.ord.filter(o=>o.status==='Pending').length,od=ST.ord.filter(o=>o.status==='Ordered').length,r=ST.ord.filter(o=>o.status==='Received').length,n=ST.ord.filter(o=>o.status==='NOT RECEIVED').length,x=ST.ord.filter(o=>o.status==='REJECTED').length;
-  document.getElementById('kpiP').textContent=p;document.getElementById('kpiO').textContent=od;document.getElementById('kpiR').textContent=r;document.getElementById('kpiN').textContent=n;document.getElementById('kpiX').textContent=x;document.getElementById('kpiT').textContent=ST.ord.length;
-}
-function popF(){
-  const s=document.getElementById('osu');const u=[...new Set(ST.ord.map(o=>o.supplier).filter(Boolean))];
-  s.innerHTML='<option value="">All Suppliers</option>'+u.map(x=>`<option>${x}</option>`).join('');
-  // Populate section filter for counts
-  const cs=document.getElementById('ficSec');const sec=[...new Set(ST.cnt.map(c=>c.section).filter(Boolean))];
-  cs.innerHTML='<option value="">All Sections</option>'+sec.map(x=>`<option>${x}</option>`).join('');
-}
-function fOrders(){
-  const q=document.getElementById('os').value.toLowerCase(),st=document.getElementById('ost').value,su=document.getElementById('osu').value,fr=document.getElementById('ofr').value,to=document.getElementById('oto').value;
-  return ST.ord.filter(o=>{if(q&&!o.itemName?.toLowerCase().includes(q)&&!o.loggedBy?.toLowerCase().includes(q))return false;if(st&&o.status!==st)return false;if(su&&o.supplier!==su)return false;if(fr&&o.date<fr)return false;if(to&&o.date>to)return false;return true;});
-}
-function rOrders(){
-  const tb=document.getElementById('otb'),f=fOrders();
-  if(!f.length){tb.innerHTML='<tr><td colspan="10" class="empty"><h3>No orders</h3></td></tr>';return;}
-  tb.innerHTML=f.map(o=>`<tr data-id="${o.id}"><td class="chk"><input type="checkbox" ${ST.selO.has(o.id)?'checked':''} onchange="tglO('${o.id}')"></td><td>${o.date}</td><td>${o.itemName}</td><td>${o.quantity}</td><td>${o.unit}</td><td>${o.supplier||'-'}</td><td><input type="text" value="${o.note||''}" onblur="uNote('${o.id}',this.value)" style="min-width:100px"></td><td><select onchange="uStat('${o.id}',this.value)" style="width:110px"><option ${o.status==='Pending'?'selected':''}>Pending</option><option ${o.status==='Ordered'?'selected':''}>Ordered</option><option ${o.status==='Received'?'selected':''}>Received</option><option ${o.status==='NOT RECEIVED'?'selected':''}>NOT RECEIVED</option><option ${o.status==='REJECTED'?'selected':''}>REJECTED</option></select></td><td>${o.loggedBy}</td><td><button class="btn btn-r btn-sm" onclick="dOrd('${o.id}')">🗑</button></td></tr>`).join('');
-}
-function tglO(id){ST.selO.has(id)?ST.selO.delete(id):ST.selO.add(id);upBulk();}
-function sa(){const c=document.getElementById('sa').checked;const f=fOrders();if(c)f.forEach(o=>ST.selO.add(o.id));else f.forEach(o=>ST.selO.delete(o.id));rOrders();upBulk();}
-function upBulk(){const n=ST.selO.size,b=document.getElementById('bulk');if(n){b.style.display='flex';document.getElementById('bcnt').textContent=n+' selected';}else b.style.display='none';}
-async function bulkUp(){
-  const ns=document.getElementById('bst').value;if(!ns)return;ld(true);try{
-    if(CFG.gas){await fetch(CFG.gas,{method:'POST',body:JSON.stringify({action:'bulkUpdateOrders',ids:[...ST.selO],status:ns})});}
-    ST.ord.forEach(o=>{if(ST.selO.has(o.id))o.status=ns;});ST.selO.clear();upBulk();rOrders();kpi();toast('Bulk update done','ok');
-  }catch(e){toast('Error','er')}finally{ld(false)}
-}
-async function uStat(id,st){try{if(CFG.gas)await fetch(CFG.gas,{method:'POST',body:JSON.stringify({action:'updateOrder',id,status:st})});const o=ST.ord.find(x=>x.id===id);if(o)o.status=st;kpi();toast('Updated','ok');}catch(e){toast('Error','er')}}
-async function uNote(id,n){try{if(CFG.gas)await fetch(CFG.gas,{method:'POST',body:JSON.stringify({action:'updateOrderNote',id,note:n})});const o=ST.ord.find(x=>x.id===id);if(o)o.note=n;}catch(e){}}
-async function dOrd(id){if(!confirm('Delete?'))return;ld(true);try{if(CFG.gas)await fetch(CFG.gas,{method:'POST',body:JSON.stringify({action:'deleteOrder',id})});ST.ord=ST.ord.filter(o=>o.id!==id);rOrders();kpi();toast('Deleted','ok');}catch(e){toast('Error','er')}finally{ld(false)}}
-
-// ===== ITEMS =====
-function rItems(){
-  const tb=document.getElementById('itb'),f=fItems();
-  if(!f.length){tb.innerHTML='<tr><td colspan="7" class="empty"><h3>No items</h3></td></tr>';return;}
-  tb.innerHTML=f.map(i=>`<tr><td>${i.name}</td><td>${i.sku||'-'}</td><td>${i.storageUnit||'-'}</td><td>${i.ingredientUnit||'-'}</td><td>${i.supplier||'-'}</td><td><span class="bb b${(i.type||'kitchen').toLowerCase().slice(0,2)}">${i.type||'Kitchen'}</span></td><td><button class="btn btn-s btn-sm" onclick="eItem('${i.id}')">✏</button> <button class="btn btn-r btn-sm" onclick="dItem('${i.id}')">🗑</button></td></tr>`).join('');
-  const sp=document.getElementById('isp');sp.innerHTML='<option value="">Select</option>'+ST.sup.map(s=>`<option>${s.name}</option>`).join('');
-}
-function fItems(){const q=document.getElementById('is').value.toLowerCase(),t=document.getElementById('itf').value;return ST.it.filter(i=>{if(q&&!i.name?.toLowerCase().includes(q)&&!i.sku?.toLowerCase().includes(q))return false;if(t&&i.type!==t)return false;return true;});}
-function rSup(){
-  const tb=document.getElementById('stb');if(!ST.sup.length){tb.innerHTML='<tr><td colspan="3" class="empty"><h3>No suppliers</h3></td></tr>';return;}
-  tb.innerHTML=ST.sup.map(s=>`<tr><td>${s.name}</td><td>${s.phone||'-'}</td><td><button class="btn btn-r btn-sm" onclick="dSup('${s.id}')">🗑</button></td></tr>`).join('');
-}
-function showItem(){ST.eIt=null;document.getElementById('imt').textContent='Add Item';document.getElementById('inm').value='';document.getElementById('isk').value='';document.getElementById('ity').value='Kitchen';document.getElementById('isu').value='';document.getElementById('iiu').value='';document.getElementById('isp').value='';sho('imodal');}
-function showSup(){document.getElementById('snm').value='';document.getElementById('sph').value='';sho('smodal');}
-function eItem(id){const i=ST.it.find(x=>x.id===id);if(!i)return;ST.eIt=id;document.getElementById('imt').textContent='Edit Item';document.getElementById('inm').value=i.name;document.getElementById('isk').value=i.sku||'';document.getElementById('ity').value=i.type||'Kitchen';document.getElementById('isu').value=i.storageUnit||'';document.getElementById('iiu').value=i.ingredientUnit||'';document.getElementById('isp').value=i.supplier||'';sho('imodal');}
-async function sItem(){
-  const i={id:ST.eIt||'it_'+Date.now(),name:document.getElementById('inm').value.trim(),sku:document.getElementById('isk').value.trim(),type:document.getElementById('ity').value,storageUnit:document.getElementById('isu').value.trim(),ingredientUnit:document.getElementById('iiu').value.trim(),supplier:document.getElementById('isp').value};
-  if(!i.name){toast('Name required','er');return;}ld(true);try{
-    if(CFG.gas){const r=await fetch(CFG.gas,{method:'POST',body:JSON.stringify({action:'saveItem',item:i})});const res=await r.json();if(!res.success)throw new Error(res.message);}
-    if(ST.eIt){const x=ST.it.findIndex(z=>z.id===ST.eIt);if(x>=0)ST.it[x]=i;}else ST.it.push(i);
-    hid('imodal');rItems();toast('Saved','ok');
-  }catch(e){toast('Error: '+e.message,'er')}finally{ld(false)}
-}
-async function dItem(id){if(!confirm('Delete?'))return;ld(true);try{if(CFG.gas)await fetch(CFG.gas,{method:'POST',body:JSON.stringify({action:'deleteItem',id})});ST.it=ST.it.filter(i=>i.id!==id);rItems();toast('Deleted','ok');}catch(e){toast('Error','er')}finally{ld(false)}}
-async function sSup(){const s={id:'sp_'+Date.now(),name:document.getElementById('snm').value.trim(),phone:document.getElementById('sph').value.trim()};if(!s.name){toast('Name required','er');return;}ld(true);try{
-    if(CFG.gas){await fetch(CFG.gas,{method:'POST',body:JSON.stringify({action:'saveSupplier',supplier:s})});}
-    ST.sup.push(s);hid('smodal');rSup();rItems();toast('Saved','ok');
-  }catch(e){toast('Error','er')}finally{ld(false)}
-}
-async function dSup(id){if(!confirm('Delete?'))return;ld(true);try{if(CFG.gas)await fetch(CFG.gas,{method:'POST',body:JSON.stringify({action:'deleteSupplier',id})});ST.sup=ST.sup.filter(s=>s.id!==id);rSup();rItems();toast('Deleted','ok');}catch(e){toast('Error','er')}finally{ld(false)}}
-
-// ===== STAFF =====
-function rStaff(){
-  const tb=document.getElementById('ftb');if(!ST.stf.length){tb.innerHTML='<tr><td colspan="4" class="empty"><h3>No staff</h3></td></tr>';return;}
-  tb.innerHTML=ST.stf.map(s=>`<tr><td>${s.pin}</td><td>${s.name}</td><td>${s.sections||'All'}</td><td><button class="btn btn-s btn-sm" onclick="eStaff('${s.id}')">✏</button> <button class="btn btn-r btn-sm" onclick="dStaff('${s.id}')">🗑</button></td></tr>`).join('');
-}
-function showStaff(){ST.eStf=null;document.getElementById('fmt').textContent='Add Staff';document.getElementById('fnm').value='';document.getElementById('fpi').value='';document.getElementById('fse').value='';sho('fmodal');}
-function eStaff(id){const s=ST.stf.find(x=>x.id===id);if(!s)return;ST.eStf=id;document.getElementById('fmt').textContent='Edit Staff';document.getElementById('fnm').value=s.name;document.getElementById('fpi').value=s.pin;document.getElementById('fse').value=s.sections||'';sho('fmodal');}
-async function sStaff(){
-  const s={id:ST.eStf||'st_'+Date.now(),name:document.getElementById('fnm').value.trim(),pin:document.getElementById('fpi').value.trim(),sections:document.getElementById('fse').value.trim()};
-  if(!s.name||!s.pin||s.pin.length!==4){toast('Name & 4-digit PIN required','er');return;}ld(true);try{
-    if(CFG.gas){await fetch(CFG.gas,{method:'POST',body:JSON.stringify({action:'saveStaff',staff:s})});}
-    if(ST.eStf){const x=ST.stf.findIndex(z=>z.id===ST.eStf);if(x>=0)ST.stf[x]=s;}else ST.stf.push(s);
-    hid('fmodal');rStaff();toast('Saved','ok');
-  }catch(e){toast('Error','er')}finally{ld(false)}
-}
-async function dStaff(id){if(!confirm('Remove?'))return;ld(true);try{if(CFG.gas)await fetch(CFG.gas,{method:'POST',body:JSON.stringify({action:'deleteStaff',id})});ST.stf=ST.stf.filter(s=>s.id!==id);rStaff();toast('Removed','ok');}catch(e){toast('Error','er')}finally{ld(false)}}
-
-// ===== MONITOR =====
-function rMon(){
-  const pb=document.getElementById('ptb'),wb=document.getElementById('wtb');
-  const pf=fProd(),wf=fWaste();
-  if(!pf.length)pb.innerHTML='<tr><td colspan="7" class="empty"><h3>No production</h3></td></tr>';
-  else pb.innerHTML=pf.map(p=>`<tr><td>${p.date}</td><td>${p.itemName}</td><td>${p.quantity}</td><td>${p.unit}</td><td>${p.loggedBy}</td><td><span class="sb s${(p.status||'logged').toLowerCase().slice(0,1)}">${p.status||'Logged'}</span></td><td><select onchange="uPst('${p.id}',this.value)" style="width:100px"><option ${p.status==='Logged'?'selected':''}>Logged</option><option ${p.status==='Reviewed'?'selected':''}>Reviewed</option><option ${p.status==='Flagged'?'selected':''}>Flagged</option></select></td></tr>`).join('');
-  if(!wf.length)wb.innerHTML='<tr><td colspan="8" class="empty"><h3>No wastage</h3></td></tr>';
-  else wb.innerHTML=wf.map(w=>`<tr><td>${w.date}</td><td>${w.itemName}</td><td>${w.quantity}</td><td>${w.unit}</td><td>${w.reason||'-'}</td><td>${w.loggedBy}</td><td><span class="sb s${(w.status||'logged').toLowerCase().slice(0,1)}">${w.status||'Logged'}</span></td><td><select onchange="uWst('${w.id}',this.value)" style="width:100px"><option ${w.status==='Logged'?'selected':''}>Logged</option><option ${w.status==='Reviewed'?'selected':''}>Reviewed</option><option ${w.status==='Flagged'?'selected':''}>Flagged</option></select></td></tr>`).join('');
-}
-function fProd(){const d=document.getElementById('pdt').value,s=document.getElementById('pst').value;return ST.prod.filter(p=>{if(d&&p.date!==d)return false;if(s&&p.status!==s)return false;return true;});}
-function fWaste(){const d=document.getElementById('wdt').value,s=document.getElementById('wst').value;return ST.waste.filter(w=>{if(d&&w.date!==d)return false;if(s&&w.status!==s)return false;return true;});}
-async function uPst(id,st){try{if(CFG.gas)await fetch(CFG.gas,{method:'POST',body:JSON.stringify({action:'updateProduction',id,status:st})});const p=ST.prod.find(x=>x.id===id);if(p)p.status=st;toast('Updated','ok');}catch(e){toast('Error','er')}}
-async function uWst(id,st){try{if(CFG.gas)await fetch(CFG.gas,{method:'POST',body:JSON.stringify({action:'updateWastage',id,status:st})});const w=ST.waste.find(x=>x.id===id);if(w)w.status=st;toast('Updated','ok');}catch(e){toast('Error','er')}}
-
-// ===== COUNTS =====
-function rCounts(){
-  const t=document.getElementById('ctog'),s=document.getElementById('csSt');
-  const on=ST.sets.InventoryCountEnabled==='true';t.classList.toggle('on',on);s.textContent=on?'Enabled':'Disabled';s.style.color=on?'var(--ok)':'var(--t2)';
-  const tb=document.getElementById('ctb');if(!ST.cnt.length){tb.innerHTML='<tr><td colspan="7" class="empty"><h3>No counts yet</h3></td></tr>';return;}
-  tb.innerHTML=ST.cnt.map(c=>`<tr><td>${c.month||c.date}</td><td>${c.section}</td><td>${c.itemName}</td><td>${c.sku||'-'}</td><td>${c.storageQty}</td><td>${c.ingredientQty}</td><td>${c.submittedBy}</td></tr>`).join('');
-  // Update section dropdown
-  const sec=[...new Set(ST.cnt.map(c=>c.section).filter(Boolean))];
-  document.getElementById('ficSec').innerHTML='<option value="">All Sections</option>'+sec.map(x=>`<option>${x}</option>`).join('');
-}
-async function togCount(){
-  const on=ST.sets.InventoryCountEnabled!=='true';ST.sets.InventoryCountEnabled=on?'true':'false';ld(true);try{
-    if(CFG.gas)await fetch(CFG.gas,{method:'POST',body:JSON.stringify({action:'updateSetting',key:'InventoryCountEnabled',value:ST.sets.InventoryCountEnabled})});
-    rCounts();toast(on?'Enabled':'Disabled','ok');
-  }catch(e){toast('Error','er')}finally{ld(false)}
+function seedData(){
+  return {
+    items:[
+      {'Row ID':'1','Name':'Ethiopian Green Beans','SKU':'SK-101','Storage Unit':'KG','Ingredient Unit':'GRAM','Supplier':'Sunrise Bean Co.','Items Type':'bar'},
+      {'Row ID':'2','Name':'Vanilla','SKU':'Sk-102','Storage Unit':'KG','Ingredient Unit':'GRAM','Supplier':'','Items Type':'pastry'}
+    ],
+    internalItems:[
+      {'Row ID':'101','Name':'Esprosso Frost Batch','SKU':'Sk-202','Storage Unit':'BATCH','Ingredient Unit':'GRAM','Items Type':'BAR'}
+    ],
+    staff:[
+      {'PIN Code':'1111','Staff Full Name':'MEHEDI','Allowed Sections':'bar'},
+      {'PIN Code':'3333','Staff Full Name':'Rashed','Allowed Sections':'bar'}
+    ],
+    orders:[
+      {'Row ID':'1','Timestamp':'10:00:00','Order Date':'2026-08-01','Item Name':'Ethiopian Green Beans','Quantity':'1','Unit':'KG','Supplier':'Sunrise Bean Co.','Note/Remarks':'Check expiry date','Status':'RECEIVED','Logged By':'Aisha Rahman'}
+    ], 
+    production:[
+      {'Timestamp':'2026-08-01T09:20:00.000Z','Date':'2026-08-01','Item Name':'House Cold Brew Batch','Quantity':'10','Unit':'L','Logged By':'SAFI','Status':'DONE'}
+    ], 
+    wastage:[
+      {'Timestamp':'','Date':'2026-08-01','Item Name':'Full Cream Milk','Quantity':'1','Unit':'L','Reason':'Expired','Logged By':'Karim Hossain','Status':'Logged'}
+    ], 
+    inventoryCounts:[
+      {'Count Date / Month':'2026-08','Section':'bar','Item Name':'Ethiopian Green Beans','SKU':'SK-101','Storage Quantity':'3.0','Ingredient Quantity':'','Submitted By':'Aisha Rahman'}
+    ], 
+    suppliers:[
+      {'Name':'Sunrise Bean Co.','Phone':'Optional','Group Link':'optional','Remarks':'last order cutoff time 07pm'},
+      {'Name':'Safco','Phone':'','Group Link':'','Remarks':'last order cutoff time 07pm'}
+    ], 
+    settings:{ MasterPin:'9988', ConnectionPin:'9988', InventoryCountEnabled:'true', OwnerEmail:'mehedi.src@gmail.com', TargetCountMonth: currentMonthISO(), CustomPages:[] }
+  };
 }
 
-// ===== EXPORT =====
-function expRaw(t){
-  let d=[],h=[],fn='';
-  if(t==='orders'){fn='orders.csv';h=['Date','Item','Quantity','Unit','Supplier','Note','Status','Logged By'];d=ST.ord.map(o=>[o.date,o.itemName,o.quantity,o.unit,o.supplier||'',o.note||'',o.status,o.loggedBy]);}
-  else if(t==='production'){fn='production.csv';h=['Date','Item','Quantity','Unit','Logged By','Status'];d=ST.prod.map(p=>[p.date,p.itemName,p.quantity,p.unit,p.loggedBy,p.status]);}
-  else if(t==='wastage'){fn='wastage.csv';h=['Date','Item','Quantity','Unit','Reason','Logged By','Status'];d=ST.waste.map(w=>[w.date,w.itemName,w.quantity,w.unit,w.reason||'',w.loggedBy,w.status]);}
-  else if(t==='items'){fn='master_items.csv';h=['Name','SKU','Storage Unit','Ingredient Unit','Supplier','Type'];d=ST.it.map(i=>[i.name,i.sku||'',i.storageUnit||'',i.ingredientUnit||'',i.supplier||'',i.type||'']);}
-  else if(t==='staff'){fn='staff.csv';h=['PIN','Name','Sections'];d=ST.stf.map(s=>[s.pin,s.name,s.sections||'']);}
-  else if(t==='counts'){fn='inventory_counts.csv';h=['Month','Section','Item','SKU','Storage Qty','Ingredient Qty','Submitted By'];d=ST.cnt.map(c=>[c.month||c.date,c.section,c.itemName,c.sku||'',c.storageQty,c.ingredientQty,c.submittedBy]);}
-  dlCSV(fn,h,d);
+async function getLocalSetting(key){ try{ return JSON.parse(localStorage.getItem(key)||'null'); }catch(e){ return null; } }
+async function setLocalSetting(key, val){ localStorage.setItem(key, JSON.stringify(val)); }
+
+async function initBackend(){
+  try { SHEET_URL = await getLocalSetting('goya-sheet-url') || ''; } catch(e) { SHEET_URL = ''; }
 }
 
-// ===== FOODICS EXPORT WITH DATE RANGE =====
-function expFoodics(type){
-  let d=[],h=[],fn='';
-  if(type==='po'){
-    const fr=document.getElementById('fpoFr').value,to=document.getElementById('fpoTo').value,st=document.getElementById('fpoSt').value;
-    fn='foodics-purchase-order.csv';h=['name','sku','order_quantity','storage_quantity','total_cost'];
-    let filtered=ST.ord;
-    if(fr)filtered=filtered.filter(o=>o.date>=fr);if(to)filtered=filtered.filter(o=>o.date<=to);if(st)filtered=filtered.filter(o=>o.status===st);
-    d=filtered.map(o=>{const it=ST.it.find(i=>i.name===o.itemName);return[o.itemName,it?.sku||'',o.quantity,it?.storageUnit||o.unit,''];});
-  }else if(type==='prod'){
-    const fr=document.getElementById('fprFr').value,to=document.getElementById('fprTo').value;
-    fn='foodics-production.csv';h=['name','sku','storage_quantity','ingredients_quantity'];
-    let filtered=ST.prod;if(fr)filtered=filtered.filter(p=>p.date>=fr);if(to)filtered=filtered.filter(p=>p.date<=to);
-    d=filtered.map(p=>{const it=ST.it.find(i=>i.name===p.itemName);return[p.itemName,it?.sku||'',p.quantity,''];});
-  }else if(type==='waste'){
-    const fr=document.getElementById('fwFr').value,to=document.getElementById('fwTo').value;
-    fn='foodics-wastage.csv';h=['name','sku','storage_quantity','ingredients_quantity'];
-    let filtered=ST.waste;if(fr)filtered=filtered.filter(w=>w.date>=fr);if(to)filtered=filtered.filter(w=>w.date<=to);
-    d=filtered.map(w=>{const it=ST.it.find(i=>i.name===w.itemName);return[w.itemName,it?.sku||'',w.quantity,''];});
-  }else if(type==='count'){
-    const mo=document.getElementById('ficMo').value,sec=document.getElementById('ficSec').value;
-    fn='foodics-inventory-count.csv';h=['Inventory Item Name','Inventory Item SKU','Storage quantity','Ingredients quantity','Inventory Count ID'];
-    let filtered=ST.cnt;if(mo)filtered=filtered.filter(c=>(c.month||'').startsWith(mo));if(sec)filtered=filtered.filter(c=>c.section===sec);
-    d=filtered.map(c=>[c.itemName,c.sku||'',c.storageQty,c.ingredientQty,'']);
+async function connectSheet(url){
+  SHEET_URL = (url||'').trim();
+  await setLocalSetting('goya-sheet-url', SHEET_URL);
+}
+
+async function sheetPost(action, body){
+  if(!SHEET_URL) throw new Error('Sheet not connected');
+  const resp = await fetch(SHEET_URL, {method:'POST', body:JSON.stringify({action,...body})});
+  return resp.json();
+}
+
+const api = {
+  async getAll(){
+    if(!SHEET_URL) return seedData();
+    try{
+      const resp = await fetch(SHEET_URL+'?action=getAll');
+      const data = await resp.json();
+      if(!data || data.error) return seedData();
+      return {
+        items: data.items || [],
+        internalItems: data.internalItems || [],
+        staff: data.staff || [],
+        orders: data.orders || [],
+        production: data.production || [],
+        wastage: data.wastage || [],
+        inventoryCounts: data.inventoryCounts || [],
+        suppliers: data.suppliers || [],
+        settings: data.settings || { MasterPin:'9988', ConnectionPin:'9988', InventoryCountEnabled:'true', OwnerEmail:'mehedi.src@gmail.com', TargetCountMonth: currentMonthISO(), CustomPages:[] }
+      };
+    }catch(e){ return seedData(); }
+  },
+  async saveAllOrders(orders){
+    if(SHEET_URL) await sheetPost('saveAllOrders',{orders});
+    else { LOCAL_DB.orders = orders; await saveLocalDB(); }
+  },
+  async saveAllItems(items){
+    if(SHEET_URL) await sheetPost('saveAllItems',{items});
+    else { LOCAL_DB.items = items; await saveLocalDB(); }
+  },
+  async saveAllInternalItems(internalItems){
+    if(SHEET_URL) await sheetPost('saveAllInternalItems',{internalItems});
+    else { LOCAL_DB.internalItems = internalItems; await saveLocalDB(); }
+  },
+  async saveAllSuppliers(suppliers){
+    if(SHEET_URL) await sheetPost('saveAllSuppliers',{suppliers});
+    else { LOCAL_DB.suppliers = suppliers; await saveLocalDB(); }
+  },
+  async saveAllStaff(staff){
+    if(SHEET_URL) await sheetPost('saveAllStaff',{staff});
+    else { LOCAL_DB.staff = staff; await saveLocalDB(); }
+  },
+  async saveAllProduction(production){
+    if(SHEET_URL) await sheetPost('saveAllProduction',{production});
+    else { LOCAL_DB.production = production; await saveLocalDB(); }
+  },
+  async saveAllWastage(wastage){
+    if(SHEET_URL) await sheetPost('saveAllWastage',{wastage});
+    else { LOCAL_DB.wastage = wastage; await saveLocalDB(); }
+  },
+  async setSetting(key, value){
+    if(SHEET_URL) await sheetPost('setSetting',{key,value});
+    else { LOCAL_DB.settings[key]=value; await saveLocalDB(); }
   }
-  if(!d.length){toast('No data for selected range','wa');return;}
-  dlCSV(fn,h,d);
+};
+
+async function saveLocalDB(){ if(LOCAL_DB) localStorage.setItem('goya-local-db', JSON.stringify(LOCAL_DB)); }
+async function loadLocalDB(){ try{ LOCAL_DB = JSON.parse(localStorage.getItem('goya-local-db')); if(!LOCAL_DB) LOCAL_DB = seedData(); }catch(e){ LOCAL_DB = seedData(); } }
+
+function escHtml(s){ return String(s||'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
+function fmtDateTime(iso){ return iso? iso.slice(0,16).replace('T',' ') : ''; }
+function todayISO(){ return new Date().toISOString().slice(0,10); }
+function currentMonthISO(){ return new Date().toISOString().slice(0,7); }
+
+function showToast(msg){
+  const t = document.createElement('div');
+  t.style.cssText = 'position:fixed;bottom:24px;left:50%;transform:translateX(-50%);background:var(--espresso);color:#fff;padding:12px 20px;border-radius:10px;font-size:13.5px;font-weight:500;z-index:9999;box-shadow:0 10px 30px rgba(0,0,0,0.2)';
+  t.textContent = msg; document.body.appendChild(t); setTimeout(()=>t.remove(), 2500);
 }
 
-function dlCSV(fn,h,rows){
-  const csv=[h.join(','),...rows.map(r=>r.map(c=>`"${String(c).replace(/"/g,'""')}"`).join(','))].join('\n');
-  const blob=new Blob([csv],{type:'text/csv'});const url=URL.createObjectURL(blob);
-  const a=document.createElement('a');a.href=url;a.download=fn;a.click();URL.revokeObjectURL(url);toast(fn+' downloaded','ok');
+function openPinPad(title, onSubmit){
+  const holder = document.createElement('div'); holder.className='overlay'; let input = '';
+  const pad = '<div class="pin-pad"><h3 style="margin-bottom:16px;font-family:\'Fraunces\',serif;font-size:20px;color:var(--espresso);">' + escHtml(title) + '</h3><input type="password" id="pin-input" placeholder="••••" readonly style="text-align:center;font-size:24px;letter-spacing:10px;width:140px;height:54px;border:2px solid var(--line);border-radius:10px;margin:0 auto 20px;display:block;background:#fffdfa;color:var(--espresso)"><div class="pin-grid">' + [1,2,3,4,5,6,7,8,9,0].map(n=>'<button onclick="insertPin(' + n + ')">' + n + '</button>').join('') + '<button onclick="deletePin()" style="grid-column:2;background:var(--parchment-2);color:var(--ink-soft)">⌫</button></div><div class="row" style="margin-top:16px;"><button class="btn btn-primary" style="width:100%;padding:12px;" onclick="submitPin()">Confirm</button></div></div>';
+  holder.innerHTML = '<div class="modal">' + pad + '</div>'; document.body.appendChild(holder);
+  window.pinInput = () => document.getElementById('pin-input');
+  window.insertPin = (n) => { if(input.length<4){input+=n; window.pinInput().value='•'.repeat(input.length);} };
+  window.deletePin = () => { input = input.slice(0,-1); window.pinInput().value='•'.repeat(input.length); };
+  window.submitPin = async () => { if(await onSubmit(input)){ holder.remove(); } else { showToast('Incorrect PIN'); input=''; window.pinInput().value=''; } };
 }
 
-// ===== SETTINGS =====
-function upSetUI(){document.getElementById('sgas').value=CFG.gas;document.getElementById('oem').value=ST.sets.OwnerEmail||'';}
-function saveSet(){CFG.gas=document.getElementById('sgas').value.trim();localStorage.setItem('goya_gas',CFG.gas);toast('Saved — testing...','ok');fetchD();}
-function chPin(){const p1=document.getElementById('np1').value,p2=document.getElementById('np2').value;if(p1.length!==4||p2.length!==4){toast('4 digits required','er');return;}if(p1!==p2){toast('PINs mismatch','er');return;}CFG.mpin=p1;localStorage.setItem('goya_mpin',p1);document.getElementById('np1').value='';document.getElementById('np2').value='';toast('PIN updated','ok');}
-function saveEm(){const em=document.getElementById('oem').value.trim();ST.sets.OwnerEmail=em;if(CFG.gas)fetch(CFG.gas,{method:'POST',body:JSON.stringify({action:'updateSetting',key:'OwnerEmail',value:em})});toast('Email saved','ok');}
+function downloadCSV(filename, headers, rows){
+  const csvRows = [headers.map(h => '"' + String(h).replace(/"/g, '""') + '"').join(',')];
+  rows.forEach(r => {
+    const rowStr = r.map(cell => '"' + String(cell).replace(/"/g, '""') + '"').join(',');
+    csvRows.push(rowStr);
+  });
+  const blob = new Blob([csvRows.join('\n')], { type: 'text/csv;charset=utf-8;' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url; a.download = filename; a.click();
+  URL.revokeObjectURL(url);
+}
 
-// ===== UTILS =====
-function sho(id){document.getElementById(id).classList.add('on');}
-function hid(id){document.getElementById(id).classList.remove('on');}
-function toast(m,t='ok'){const el=document.getElementById('toast');el.textContent=m;el.className='toast '+t+' show';setTimeout(()=>el.classList.remove('show'),2800);}
-function ld(s){document.getElementById('ld').style.display=s?'flex':'none';}
-function ref(){fetchD();toast('Refreshed','ok');}
+let DB={items:[],internalItems:[],staff:[],orders:[],production:[],wastage:[],inventoryCounts:[],suppliers:[],settings:{}};
+let UI={
+  loaded:false, unlocked:false, tab:'orders',
+  orderFilters:{search:'',status:'',supplier:'',month:currentMonthISO(),from:'',to:''}, orderSelected:{},
+  monitorFilters:{type:'production',month:currentMonthISO(),from:'',to:''}, monitorSelected:{},
+  countFilters:{month:currentMonthISO()}
+};
+
+async function boot(){
+  try {
+    await loadLocalDB();
+    await initBackend();
+    DB = await api.getAll();
+    if(!DB || typeof DB !== 'object') DB = seedData();
+  } catch(e) {
+    DB = seedData();
+  }
+  UI.loaded = true;
+  render();
+}
+
+function render(){
+  const app = document.getElementById('app');
+  if(!app) return;
+  try {
+    if(!UI.loaded){
+      app.innerHTML = '<div class="gate-wrap"><div class="gate-card"><h2 style="text-align:center;font-family:\'Fraunces\',serif;font-size:26px;color:var(--espresso)">Admin Panel</h2><p style="text-align:center;color:var(--ink-soft);margin-top:8px;">Loading securely...</p></div></div>';
+      return;
+    }
+    if(!UI.unlocked){
+      app.innerHTML = '<div class="gate-wrap"><div class="gate-card"><div style="text-align:center;margin-bottom:16px;"><img src="goya logo.jpeg" alt="Goya Logo" style="width:64px;height:64px;border-radius:50%;object-fit:cover;border:2px solid var(--line);box-shadow:var(--shadow)"></div><h2 style="text-align:center;font-family:\'Fraunces\',serif;font-size:24px;color:var(--espresso);margin-bottom:6px;">Admin Access</h2><p style="color:var(--ink-soft);font-size:13.5px;margin-bottom:20px;text-align:center;">Enter Master PIN to continue.</p><button class="btn btn-primary" style="width:100%;padding:12px;" onclick="openPinPad(\'Master PIN\', async(e)=>{if(e===(DB.settings?.MasterPin||\'9988\')){UI.unlocked=true;render();return true;}return false;})">Unlock Panel</button></div></div>';
+      return;
+    }
+    let html = '<div class="topbar"><div class="brand"><img src="goya logo.jpeg" alt="Logo" class="brand-logo"> Goya Admin Workspace</div><button class="btn btn-ghost btn-sm" onclick="UI.unlocked=false;render();">Lock Session</button></div>';
+    html += '<div class="admin-layout"><div class="admin-nav">' + [
+      ['orders','📦 Orders'],
+      ['items','📋 Items & Suppliers'],
+      ['internal','📁 Internal Items'],
+      ['staff','👥 Staff'],
+      ['monitor','📊 Prod & Waste'],
+      ['counts','🛒 Inventory Counts'],
+      ['export','📥 Data Export'],
+      ['settings','⚙️ Settings']
+    ].map(([k,l])=>'<button class="' + (UI.tab===k?'active':'') + '" onclick="UI.tab=\'' + k + '\';render();">' + l + '</button>').join('') + '</div><div>';
+    
+    if(UI.tab==='orders') html+=renderOrders();
+    else if(UI.tab==='items') html+=renderItems();
+    else if(UI.tab==='internal') html+=renderInternalItems();
+    else if(UI.tab==='staff') html+=renderStaff();
+    else if(UI.tab==='monitor') html+=renderMonitor();
+    else if(UI.tab==='counts') html+=renderCounts();
+    else if(UI.tab==='export') html+=renderExport();
+    else html+=renderSettings();
+
+    html += '</div></div>';
+    app.innerHTML = html;
+  } catch(err) {
+    app.innerHTML = '<div class="gate-wrap"><div class="gate-card"><h3 style="color:var(--alert);margin-bottom:10px;">Rendering Error</h3><p style="font-size:13px;color:var(--ink-soft);">' + escHtml(err.message) + '</p><button class="btn btn-primary" style="margin-top:16px;width:100%" onclick="localStorage.clear();location.reload();">Reset & Reload</button></div></div>';
+  }
+}
+
+/* 1. ORDERS */
+function renderOrders(){
+  const orders = DB.orders || [];
+  
+  // KPI counts
+  let totalPending = orders.filter(o=>o['Status']==='PENDING').length;
+  let totalOrdered = orders.filter(o=>o['Status']==='ORDERED').length;
+  let totalReceived = orders.filter(o=>o['Status']==='RECEIVED').length;
+  let totalNotReceived = orders.filter(o=>o['Status']==='NOT_RECEIVED').length;
+
+  let html = '<div class="card"><div class="section-title"><h3>Orders Management</h3><div class="row" style="flex:none;gap:8px;"><button class="btn btn-primary btn-sm" onclick="exportOrdersCSV()">📥 Download Selected CSV</button><button class="btn btn-danger btn-sm" onclick="deleteSelectedOrders()">🗑 Delete Selected</button><span class="badge">' + orders.length + ' Records</span></div></div>';
+  
+  // KPI Cards
+  html += '<div class="kpi-grid"><div class="kpi-card"><h4>Pending</h4><div class="val" style="color:#b93835">' + totalPending + '</div></div><div class="kpi-card"><h4>Ordered</h4><div class="val" style="color:#d97706">' + totalOrdered + '</div></div><div class="kpi-card"><h4>Received</h4><div class="val" style="color:var(--sage)">' + totalReceived + '</div></div><div class="kpi-card"><h4>Not Received</h4><div class="val" style="color:#6b7280">' + totalNotReceived + '</div></div></div>';
+
+  html += '<div class="filters"><div class="filter-item"><label>Search Item</label><input type="text" id="ord-search" class="input-text" value="' + escHtml(UI.orderFilters.search) + '" oninput="UI.orderFilters.search=this.value"></div><div class="filter-item"><label>Status</label><select id="ord-status" class="input-select" onchange="UI.orderFilters.status=this.value"><option value="">All Statuses</option>' + STATUSES.map(s=>'<option value="' + s + '" ' + (UI.orderFilters.status===s?'selected':'') + '>' + STATUS_LABEL[s] + '</option>').join('') + '</select></div><div class="filter-item"><label>Supplier</label><select id="ord-sup" class="input-select" onchange="UI.orderFilters.supplier=this.value"><option value="">All Suppliers</option>' + [...new Set(orders.map(o=>o['Supplier']))].filter(Boolean).map(s=>'<option value="' + escHtml(s) + '" ' + (UI.orderFilters.supplier===s?'selected':'') + '>' + escHtml(s) + '</option>').join('') + '</select></div><div class="filter-item"><label>Month Filter</label><input type="month" id="ord-month" class="input-text" value="' + UI.orderFilters.month + '" onchange="UI.orderFilters.month=this.value;render();"></div><div class="filter-item"><label>From</label><input type="date" id="ord-from" class="input-text" value="' + UI.orderFilters.from + '" onchange="UI.orderFilters.from=this.value"></div><div class="filter-item"><label>To</label><input type="date" id="ord-to" class="input-text" value="' + UI.orderFilters.to + '" onchange="UI.orderFilters.to=this.value"></div></div>';
+  
+  let rows = orders.slice().sort((a,b)=>new Date(b['Timestamp']||0)-new Date(a['Timestamp']||0));
+  if(UI.orderFilters.month) rows = rows.filter(o=>(o['Order Date']||o['Timestamp']||'').slice(0,7)===UI.orderFilters.month);
+  if(UI.orderFilters.search) rows = rows.filter(o=>(o['Item Name']||'').toLowerCase().includes(UI.orderFilters.search.toLowerCase()));
+  if(UI.orderFilters.status) rows = rows.filter(o=>o['Status']===UI.orderFilters.status);
+  if(UI.orderFilters.supplier) rows = rows.filter(o=>o['Supplier']===UI.orderFilters.supplier);
+  if(UI.orderFilters.from) rows = rows.filter(o=>(o['Order Date']||o['Timestamp']||'').slice(0,10)>=UI.orderFilters.from);
+  if(UI.orderFilters.to) rows = rows.filter(o=>(o['Order Date']||o['Timestamp']||'').slice(0,10)<=UI.orderFilters.to);
+  
+  const selectedTs = Object.keys(UI.orderSelected).filter(k=>UI.orderSelected[k]);
+  const allSelected = rows.length > 0 && rows.every(o => UI.orderSelected[o['Timestamp']]);
+  
+  html += '<div class="row" style="margin-bottom:12px;background:var(--parchment-2);padding:10px;border-radius:8px;"><div class="row" style="flex:none"><select class="input-select" id="bulk-status" style="width:160px;"><option value="PENDING">Pending</option><option value="ORDERED">Ordered</option><option value="RECEIVED">Received</option><option value="NOT_RECEIVED">Not Received</option></select><button class="btn btn-primary btn-sm" onclick="bulkStatus()">Apply Status to Selected</button></div><span style="font-weight:600;font-size:13px;margin-left:auto">' + selectedTs.length + ' Selected</span></div>';
+
+  html += '<div class="table-wrap"><table><tr><th><input type="checkbox" ' + (allSelected?'checked':'') + ' onchange="toggleSelectAll(this.checked)" style="width:16px;height:16px;cursor:pointer"></th><th>Date</th><th>Item Details</th><th>Qty</th><th>Supplier</th><th>Note / Remarks</th><th>Status</th><th>Logged By</th></tr>' + rows.map(o=>'<tr><td><input type="checkbox" ' + (UI.orderSelected[o['Timestamp']]?'checked':'') + ' onchange="UI.orderSelected[\'' + escHtml(o['Timestamp']) + '\']=this.checked;render();" style="width:16px;height:16px;cursor:pointer"></td><td style="font-family:\'IBM Plex Mono\',monospace;font-size:11.5px;color:var(--ink-soft)">' + fmtDateTime(o['Timestamp'] || o['Order Date']) + '</td><td><div style="font-weight:600;color:var(--espresso)">' + escHtml(o['Item Name']) + '</div></td><td><span class="tag">' + o['Quantity'] + ' ' + escHtml(o['Unit']) + '</span></td><td>' + escHtml(o['Supplier']) + '</td><td><input type="text" class="input-text" style="padding:6px;font-size:12px;" id="note-' + escHtml(o['Timestamp']) + '" value="' + escHtml(o['Note/Remarks']||'') + '"></td><td><select class="input-select" id="status-' + escHtml(o['Timestamp']) + '" style="width:130px;font-size:12px;padding:6px;">' + STATUSES.map(s=>'<option value="' + s + '" ' + (o['Status']===s?'selected':'') + '>' + STATUS_LABEL[s] + '</option>').join('') + '</select></td><td>' + escHtml(o['Logged By']) + '</td></tr>').join('') + '</table></div>';
+  html += '<div class="row" style="margin-top:16px;justify-content:flex-end"><button class="btn btn-primary" onclick="saveAllOrdersTable()">💾 Save All Order Changes</button></div></div>';
+  return html;
+}
+
+function toggleSelectAll(checked){
+  let rows = (DB.orders||[]).slice();
+  rows.forEach(o => { if(o['Timestamp']) UI.orderSelected[o['Timestamp']] = checked; });
+  render();
+}
+
+async function saveAllOrdersTable(){
+  const orders = DB.orders || [];
+  orders.forEach(o => {
+    const stEl = document.getElementById('status-' + o['Timestamp']);
+    const ntEl = document.getElementById('note-' + o['Timestamp']);
+    if(stEl) o['Status'] = stEl.value;
+    if(ntEl) o['Note/Remarks'] = ntEl.value;
+  });
+  await api.saveAllOrders(orders);
+  DB = await api.getAll();
+  showToast('All Order Changes Saved Successfully');
+  render();
+}
+
+async function bulkStatus(){
+  const st = document.getElementById('bulk-status').value;
+  const tsList = Object.keys(UI.orderSelected).filter(k=>UI.orderSelected[k]);
+  const orders = DB.orders || [];
+  orders.forEach(o => {
+    if(tsList.includes(o['Timestamp'])) o['Status'] = st;
+  });
+  await api.saveAllOrders(orders);
+  DB = await api.getAll();
+  UI.orderSelected = {};
+  showToast('Bulk Status Applied');
+  render();
+}
+
+async function deleteSelectedOrders(){
+  const tsList = Object.keys(UI.orderSelected).filter(k=>UI.orderSelected[k]);
+  if(tsList.length === 0){ showToast('No orders selected'); return; }
+  if(!confirm('Are you sure you want to delete selected orders?')) return;
+  DB.orders = (DB.orders || []).filter(o => !tsList.includes(o['Timestamp']));
+  await api.saveAllOrders(DB.orders);
+  UI.orderSelected = {};
+  showToast('Selected Orders Deleted');
+  render();
+}
+
+function exportOrdersCSV(){
+  let rows = DB.orders || [];
+  const selectedTs = Object.keys(UI.orderSelected).filter(k=>UI.orderSelected[k]);
+  if(selectedTs.length > 0){
+    rows = rows.filter(o => selectedTs.includes(o['Timestamp']));
+  } else {
+    if(UI.orderFilters.month) rows = rows.filter(o=>(o['Order Date']||o['Timestamp']||'').slice(0,7)===UI.orderFilters.month);
+    if(UI.orderFilters.from) rows = rows.filter(o=>(o['Order Date']||o['Timestamp']||'').slice(0,10)>=UI.orderFilters.from);
+    if(UI.orderFilters.to) rows = rows.filter(o=>(o['Order Date']||o['Timestamp']||'').slice(0,10)<=UI.orderFilters.to);
+  }
+  const headers = ['Timestamp', 'Order Date', 'Item Name', 'Quantity', 'Unit', 'Supplier', 'Note/Remarks', 'Status', 'Logged By'];
+  const data = rows.map(o => [o['Timestamp'], o['Order Date'], o['Item Name'], o['Quantity'], o['Unit'], o['Supplier'], o['Note/Remarks']||'', o['Status'], o['Logged By']]);
+  downloadCSV('Goya_Orders_' + todayISO() + '.csv', headers, data);
+}
+
+/* 2. ITEMS & SUPPLIERS */
+function renderItems(){
+  const suppliers = DB.suppliers || [];
+  const items = DB.items || [];
+  let html = '<div class="card"><div class="section-title"><h3>Supplier Contacts</h3></div><div class="table-wrap"><table><tr><th>Supplier Name</th><th>WhatsApp Phone</th><th>Remarks</th><th>Actions</th></tr>' + suppliers.map((s,idx)=>'<tr><td><input class="input-text" id="sup-name-' + idx + '" value="' + escHtml(s['Name']) + '"></td><td><input class="input-text" id="sup-phone-' + idx + '" value="' + escHtml(s['Phone']) + '" placeholder="e.g. +971501234567"></td><td><input class="input-text" id="sup-rem-' + idx + '" value="' + escHtml(s['Remarks']) + '"></td><td><button class="btn btn-danger btn-sm" onclick="deleteSupplierRow(' + idx + ')">Delete</button></td></tr>').join('') + '</table></div><div class="row" style="margin-top:16px;padding-top:16px;border-top:1px solid var(--line)"><input class="input-text" id="new-sup-name" placeholder="New Supplier Name"><input class="input-text" id="new-sup-phone" placeholder="WhatsApp Phone"><button class="btn btn-primary" onclick="addSupplier()">Add Supplier</button></div><div class="row" style="margin-top:16px;justify-content:flex-end"><button class="btn btn-primary" onclick="saveAllSuppliers()">💾 Save All Suppliers</button></div></div>';
+  
+  html += '<div class="card"><div class="section-title"><h3>Master Items Database</h3><span class="badge">' + items.length + ' Items</span></div><div class="table-wrap"><table><tr><th>Item Name</th><th>SKU</th><th>Storage Unit</th><th>Ingredient Unit</th><th>Supplier</th><th>Category Type</th><th>Actions</th></tr>' + items.map((it,idx)=>'<tr><td><input class="input-text" id="item-name-' + idx + '" value="' + escHtml(it['Name']) + '"></td><td><input class="input-text" id="item-sku-' + idx + '" style="width:95px;font-family:monospace" value="' + escHtml(it['SKU']) + '"></td><td><input class="input-text" id="item-storage-' + idx + '" style="width:85px;" value="' + escHtml(it['Storage Unit']) + '"></td><td><input class="input-text" id="item-ingredient-' + idx + '" style="width:85px;" value="' + escHtml(it['Ingredient Unit']) + '"></td><td><select class="input-select" id="item-sup-' + idx + '"><option value="">— Internal Batch —</option>' + suppliers.map(s=>'<option value="' + escHtml(s['Name']) + '" ' + (it['Supplier']===s['Name']?'selected':'') + '>' + escHtml(s['Name']) + '</option>').join('') + '</select></td><td><select class="input-select" id="item-type-' + idx + '">' + SECTIONS.map(sec=>'<option value="' + sec + '" ' + ((it['Items Type']||'').toLowerCase()===sec?'selected':'') + '>' + SECTION_LABEL[sec] + '</option>').join('') + '</select></td><td><button class="btn btn-danger btn-sm" onclick="deleteItemRow(' + idx + ')">Delete</button></td></tr>').join('') + '</table></div><div class="row" style="margin-top:16px;padding-top:16px;border-top:1px solid var(--line);align-items:flex-start"><input class="input-text" id="new-item-name" placeholder="Item Name"><input class="input-text" id="new-item-sku" placeholder="SKU"><div style="display:flex;flex-direction:column;gap:10px;flex:1"><input class="input-text" id="new-item-storage" placeholder="Storage Unit"><input class="input-text" id="new-item-ingredient" placeholder="Ingredient Unit"></div><div style="display:flex;flex-direction:column;gap:10px;flex:1"><select class="input-select" id="new-item-supplier"><option value="">— Internal Batch —</option>' + suppliers.map(s=>'<option value="' + escHtml(s['Name']) + '">' + escHtml(s['Name']) + '</option>').join('') + '</select><select class="input-select" id="new-item-type">' + SECTIONS.map(sec=>'<option value="' + sec + '">' + SECTION_LABEL[sec] + '</option>').join('') + '</select></div><button class="btn btn-primary" style="align-self:stretch" onclick="addItem()">Add Item</button></div><div class="row" style="margin-top:16px;justify-content:flex-end"><button class="btn btn-primary" onclick="saveAllItemsTable()">💾 Save All Items</button></div></div>'; 
+  return html;
+}
+
+async function saveAllSuppliers(){
+  const suppliers = [];
+  (DB.suppliers || []).forEach((s, idx) => {
+    const nameEl = document.getElementById('sup-name-' + idx);
+    const phoneEl = document.getElementById('sup-phone-' + idx);
+    const remEl = document.getElementById('sup-rem-' + idx);
+    if(nameEl && nameEl.value.trim()){
+      suppliers.push({'Name': nameEl.value.trim(), 'Phone': phoneEl ? phoneEl.value.trim() : '', 'Group Link': s['Group Link']||'', 'Remarks': remEl ? remEl.value.trim() : ''});
+    }
+  });
+  await api.saveAllSuppliers(suppliers);
+  DB = await api.getAll();
+  showToast('Suppliers Saved Successfully');
+  render();
+}
+
+async function deleteSupplierRow(idx){
+  DB.suppliers.splice(idx, 1);
+  await api.saveAllSuppliers(DB.suppliers);
+  DB = await api.getAll();
+  render();
+}
+
+async function addSupplier(){
+  const n = document.getElementById('new-sup-name').value.trim();
+  if(!n) return;
+  DB.suppliers.push({'Name': n, 'Phone': document.getElementById('new-sup-phone').value.trim(), 'Group Link':'', 'Remarks':''});
+  await api.saveAllSuppliers(DB.suppliers);
+  DB = await api.getAll();
+  showToast('Supplier Added');
+  render();
+}
+
+async function saveAllItemsTable(){
+  const items = [];
+  (DB.items || []).forEach((it, idx) => {
+    const nameEl = document.getElementById('item-name-' + idx);
+    const skuEl = document.getElementById('item-sku-' + idx);
+    const stEl = document.getElementById('item-storage-' + idx);
+    const ingEl = document.getElementById('item-ingredient-' + idx);
+    const supEl = document.getElementById('item-sup-' + idx);
+    const typeEl = document.getElementById('item-type-' + idx);
+    if(nameEl && nameEl.value.trim()){
+      items.push({
+        'Row ID': it['Row ID'] || String(Date.now() + idx),
+        'Name': nameEl.value.trim(),
+        'SKU': skuEl ? skuEl.value.trim() : '',
+        'Storage Unit': stEl ? stEl.value.trim() : '',
+        'Ingredient Unit': ingEl ? ingEl.value.trim() : '',
+        'Supplier': supEl ? supEl.value : '',
+        'Items Type': typeEl ? typeEl.value : 'bar'
+      });
+    }
+  });
+  await api.saveAllItems(items);
+  DB = await api.getAll();
+  showToast('Master Items Saved Successfully');
+  render();
+}
+
+async function deleteItemRow(idx){
+  DB.items.splice(idx, 1);
+  await api.saveAllItems(DB.items);
+  DB = await api.getAll();
+  render();
+}
+
+async function addItem(){
+  const name = document.getElementById('new-item-name').value.trim();
+  if(!name){ showToast('Enter item name'); return; }
+  DB.items.push({
+    'Row ID': String(Date.now()),
+    'Name': name,
+    'SKU': document.getElementById('new-item-sku').value.trim(),
+    'Storage Unit': document.getElementById('new-item-storage').value.trim(),
+    'Ingredient Unit': document.getElementById('new-item-ingredient').value.trim(),
+    'Supplier': document.getElementById('new-item-supplier').value,
+    'Items Type': document.getElementById('new-item-type').value
+  });
+  await api.saveAllItems(DB.items);
+  DB = await api.getAll();
+  showToast('Item Added Successfully');
+  render();
+}
+
+/* 2.1 INTERNAL ITEMS */
+function renderInternalItems(){
+  const internalItems = DB.internalItems || [];
+  let html = '<div class="card"><div class="section-title"><h3>Internal Items Database (Production & Wastage)</h3><span class="badge">' + internalItems.length + ' Items</span></div><div class="table-wrap"><table><tr><th>Item Name</th><th>SKU</th><th>Storage Unit</th><th>Ingredient Unit</th><th>Category Type</th><th>Actions</th></tr>' + internalItems.map((it,idx)=>'<tr><td><input class="input-text" id="int-name-' + idx + '" value="' + escHtml(it['Name']) + '"></td><td><input class="input-text" id="int-sku-' + idx + '" style="width:95px;font-family:monospace" value="' + escHtml(it['SKU']) + '"></td><td><input class="input-text" id="int-storage-' + idx + '" style="width:85px;" value="' + escHtml(it['Storage Unit']) + '"></td><td><input class="input-text" id="int-ingredient-' + idx + '" style="width:85px;" value="' + escHtml(it['Ingredient Unit']) + '"></td><td><select class="input-select" id="int-type-' + idx + '">' + SECTIONS.map(sec=>'<option value="' + sec + '" ' + ((it['Items Type']||'').toLowerCase()===sec?'selected':'') + '>' + SECTION_LABEL[sec] + '</option>').join('') + '</select></td><td><button class="btn btn-danger btn-sm" onclick="deleteInternalRow(' + idx + ')">Delete</button></td></tr>').join('') + '</table></div><div class="row" style="margin-top:16px;padding-top:16px;border-top:1px solid var(--line);align-items:flex-start"><input class="input-text" id="new-int-name" placeholder="Internal Item Name"><input class="input-text" id="new-int-sku" placeholder="SKU"><div style="display:flex;flex-direction:column;gap:10px;flex:1"><input class="input-text" id="new-int-storage" placeholder="Storage Unit"><input class="input-text" id="new-int-ingredient" placeholder="Ingredient Unit"></div><div style="display:flex;flex-direction:column;gap:10px;flex:1"><select class="input-select" id="new-int-type">' + SECTIONS.map(sec=>'<option value="' + sec + '">' + SECTION_LABEL[sec] + '</option>').join('') + '</select></div><button class="btn btn-primary" style="align-self:stretch" onclick="addInternalItem()">Add Internal Item</button></div><div class="row" style="margin-top:16px;justify-content:flex-end"><button class="btn btn-primary" onclick="saveAllInternalTable()">💾 Save All Internal Items</button></div></div>';
+  return html;
+}
+
+async function saveAllInternalTable(){
+  const internalItems = [];
+  (DB.internalItems || []).forEach((it, idx) => {
+    const nameEl = document.getElementById('int-name-' + idx);
+    const skuEl = document.getElementById('int-sku-' + idx);
+    const stEl = document.getElementById('int-storage-' + idx);
+    const ingEl = document.getElementById('int-ingredient-' + idx);
+    const typeEl = document.getElementById('int-type-' + idx);
+    if(nameEl && nameEl.value.trim()){
+      internalItems.push({
+        'Row ID': it['Row ID'] || String(Date.now() + idx),
+        'Name': nameEl.value.trim(),
+        'SKU': skuEl ? skuEl.value.trim() : '',
+        'Storage Unit': stEl ? stEl.value.trim() : '',
+        'Ingredient Unit': ingEl ? ingEl.value.trim() : '',
+        'Items Type': typeEl ? typeEl.value : 'bar'
+      });
+    }
+  });
+  await api.saveAllInternalItems(internalItems);
+  DB = await api.getAll();
+  showToast('Internal Items Saved Successfully');
+  render();
+}
+
+async function deleteInternalRow(idx){
+  DB.internalItems.splice(idx, 1);
+  await api.saveAllInternalItems(DB.internalItems);
+  DB = await api.getAll();
+  render();
+}
+
+async function addInternalItem(){
+  const name = document.getElementById('new-int-name').value.trim();
+  if(!name){ showToast('Enter item name'); return; }
+  DB.internalItems.push({
+    'Row ID': String(Date.now()),
+    'Name': name,
+    'SKU': document.getElementById('new-int-sku').value.trim(),
+    'Storage Unit': document.getElementById('new-int-storage').value.trim(),
+    'Ingredient Unit': document.getElementById('new-int-ingredient').value.trim(),
+    'Items Type': document.getElementById('new-int-type').value
+  });
+  await api.saveAllInternalItems(DB.internalItems);
+  DB = await api.getAll();
+  showToast('Internal Item Added Successfully');
+  render();
+}
+
+/* 3. STAFF */
+function renderStaff(){
+  const staff = DB.staff || [];
+  let html = '<div class="card"><div class="section-title"><h3>Staff Directory</h3><span class="badge">' + staff.length + ' Active Staff</span></div><div class="table-wrap"><table><tr><th>Staff PIN</th><th>Full Name</th><th>Section Access (Tick Sections)</th><th>Actions</th></tr>' + staff.map((s, idx)=>{
+    let allowed = (s['Allowed Sections']||'').toLowerCase();
+    return '<tr><td><input class="input-text" id="staff-pin-' + idx + '" style="width:90px;font-family:monospace" value="' + escHtml(s['PIN Code']) + '"></td><td><input class="input-text" id="staff-name-' + idx + '" value="' + escHtml(s['Staff Full Name']) + '"></td><td><div class="row" style="gap:16px;">' + SECTIONS.map(sec=>'<label style="display:inline-flex;align-items:center;gap:4px;font-size:13px;cursor:pointer"><input type="checkbox" id="staff-sec-' + idx + '-' + sec + '" ' + (allowed.includes(sec)?'checked':'') + ' style="width:16px;height:16px"> ' + SECTION_LABEL[sec] + '</label>').join('') + '</div></td><td><button class="btn btn-danger btn-sm" onclick="revokeStaff(' + idx + ')">Revoke</button></td></tr>';
+  }).join('') + '</table></div><div class="row" style="margin-top:16px;padding-top:16px;border-top:1px solid var(--line)"><input class="input-text" id="new-staff-name" placeholder="Staff Name"><input class="input-text" id="new-staff-pin" placeholder="4-Digit PIN"><button class="btn btn-primary" onclick="addStaff()">Onboard Staff</button></div><div class="row" style="margin-top:16px;justify-content:flex-end"><button class="btn btn-primary" onclick="saveAllStaffTable()">💾 Save All Staff Changes</button></div></div>'; 
+  return html;
+}
+
+async function saveAllStaffTable(){
+  const staff = [];
+  (DB.staff || []).forEach((s, idx) => {
+    const pinEl = document.getElementById('staff-pin-' + idx);
+    const nameEl = document.getElementById('staff-name-' + idx);
+    if(pinEl && nameEl && pinEl.value.trim() && nameEl.value.trim()){
+      let secs = [];
+      SECTIONS.forEach(sec => {
+        const chk = document.getElementById('staff-sec-' + idx + '-' + sec);
+        if(chk && chk.checked) secs.push(sec);
+      });
+      staff.push({
+        'PIN Code': pinEl.value.trim(),
+        'Staff Full Name': nameEl.value.trim(),
+        'Allowed Sections': secs.join(',')
+      });
+    }
+  });
+  await api.saveAllStaff(staff);
+  DB = await api.getAll();
+  showToast('Staff Directory Saved Successfully');
+  render();
+}
+
+async function revokeStaff(idx){
+  DB.staff.splice(idx, 1);
+  await api.saveAllStaff(DB.staff);
+  DB = await api.getAll();
+  showToast('Staff Revoked');
+  render();
+}
+
+async function addStaff(){
+  const n = document.getElementById('new-staff-name').value.trim();
+  const p = document.getElementById('new-staff-pin').value.trim();
+  if(!n || !p){ showToast('Enter name and PIN'); return; }
+  DB.staff.push({'PIN Code': p, 'Staff Full Name': n, 'Allowed Sections': 'bar'});
+  await api.saveAllStaff(DB.staff);
+  DB = await api.getAll();
+  showToast('Staff Onboarded Successfully');
+  render();
+}
+
+/* 4. MONITOR (PROD & WASTE) */
+function renderMonitor(){
+  let html = '<div class="card"><div class="section-title"><h3>Production & Wastage Logs</h3><div class="row" style="flex:none;gap:8px;"><button class="btn btn-primary btn-sm" onclick="exportMonitorCSV()">📥 Download Selected CSV</button></div></div><div class="filters"><div class="filter-item"><label>Log Type</label><select class="input-select" onchange="UI.monitorFilters.type=this.value;render();"><option value="production" ' + (UI.monitorFilters.type==='production'?'selected':'') + '>🏭 Production Batches</option><option value="wastage" ' + (UI.monitorFilters.type==='wastage'?'selected':'') + '>🗑 Wastage / Damages</option></select></div><div class="filter-item"><label>Month Filter</label><input type="month" class="input-text" value="' + UI.monitorFilters.month + '" onchange="UI.monitorFilters.month=this.value;render();"></div><div class="filter-item"><label>From</label><input type="date" class="input-text" value="' + UI.monitorFilters.from + '" onchange="UI.monitorFilters.from=this.value"></div><div class="filter-item"><label>To</label><input type="date" class="input-text" value="' + UI.monitorFilters.to + '" onchange="UI.monitorFilters.to=this.value"></div></div>';
+  
+  let rows = ((UI.monitorFilters.type==='production'?DB.production:DB.wastage)||[]).slice().sort((a,b)=>new Date(b['Timestamp']||b['Date']||0)-new Date(a['Timestamp']||a['Date']||0));
+  if(UI.monitorFilters.month) rows = rows.filter(r=>(r['Date']||r['Timestamp']||'').slice(0,7)===UI.monitorFilters.month);
+  if(UI.monitorFilters.from) rows = rows.filter(r=>(r['Date']||r['Timestamp']||'').slice(0,10)>=UI.monitorFilters.from);
+  if(UI.monitorFilters.to) rows = rows.filter(r=>(r['Date']||r['Timestamp']||'').slice(0,10)<=UI.monitorFilters.to);
+  
+  const selectedTs = Object.keys(UI.monitorSelected).filter(k=>UI.monitorSelected[k]);
+  const allSelected = rows.length > 0 && rows.every(r => UI.monitorSelected[r['Timestamp'] || r['Date']+r['Item Name']]);
+  
+  html += '<div class="row" style="margin-bottom:12px;background:var(--parchment-2);padding:10px;border-radius:8px;"><div class="row" style="flex:none"><select class="input-select" id="bulk-log-status" style="width:140px;"><option value="Logged">Logged</option><option value="Reviewed">Reviewed</option><option value="Flagged">Flagged</option><option value="DONE">DONE</option></select><button class="btn btn-primary btn-sm" onclick="bulkLogStatus()">Update Status to Selected</button></div><span style="font-weight:600;font-size:13px;margin-left:auto">' + selectedTs.length + ' Selected</span></div>';
+
+  html += '<div class="table-wrap"><table><tr><th><input type="checkbox" ' + (allSelected?'checked':'') + ' onchange="toggleMonitorSelectAll(this.checked)" style="width:16px;height:16px;cursor:pointer"></th><th>Timestamp</th><th>Item Details</th><th>Qty</th>' + (UI.monitorFilters.type==='wastage'?'<th>Reason</th>':'') + '<th>Review Status</th><th>Recorded By</th></tr>' + rows.map(r=>{
+    const k = r['Timestamp'] || (r['Date'] + r['Item Name']);
+    return '<tr><td><input type="checkbox" ' + (UI.monitorSelected[k]?'checked':'') + ' onchange="UI.monitorSelected[\'' + escHtml(k) + '\']=this.checked;render();" style="width:16px;height:16px;cursor:pointer"></td><td style="font-family:monospace;color:var(--ink-soft);font-size:11.5px;">' + fmtDateTime(r['Timestamp'] || r['Date']) + '</td><td style="font-weight:600;color:var(--espresso)">' + escHtml(r['Item Name']) + '</td><td><span class="tag">' + r['Quantity'] + ' ' + escHtml(r['Unit']) + '</span></td>' + (UI.monitorFilters.type==='wastage'?'<td><span class="badge" style="background:#fdf2f2;color:var(--alert)">' + escHtml(r['Reason']) + '</span></td>':'') + '<td><select class="input-select" id="log-status-' + escHtml(k) + '" style="width:130px;padding:6px;font-size:12px;"><option value="Logged" ' + (r['Status']==='Logged'?'selected':'') + '>Logged</option><option value="Reviewed" ' + (r['Status']==='Reviewed'?'selected':'') + '>Reviewed</option><option value="Flagged" ' + (r['Status']==='Flagged'?'selected':'') + '>Flagged</option><option value="DONE" ' + (r['Status']==='DONE'?'selected':'') + '>DONE</option></select></td><td>' + escHtml(r['Logged By']) + '</td></tr>';
+  }).join('') + '</table></div>';
+  html += '<div class="row" style="margin-top:16px;justify-content:flex-end"><button class="btn btn-primary" onclick="saveAllMonitorTable()">💾 Save All Log Statuses</button></div></div>';
+  return html;
+}
+
+function toggleMonitorSelectAll(checked){
+  let rows = ((UI.monitorFilters.type==='production'?DB.production:DB.wastage)||[]).slice();
+  rows.forEach(r => { const k = r['Timestamp'] || (r['Date'] + r['Item Name']); UI.monitorSelected[k] = checked; });
+  render();
+}
+
+async function saveAllMonitorTable(){
+  const isProd = UI.monitorFilters.type === 'production';
+  let rows = isProd ? DB.production : DB.wastage;
+  rows.forEach(r => {
+    const k = r['Timestamp'] || (r['Date'] + r['Item Name']);
+    const sel = document.getElementById('log-status-' + k);
+    if(sel) r['Status'] = sel.value;
+  });
+  if(isProd) await api.saveAllProduction(DB.production);
+  else await api.saveAllWastage(DB.wastage);
+  DB = await api.getAll();
+  showToast('Log Statuses Saved Successfully');
+  render();
+}
+
+async function bulkLogStatus(){
+  const st = document.getElementById('bulk-log-status').value;
+  const isProd = UI.monitorFilters.type === 'production';
+  let rows = isProd ? DB.production : DB.wastage;
+  const tsList = Object.keys(UI.monitorSelected).filter(k=>UI.monitorSelected[k]);
+  rows.forEach(r => {
+    const k = r['Timestamp'] || (r['Date'] + r['Item Name']);
+    if(tsList.includes(k)) r['Status'] = st;
+  });
+  if(isProd) await api.saveAllProduction(DB.production);
+  else await api.saveAllWastage(DB.wastage);
+  DB = await api.getAll();
+  UI.monitorSelected = {};
+  showToast('Bulk Status Applied');
+  render();
+}
+
+function exportMonitorCSV(){
+  const isProd = UI.monitorFilters.type === 'production';
+  let rows = isProd ? (DB.production || []) : (DB.wastage || []);
+  const tsList = Object.keys(UI.monitorSelected).filter(k=>UI.monitorSelected[k]);
+  if(tsList.length > 0){
+    rows = rows.filter(r => tsList.includes(r['Timestamp'] || (r['Date'] + r['Item Name'])));
+  } else {
+    if(UI.monitorFilters.month) rows = rows.filter(r=>(r['Date']||r['Timestamp']||'').slice(0,7)===UI.monitorFilters.month);
+    if(UI.monitorFilters.from) rows = rows.filter(r=>(r['Date']||r['Timestamp']||'').slice(0,10)>=UI.monitorFilters.from);
+    if(UI.monitorFilters.to) rows = rows.filter(r=>(r['Date']||r['Timestamp']||'').slice(0,10)<=UI.monitorFilters.to);
+  }
+  const headers = isProd ? ['Timestamp', 'Date', 'Item Name', 'Quantity', 'Unit', 'Logged By', 'Status'] : ['Timestamp', 'Date', 'Item Name', 'Quantity', 'Unit', 'Reason', 'Logged By', 'Status'];
+  const data = rows.map(o => isProd ? [o['Timestamp'], o['Date'], o['Item Name'], o['Quantity'], o['Unit'], o['Logged By'], o['Status']] : [o['Timestamp'], o['Date'], o['Item Name'], o['Quantity'], o['Unit'], o['Reason'], o['Logged By'], o['Status']]);
+  downloadCSV('Goya_' + (isProd?'Production':'Wastage') + '_' + todayISO() + '.csv', headers, data);
+}
+
+/* 5. COUNTS */
+function renderCounts(){
+  const enabled = DB.settings?.InventoryCountEnabled === 'true';
+  const targetMonth = DB.settings?.TargetCountMonth || currentMonthISO();
+  let counts = DB.inventoryCounts || [];
+  if(UI.countFilters.month) counts = counts.filter(c=>c['Count Date / Month']===UI.countFilters.month);
+  
+  let html = '<div class="card"><div class="section-title"><h3>Inventory Counts Module</h3><div class="row" style="flex:none;gap:8px;"><button class="btn btn-primary btn-sm" onclick="exportCountsCSV()">📥 Download Foodics CSV</button><button class="btn ' + (enabled?'btn-danger':'btn-primary') + ' btn-sm" onclick="toggleCount()">' + (enabled?'Deactivate Counts':'Activate Counts') + '</button></div></div><p style="color:var(--ink-soft);margin-bottom:14px;font-size:13.5px;">Status: <strong style="color:var(--espresso)">' + (enabled?'Active':'Disabled') + '</strong></p><div class="filters"><div class="filter-item"><label>Publish Target Month for Staff Portal</label><div class="row"><input type="month" id="target-count-month" class="input-text" value="' + targetMonth + '"><button class="btn btn-primary btn-sm" onclick="saveTargetMonth()">Set Month</button></div></div><div class="filter-item"><label>Filter View Month</label><input type="month" class="input-text" value="' + UI.countFilters.month + '" onchange="UI.countFilters.month=this.value;render();"></div></div><div class="table-wrap"><table><tr><th>Count Month</th><th>Section</th><th>Item Name</th><th>Storage Qty</th><th>Ingredient Qty</th><th>Submitted By</th></tr>' + counts.map(c=>'<tr><td style="font-family:monospace;font-weight:600">' + escHtml(c['Count Date / Month']) + '</td><td><span class="tag">' + (SECTION_LABEL[(c['Section']||'').toLowerCase()]||c['Section']) + '</span></td><td style="font-weight:600">' + escHtml(c['Item Name']) + '</td><td>' + c['Storage Quantity'] + '</td><td>' + (c['Ingredient Quantity']||'') + '</td><td>' + escHtml(c['Submitted By']) + '</td></tr>').join('') + '</table></div></div>';
+  return html;
+}
+
+async function toggleCount(){
+  const en = DB.settings?.InventoryCountEnabled === 'true';
+  await api.setSetting('InventoryCountEnabled', en?'false':'true');
+  DB = await api.getAll();
+  showToast('Inventory Count Status Updated');
+  render();
+}
+
+async function saveTargetMonth(){
+  const m = document.getElementById('target-count-month').value;
+  if(!m) return;
+  await api.setSetting('TargetCountMonth', m);
+  DB = await api.getAll();
+  showToast('Target Count Month Updated Successfully');
+  render();
+}
+
+function exportCountsCSV(){
+  let rows = DB.inventoryCounts || [];
+  if(UI.countFilters.month) rows = rows.filter(c=>c['Count Date / Month']===UI.countFilters.month);
+  const headers = ['Inventory Item Name', 'Inventory Item SKU', 'Storage quantity', 'Ingredients quantity', 'Inventory Count ID'];
+  const data = rows.map(o => [o['Item Name'], o['SKU']||'', o['Storage Quantity']||'', o['Ingredient Quantity']||'', '']);
+  downloadCSV('Foodics_Inventory_Import_' + todayISO() + '.csv', headers, data);
+}
+
+/* 6. DATA EXPORT */
+function renderExport(){
+  const m = currentMonthISO();
+  return '<div class="card"><div class="section-title"><h3>Data Export Center</h3></div><p style="color:var(--ink-soft);margin-bottom:20px;font-size:13.5px;">Download complete or month-filtered system database records.</p><div class="filters" style="background:#fff;border:none;padding:0;gap:16px;"><div class="card" style="margin:0;background:var(--parchment);box-shadow:none;"><h4 style="margin-bottom:8px;font-family:\'Fraunces\',serif;font-size:16px;">Orders</h4><label style="font-size:11px;font-weight:700;display:block;margin-bottom:4px;">Select Month</label><input type="month" id="exp-month-orders" class="input-text" value="' + m + '" style="margin-bottom:8px;"><button class="btn btn-primary btn-sm" style="width:100%" onclick="exportData(\'orders\')">Download Orders CSV</button></div><div class="card" style="margin:0;background:var(--parchment);box-shadow:none;"><h4 style="margin-bottom:8px;font-family:\'Fraunces\',serif;font-size:16px;">Production</h4><label style="font-size:11px;font-weight:700;display:block;margin-bottom:4px;">Select Month</label><input type="month" id="exp-month-prod" class="input-text" value="' + m + '" style="margin-bottom:8px;"><button class="btn btn-primary btn-sm" style="width:100%" onclick="exportData(\'production\')">Download Production CSV</button></div><div class="card" style="margin:0;background:var(--parchment);box-shadow:none;"><h4 style="margin-bottom:8px;font-family:\'Fraunces\',serif;font-size:16px;">Wastage</h4><label style="font-size:11px;font-weight:700;display:block;margin-bottom:4px;">Select Month</label><input type="month" id="exp-month-waste" class="input-text" value="' + m + '" style="margin-bottom:8px;"><button class="btn btn-primary btn-sm" style="width:100%" onclick="exportData(\'wastage\')">Download Wastage CSV</button></div><div class="card" style="margin:0;background:var(--parchment);box-shadow:none;"><h4 style="margin-bottom:8px;font-family:\'Fraunces\',serif;font-size:16px;">Master Items</h4><button class="btn btn-primary btn-sm" style="width:100%;margin-top:24px;" onclick="exportData(\'items\')">Download Items CSV</button></div><div class="card" style="margin:0;background:var(--parchment);box-shadow:none;"><h4 style="margin-bottom:8px;font-family:\'Fraunces\',serif;font-size:16px;">Staff</h4><button class="btn btn-primary btn-sm" style="width:100%;margin-top:24px;" onclick="exportData(\'staff\')">Download Staff CSV</button></div></div></div>';
+}
+
+function exportData(type) {
+  const dateStr = todayISO();
+  if (type === 'orders') {
+    const m = document.getElementById('exp-month-orders').value;
+    let rows = DB.orders || [];
+    if(m) rows = rows.filter(o=>(o['Order Date']||o['Timestamp']||'').slice(0,7)===m);
+    downloadCSV('Goya_Orders_' + (m||dateStr) + '.csv', ['Timestamp', 'Order Date', 'Item Name', 'Quantity', 'Unit', 'Supplier', 'Note/Remarks', 'Status', 'Logged By'], rows.map(o => [o['Timestamp'], o['Order Date'], o['Item Name'], o['Quantity'], o['Unit'], o['Supplier'], o['Note/Remarks']||'', o['Status'], o['Logged By']]));
+  } else if (type === 'production') {
+    const m = document.getElementById('exp-month-prod').value;
+    let rows = DB.production || [];
+    if(m) rows = rows.filter(o=>(o['Date']||o['Timestamp']||'').slice(0,7)===m);
+    downloadCSV('Goya_Production_' + (m||dateStr) + '.csv', ['Timestamp', 'Date', 'Item Name', 'Quantity', 'Unit', 'Logged By', 'Status'], rows.map(o => [o['Timestamp'], o['Date'], o['Item Name'], o['Quantity'], o['Unit'], o['Logged By'], o['Status']]));
+  } else if (type === 'wastage') {
+    const m = document.getElementById('exp-month-waste').value;
+    let rows = DB.wastage || [];
+    if(m) rows = rows.filter(o=>(o['Date']||o['Timestamp']||'').slice(0,7)===m);
+    downloadCSV('Goya_Wastage_' + (m||dateStr) + '.csv', ['Timestamp', 'Date', 'Item Name', 'Quantity', 'Unit', 'Reason', 'Logged By', 'Status'], rows.map(o => [o['Timestamp'], o['Date'], o['Item Name'], o['Quantity'], o['Unit'], o['Reason'], o['Logged By'], o['Status']]));
+  } else if (type === 'items') {
+    downloadCSV('Goya_MasterItems_' + dateStr + '.csv', ['Row ID', 'Name', 'SKU', 'Storage Unit', 'Ingredient Unit', 'Supplier', 'Items Type'], (DB.items||[]).map(o => [o['Row ID'], o['Name'], o['SKU'], o['Storage Unit'], o['Ingredient Unit'], o['Supplier'], o['Items Type']]));
+  } else if (type === 'staff') {
+    downloadCSV('Goya_StaffList_' + dateStr + '.csv', ['PIN Code', 'Staff Full Name', 'Allowed Sections'], (DB.staff||[]).map(o => [o['PIN Code'], o['Staff Full Name'], o['Allowed Sections']]));
+  }
+}
+
+/* 7. SETTINGS & CUSTOM PAGES */
+function renderSettings(){
+  const ownerEmail = DB.settings?.OwnerEmail || 'mehedi.src@gmail.com';
+  const customPages = DB.settings?.CustomPages || [];
+  return '<div class="card"><div class="section-title"><h3>Google Sheet Database Connection</h3></div><div class="row" style="align-items:flex-end"><div style="flex:1"><label style="font-size:11px;font-weight:700;color:var(--ink-soft);display:block;margin-bottom:6px;">Apps Script Web App URL</label><input type="text" id="sheet-url" class="input-text" value="' + escHtml(SHEET_URL) + '"></div><button class="btn btn-primary" onclick="saveSheetUrl()">Link Database</button></div></div>' +
+  '<div class="card"><div class="section-title"><h3>System Security</h3></div><div class="row" style="align-items:flex-end;max-width:380px"><div style="flex:1"><label style="font-size:11px;font-weight:700;color:var(--ink-soft);display:block;margin-bottom:6px;">Admin Master PIN</label><input type="text" id="new-master-pin" placeholder="4-digit PIN" maxlength="4" class="input-text"></div><button class="btn btn-primary" onclick="changeMasterPin()">Update PIN</button></div></div>' +
+  '<div class="card"><div class="section-title"><h3>Notification Settings</h3></div><div class="row" style="align-items:flex-end;max-width:440px"><div style="flex:1"><label style="font-size:11px;font-weight:700;color:var(--ink-soft);display:block;margin-bottom:6px;">Owner Email for Purchase Orders</label><input type="email" id="owner-email" class="input-text" value="' + escHtml(ownerEmail) + '"></div><button class="btn btn-primary" onclick="saveOwnerEmail()">Save Email</button></div></div>' +
+  '<div class="card"><div class="section-title"><h3>Dynamic Additional Pages & Notices</h3><span class="badge">' + customPages.length + ' Custom Pages</span></div><p style="color:var(--ink-soft);font-size:13px;margin-bottom:14px;">Add custom HTML/content pages (Notice, Schedule, etc.) for staff portal with role permissions.</p>' +
+  '<div class="table-wrap"><table><tr><th>Headline / Title</th><th>Page URL / Content Source</th><th>Target Role Access</th><th>Actions</th></tr>' + customPages.map((p, idx)=>'<tr><td><input class="input-text" id="cp-title-' + idx + '" value="' + escHtml(p.title) + '"></td><td><input class="input-text" id="cp-url-' + idx + '" value="' + escHtml(p.url) + '" placeholder="e.g. notice.html"></td><td><select class="input-select" id="cp-role-' + idx + '"><option value="all" ' + (p.role==='all'?'selected':'') + '>All Staff</option><option value="bar" ' + (p.role==='bar'?'selected':'') + '>Bar Staff</option><option value="kitchen" ' + (p.role==='kitchen'?'selected':'') + '>Kitchen Staff</option><option value="pastry" ' + (p.role==='pastry'?'selected':'') + '>Pastry Staff</option><option value="packaging" ' + (p.role==='packaging'?'selected':'') + '>Packaging Staff</option></select></td><td><button class="btn btn-danger btn-sm" onclick="deleteCustomPage(' + idx + ')">Delete</button></td></tr>').join('') + '</table></div>' +
+  '<div class="row" style="margin-top:16px;padding-top:16px;border-top:1px solid var(--line);align-items:flex-start"><input class="input-text" id="new-cp-title" placeholder="Headline (e.g. Notice Board)"><input class="input-text" id="new-cp-url" placeholder="Page URL / HTML Link"><select class="input-select" id="new-cp-role" style="flex:1"><option value="all">All Staff</option><option value="bar">Bar Staff</option><option value="kitchen">Kitchen Staff</option><option value="pastry">Pastry Staff</option><option value="packaging">Packaging Staff</option></select><button class="btn btn-primary" onclick="addCustomPage()">Add Page</button></div>' +
+  '<div class="row" style="margin-top:16px;justify-content:flex-end"><button class="btn btn-primary" onclick="saveAllCustomPages()">💾 Save All Custom Pages</button></div></div>';
+}
+
+async function changeMasterPin(){
+  const v = document.getElementById('new-master-pin').value.trim();
+  if(v.length!==4||!/^\d{4}$/.test(v)){ showToast('Please enter exactly 4 digits'); return; }
+  await api.setSetting('MasterPin',v);
+  DB = await api.getAll();
+  showToast('Admin PIN Updated');
+  render();
+}
+
+async function saveOwnerEmail(){
+  const em = document.getElementById('owner-email').value.trim();
+  if(!em) return;
+  await api.setSetting('OwnerEmail',em);
+  DB = await api.getAll();
+  showToast('Owner Email Saved Successfully');
+  render();
+}
+
+async function addCustomPage(){
+  const title = document.getElementById('new-cp-title').value.trim();
+  const url = document.getElementById('new-cp-url').value.trim();
+  const role = document.getElementById('new-cp-role').value;
+  if(!title || !url){ showToast('Enter title and URL'); return; }
+  let pages = DB.settings?.CustomPages || [];
+  pages.push({title, url, role});
+  await api.setSetting('CustomPages', pages);
+  DB = await api.getAll();
+  showToast('Custom Page Added Successfully');
+  render();
+}
+
+async function saveAllCustomPages(){
+  let pages = [];
+  let cpList = DB.settings?.CustomPages || [];
+  cpList.forEach((p, idx) => {
+    const tEl = document.getElementById('cp-title-' + idx);
+    const uEl = document.getElementById('cp-url-' + idx);
+    const rEl = document.getElementById('cp-role-' + idx);
+    if(tEl && tEl.value.trim()){
+      pages.push({title: tEl.value.trim(), url: uEl ? uEl.value.trim() : '', role: rEl ? rEl.value : 'all'});
+    }
+  });
+  await api.setSetting('CustomPages', pages);
+  DB = await api.getAll();
+  showToast('Custom Pages Saved Successfully');
+  render();
+}
+
+async function deleteCustomPage(idx){
+  let pages = DB.settings?.CustomPages || [];
+  pages.splice(idx, 1);
+  await api.setSetting('CustomPages', pages);
+  DB = await api.getAll();
+  render();
+}
+
+async function saveSheetUrl(){
+  const url = document.getElementById('sheet-url').value.trim();
+  await connectSheet(url);
+  showToast(url?'Database Linked Successfully':'Disconnected');
+  setTimeout(()=>location.reload(),600);
+}
+
+// Initial boot
+boot();
 </script>
 </body>
 </html>
