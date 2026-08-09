@@ -1,0 +1,422 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Goya Admin Panel</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+:root{--primary:#1a1a2e;--primary-light:#16213e;--accent:#e94560;--accent-hover:#d63851;--bg:#f1f3f5;--surface:#fff;--text:#1a1a2e;--text-secondary:#6c757d;--border:#dee2e6;--success:#28a745;--warning:#ffc107;--danger:#dc3545;--info:#17a2b8;--shadow:0 1px 3px rgba(0,0,0,0.08);--shadow-lg:0 4px 20px rgba(0,0,0,0.1);--radius:10px;--radius-sm:6px}
+*{margin:0;padding:0;box-sizing:border-box}
+body{font-family:'Inter',sans-serif;background:var(--bg);color:var(--text);min-height:100vh}
+.hidden{display:none!important}
+.admin-login{min-height:100vh;display:flex;align-items:center;justify-content:center;background:linear-gradient(135deg,var(--primary) 0%,var(--primary-light) 100%);padding:24px}
+.login-box{background:var(--surface);border-radius:var(--radius);padding:40px;width:100%;max-width:360px;box-shadow:var(--shadow-lg);text-align:center}
+.login-box h1{font-size:24px;margin-bottom:8px;color:var(--primary)}
+.login-box p{color:var(--text-secondary);margin-bottom:24px;font-size:14px}
+.login-box input{width:100%;padding:14px 16px;border:2px solid var(--border);border-radius:var(--radius-sm);font-size:18px;text-align:center;letter-spacing:8px;font-family:inherit;margin-bottom:16px;outline:none}
+.login-box input:focus{border-color:var(--accent)}
+.login-box .btn{width:100%;padding:14px;border:none;border-radius:var(--radius-sm);background:var(--accent);color:white;font-size:16px;font-weight:600;cursor:pointer;font-family:inherit}
+.login-box .btn:hover{background:var(--accent-hover)}
+.login-error{color:var(--danger);font-size:13px;margin-top:12px;display:none}
+.login-error.show{display:block}
+.admin-app{display:flex;min-height:100vh}
+.sidebar{width:260px;background:var(--primary);color:white;position:fixed;inset:0 auto 0 0;overflow-y:auto;z-index:100}
+.sidebar-header{padding:24px 20px;border-bottom:1px solid rgba(255,255,255,0.1)}
+.sidebar-header h2{font-size:20px;display:flex;align-items:center;gap:10px}
+.sidebar-header p{font-size:12px;opacity:0.6;margin-top:4px}
+.sidebar-nav{padding:12px 0}
+.nav-link{display:flex;align-items:center;gap:12px;padding:12px 20px;color:rgba(255,255,255,0.7);text-decoration:none;font-size:14px;font-weight:500;cursor:pointer;border:none;background:none;width:100%;font-family:inherit;transition:all .15s}
+.nav-link:hover,.nav-link.active{color:white;background:rgba(255,255,255,0.08)}
+.nav-link svg{width:18px;height:18px;opacity:0.8}
+.main-content{flex:1;margin-left:260px;padding:24px 28px;min-height:100vh}
+.page-header{display:flex;justify-content:space-between;align-items:center;margin-bottom:24px}
+.page-header h1{font-size:24px;font-weight:700}
+.page-header .actions{display:flex;gap:10px}
+.card{background:var(--surface);border-radius:var(--radius);box-shadow:var(--shadow);margin-bottom:20px}
+.card-header{padding:16px 20px;border-bottom:1px solid var(--border);display:flex;justify-content:space-between;align-items:center}
+.card-header h3{font-size:16px;font-weight:600}
+.card-body{padding:20px}
+.stats-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:16px;margin-bottom:24px}
+.stat-card{background:var(--surface);border-radius:var(--radius);padding:20px;box-shadow:var(--shadow)}
+.stat-card .stat-label{font-size:12px;color:var(--text-secondary);text-transform:uppercase;letter-spacing:.5px}
+.stat-card .stat-value{font-size:28px;font-weight:700;margin-top:6px;color:var(--primary)}
+.stat-card.stat-accent .stat-value{color:var(--accent)}
+.stat-card.stat-success .stat-value{color:var(--success)}
+.stat-card.stat-warning .stat-value{color:var(--warning)}
+.filters-row{display:flex;gap:12px;flex-wrap:wrap;margin-bottom:20px;align-items:center}
+.filters-row input,.filters-row select{padding:10px 14px;border:1px solid var(--border);border-radius:var(--radius-sm);font-size:14px;font-family:inherit;background:var(--surface);outline:none}
+.filters-row input:focus,.filters-row select:focus{border-color:var(--accent)}
+.btn-sm{padding:10px 16px;border:none;border-radius:var(--radius-sm);font-size:13px;font-weight:600;cursor:pointer;font-family:inherit;display:inline-flex;align-items:center;gap:6px}
+.btn-primary-sm{background:var(--accent);color:white}
+.btn-primary-sm:hover{background:var(--accent-hover)}
+.btn-secondary-sm{background:var(--bg);color:var(--text);border:1px solid var(--border)}
+.btn-secondary-sm:hover{background:var(--border)}
+.btn-success-sm{background:var(--success);color:white}
+.btn-danger-sm{background:var(--danger);color:white}
+.btn-info-sm{background:var(--info);color:white}
+.table-wrap{overflow-x:auto}
+table{width:100%;border-collapse:collapse;font-size:13px}
+th{background:var(--bg);padding:12px 14px;text-align:left;font-weight:600;color:var(--text-secondary);text-transform:uppercase;font-size:11px;letter-spacing:.5px;white-space:nowrap}
+td{padding:12px 14px;border-bottom:1px solid var(--border);vertical-align:middle}
+tr:hover td{background:rgba(0,0,0,0.01)}
+.badge{display:inline-block;padding:3px 10px;border-radius:12px;font-size:11px;font-weight:600}
+.badge-pending{background:#fff3cd;color:#856404}
+.badge-received{background:#d4edda;color:#155724}
+.badge-done{background:#d4edda;color:#155724}
+.badge-pending-approval{background:#fff3cd;color:#856404}
+.badge-bar{background:#e3f2fd;color:#1565c0}
+.badge-kitchen{background:#fce4ec;color:#c2185b}
+.badge-pastry{background:#f3e5f5;color:#7b1fa2}
+.badge-packaging{background:#e8f5e9;color:#2e7d32}
+.checkbox-wrap{display:flex;align-items:center}
+.checkbox-wrap input{width:16px;height:16px;cursor:pointer}
+.form-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:16px}
+.form-group{margin-bottom:16px}
+.form-group label{display:block;font-size:12px;font-weight:600;color:var(--text-secondary);margin-bottom:6px;text-transform:uppercase;letter-spacing:.5px}
+.form-group input,.form-group select,.form-group textarea{width:100%;padding:10px 12px;border:1px solid var(--border);border-radius:var(--radius-sm);font-size:14px;font-family:inherit;background:var(--surface);outline:none}
+.form-group input:focus,.form-group select:focus,.form-group textarea:focus{border-color:var(--accent)}
+.form-group textarea{min-height:80px;resize:vertical}
+.modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,0.5);display:none;align-items:center;justify-content:center;z-index:200;padding:20px}
+.modal-overlay.show{display:flex}
+.modal-box{background:var(--surface);border-radius:var(--radius);width:100%;max-width:500px;max-height:90vh;overflow-y:auto;animation:modalIn .2s ease}
+@keyframes modalIn{from{opacity:0;transform:translateY(-20px)}to{opacity:1;transform:translateY(0)}}
+.modal-header{padding:20px;border-bottom:1px solid var(--border);display:flex;justify-content:space-between;align-items:center}
+.modal-header h3{font-size:18px}
+.modal-header .close-btn{background:none;border:none;font-size:24px;cursor:pointer;color:var(--text-secondary);font-family:inherit}
+.modal-body{padding:20px}
+.modal-footer{padding:16px 20px;border-top:1px solid var(--border);display:flex;justify-content:flex-end;gap:10px}
+.toast-container{position:fixed;top:20px;right:20px;z-index:300;display:flex;flex-direction:column;gap:10px}
+.toast{background:var(--surface);border-radius:var(--radius-sm);padding:14px 20px;box-shadow:var(--shadow-lg);display:flex;align-items:center;gap:10px;font-size:14px;animation:toastIn .3s ease;min-width:280px}
+@keyframes toastIn{from{transform:translateX(100%);opacity:0}to{transform:translateX(0);opacity:1}}
+.toast-success{border-left:4px solid var(--success)}
+.toast-error{border-left:4px solid var(--danger)}
+.toast-info{border-left:4px solid var(--info)}
+.loading-overlay{position:fixed;inset:0;background:rgba(255,255,255,0.9);display:none;align-items:center;justify-content:center;z-index:300;flex-direction:column;gap:16px}
+.loading-overlay.show{display:flex}
+.spinner{width:40px;height:40px;border:3px solid var(--border);border-top-color:var(--accent);border-radius:50%;animation:spin .8s linear infinite}
+@keyframes spin{to{transform:rotate(360deg)}}
+@media(max-width:768px){.sidebar{width:100%;position:relative;display:none}.sidebar.open{display:block;position:fixed}.main-content{margin-left:0;padding:16px}.stats-grid{grid-template-columns:1fr 1fr}.filters-row{flex-direction:column;align-items:stretch}.filters-row input,.filters-row select{width:100%}.page-header{flex-direction:column;align-items:flex-start;gap:12px}}
+</style>
+</head>
+<body>
+
+<div class="loading-overlay" id="loadingOverlay"><div class="spinner"></div><span style="color:var(--text-secondary);font-size:14px">Loading...</span></div>
+<div class="toast-container" id="toastContainer"></div>
+
+<div class="admin-login" id="adminLogin">
+<div class="login-box">
+<svg width="64" height="64" viewBox="0 0 80 80" style="margin:0 auto 16px;display:block"><circle cx="40" cy="40" r="36" fill="#1a1a2e"/><text x="40" y="48" text-anchor="middle" fill="#e94560" font-size="28" font-weight="700" font-family="Inter">G</text></svg>
+<h1>Admin Panel</h1><p>Enter admin password to continue</p>
+<input type="password" id="adminPassword" maxlength="4" placeholder="••••" inputmode="numeric" onkeypress="if(event.key==='Enter')unlockAdmin()">
+<button class="btn" onclick="unlockAdmin()">Unlock Panel</button>
+<div class="login-error" id="loginError">Incorrect password</div>
+</div>
+</div>
+
+<div class="admin-app hidden" id="adminApp">
+<aside class="sidebar" id="sidebar">
+<div class="sidebar-header">
+<h2><svg width="28" height="28" viewBox="0 0 80 80"><circle cx="40" cy="40" r="36" fill="white"/><text x="40" y="48" text-anchor="middle" fill="#e94560" font-size="28" font-weight="700" font-family="Inter">G</text></svg>Goya Admin</h2>
+<p>Restaurant Management</p>
+</div>
+<nav class="sidebar-nav">
+<button class="nav-link active" onclick="showPage('orders')">📦 Orders</button>
+<button class="nav-link" onclick="showPage('items')">🏷️ Items & Suppliers</button>
+<button class="nav-link" onclick="showPage('internal')">📋 Internal Items</button>
+<button class="nav-link" onclick="showPage('staff')">👥 Staff</button>
+<button class="nav-link" onclick="showPage('production')">🔧 Production & Wastage</button>
+<button class="nav-link" onclick="showPage('inventory')">📊 Inventory</button>
+<button class="nav-link" onclick="showPage('export')">📥 Data Export</button>
+<button class="nav-link" onclick="showPage('settings')">⚙️ Settings</button>
+</nav>
+</aside>
+
+<main class="main-content">
+
+<!-- ORDERS -->
+<div class="page" id="pageOrders">
+<div class="page-header"><h1>Orders Management</h1><div class="actions"><button class="btn-sm btn-secondary-sm" onclick="refreshData()">🔄 Refresh</button></div></div>
+<div class="stats-grid">
+<div class="stat-card stat-accent"><div class="stat-label">Total Orders</div><div class="stat-value" id="statTotalOrders">0</div></div>
+<div class="stat-card stat-warning"><div class="stat-label">Pending</div><div class="stat-value" id="statPendingOrders">0</div></div>
+<div class="stat-card stat-success"><div class="stat-label">Received</div><div class="stat-value" id="statReceivedOrders">0</div></div>
+</div>
+<div class="card">
+<div class="card-header"><h3>All Orders</h3><div><button class="btn-sm btn-success-sm" onclick="downloadOrdersCSV()">⬇ CSV</button><button class="btn-sm btn-info-sm" onclick="shareOrdersWhatsApp()" style="margin-left:8px">📱 WhatsApp</button></div></div>
+<div class="card-body">
+<div class="filters-row">
+<input type="text" id="orderSearchFilter" placeholder="Search items..." oninput="filterOrders()">
+<select id="orderStatusFilter" onchange="filterOrders()"><option value="">All Status</option><option value="Pending">Pending</option><option value="Received">Received</option><option value="Cancelled">Cancelled</option></select>
+<select id="orderSupplierFilter" onchange="filterOrders()"><option value="">All Suppliers</option></select>
+<select id="orderMonthFilter" onchange="filterOrders()"><option value="">All Months</option></select>
+<input type="date" id="orderDateFrom" onchange="filterOrders()"><input type="date" id="orderDateTo" onchange="filterOrders()">
+<button class="btn-sm btn-primary-sm" onclick="bulkUpdateStatus()">Bulk Status</button>
+<button class="btn-sm btn-danger-sm" onclick="bulkDeleteOrders()">Bulk Delete</button>
+</div>
+<div class="table-wrap">
+<table>
+<thead><tr><th><input type="checkbox" id="selectAllOrders" onchange="toggleSelectAllOrders()"></th><th>ID</th><th>Date</th><th>Time</th><th>Item</th><th>Qty</th><th>Unit</th><th>Supplier</th><th>Status</th><th>Received</th><th>By</th><th>Actions</th></tr></thead>
+<tbody id="ordersTableBody"></tbody>
+</table>
+</div>
+</div>
+</div>
+</div>
+
+<!-- ITEMS -->
+<div class="page hidden" id="pageItems">
+<div class="page-header"><h1>Items & Suppliers</h1></div>
+<div class="card">
+<div class="card-header"><h3>Master Items</h3><button class="btn-sm btn-primary-sm" onclick="openAddItemModal()">+ Add Item</button></div>
+<div class="card-body">
+<div class="filters-row">
+<input type="text" id="itemSearch" placeholder="Search..." oninput="filterItems()">
+<select id="itemTypeFilter" onchange="filterItems()"><option value="">All Types</option><option value="Bar">Bar</option><option value="Kitchen">Kitchen</option><option value="Pastry">Pastry</option><option value="Packaging">Packaging</option></select>
+<select id="itemSupplierFilter" onchange="filterItems()"><option value="">All Suppliers</option></select>
+</div>
+<div class="table-wrap">
+<table>
+<thead><tr><th>ID</th><th>Name</th><th>SKU</th><th>Storage</th><th>Ingredient</th><th>Type</th><th>Supplier</th><th>Actions</th></tr></thead>
+<tbody id="itemsTableBody"></tbody>
+</table>
+</div>
+</div>
+</div>
+<div class="card">
+<div class="card-header"><h3>Suppliers</h3><button class="btn-sm btn-primary-sm" onclick="openAddSupplierModal()">+ Add Supplier</button></div>
+<div class="card-body">
+<div class="table-wrap">
+<table>
+<thead><tr><th>ID</th><th>Name</th><th>Phone</th><th>Email</th><th>Actions</th></tr></thead>
+<tbody id="suppliersTableBody"></tbody>
+</table>
+</div>
+</div>
+</div>
+</div>
+
+<!-- INTERNAL -->
+<div class="page hidden" id="pageInternal">
+<div class="page-header"><h1>Internal Items</h1></div>
+<div class="card">
+<div class="card-header"><h3>All Internal Items</h3><button class="btn-sm btn-primary-sm" onclick="openAddInternalModal()">+ Add</button></div>
+<div class="card-body">
+<div class="table-wrap">
+<table>
+<thead><tr><th>ID</th><th>Name</th><th>SKU</th><th>Unit</th><th>Actions</th></tr></thead>
+<tbody id="internalTableBody"></tbody>
+</table>
+</div>
+</div>
+</div>
+</div>
+
+<!-- STAFF -->
+<div class="page hidden" id="pageStaff">
+<div class="page-header"><h1>Staff Management</h1></div>
+<div class="card">
+<div class="card-header"><h3>All Staff</h3></div>
+<div class="card-body">
+<div class="table-wrap">
+<table>
+<thead><tr><th>ID</th><th>Name</th><th>PIN</th><th>Status</th><th>Registered</th><th>Actions</th></tr></thead>
+<tbody id="staffTableBody"></tbody>
+</table>
+</div>
+</div>
+</div>
+</div>
+
+<!-- PRODUCTION -->
+<div class="page hidden" id="pageProduction">
+<div class="page-header"><h1>Production & Wastage</h1></div>
+<div class="card">
+<div class="card-header"><h3>Production</h3><button class="btn-sm btn-success-sm" onclick="downloadProductionCSV()">⬇ CSV</button></div>
+<div class="card-body">
+<div class="filters-row"><input type="month" id="prodMonthFilter" onchange="filterProduction()"></div>
+<div class="table-wrap">
+<table>
+<thead><tr><th>ID</th><th>Date</th><th>Time</th><th>Item</th><th>Qty</th><th>Unit</th><th>SKU</th><th>By</th></tr></thead>
+<tbody id="productionTableBody"></tbody>
+</table>
+</div>
+</div>
+</div>
+<div class="card">
+<div class="card-header"><h3>Wastage</h3><button class="btn-sm btn-success-sm" onclick="downloadWastageCSV()">⬇ CSV</button></div>
+<div class="card-body">
+<div class="filters-row"><input type="month" id="wasteMonthFilter" onchange="filterWastage()"></div>
+<div class="table-wrap">
+<table>
+<thead><tr><th>ID</th><th>Date</th><th>Time</th><th>Item</th><th>Qty</th><th>Unit</th><th>SKU</th><th>Reason</th><th>By</th></tr></thead>
+<tbody id="wastageTableBody"></tbody>
+</table>
+</div>
+</div>
+</div>
+</div>
+
+<!-- INVENTORY -->
+<div class="page hidden" id="pageInventory">
+<div class="page-header"><h1>Inventory Counts</h1></div>
+<div class="card">
+<div class="card-header"><h3>Inventory</h3><button class="btn-sm btn-success-sm" onclick="downloadInventoryCSV()">⬇ CSV</button></div>
+<div class="card-body">
+<div class="filters-row">
+<select id="invSectionFilter" onchange="filterInventory()"><option value="">All Sections</option><option value="Bar">Bar</option><option value="Kitchen">Kitchen</option><option value="Pastry">Pastry</option><option value="Packaging">Packaging</option></select>
+<select id="invMonthFilter" onchange="filterInventory()"><option value="">All Months</option></select>
+</div>
+<div class="table-wrap">
+<table>
+<thead><tr><th>ID</th><th>Date</th><th>Item</th><th>SKU</th><th>Qty</th><th>Unit</th><th>Section</th><th>By</th></tr></thead>
+<tbody id="inventoryTableBody"></tbody>
+</table>
+</div>
+</div>
+</div>
+</div>
+
+<!-- EXPORT -->
+<div class="page hidden" id="pageExport">
+<div class="page-header"><h1>Data Export</h1></div>
+<div class="card">
+<div class="card-header"><h3>Export</h3></div>
+<div class="card-body">
+<div class="form-grid">
+<div class="form-group"><label>Data Type</label><select id="exportType"><option value="orders">Orders</option><option value="production">Production</option><option value="wastage">Wastage</option><option value="inventory">Inventory</option><option value="masterItems">Master Items</option></select></div>
+<div class="form-group"><label>From Date</label><input type="date" id="exportFrom"></div>
+<div class="form-group"><label>To Date</label><input type="date" id="exportTo"></div>
+<div class="form-group"><label>Supplier Filter</label><select id="exportSupplier"><option value="">All</option></select></div>
+<div class="form-group"><label>Item Type Filter</label><select id="exportItemType"><option value="">All</option><option value="Bar">Bar</option><option value="Kitchen">Kitchen</option><option value="Pastry">Pastry</option><option value="Packaging">Packaging</option></select></div>
+</div>
+<div style="margin-top:20px"><button class="btn-sm btn-success-sm" onclick="exportData()">⬇ Download CSV</button></div>
+</div>
+</div>
+</div>
+
+<!-- SETTINGS -->
+<div class="page hidden" id="pageSettings">
+<div class="page-header"><h1>Settings</h1></div>
+<div class="card">
+<div class="card-header"><h3>Portal Settings</h3></div>
+<div class="card-body">
+<div class="form-grid">
+<div class="form-group"><label>Admin Email</label><input type="email" id="settingEmail" value="mehedi.src@gmail.com"></div>
+<div class="form-group"><label>Inventory Active</label><select id="settingInventoryActive"><option value="false">No</option><option value="true">Yes</option></select></div>
+<div class="form-group"><label>Inventory Section</label><select id="settingInventorySection"><option value="">None</option><option value="Bar">Bar</option><option value="Kitchen">Kitchen</option><option value="Pastry">Pastry</option><option value="Packaging">Packaging</option></select></div>
+<div class="form-group"><label>Assigned Staff</label><select id="settingInventoryStaff"><option value="">All Staff</option></select></div>
+<div class="form-group"><label>Wastage Reasons</label><input type="text" id="settingWastageReasons" value="Expired,Damaged,Overproduction,Spoilage"></div>
+<div class="form-group"><label>Extra Page Link</label><input type="url" id="settingAdditionalLink" placeholder="https://..."></div>
+<div class="form-group"><label>Extra Page Title</label><input type="text" id="settingAdditionalTitle" placeholder="Schedule, Notice..."></div>
+</div>
+<div style="margin-top:20px"><button class="btn-sm btn-primary-sm" onclick="saveSettings()">💾 Save</button></div>
+</div>
+</div>
+</div>
+
+</main>
+</div>
+
+<div class="modal-overlay" id="modalOverlay">
+<div class="modal-box" id="modalBox">
+<div class="modal-header"><h3 id="modalTitle">Modal</h3><button class="close-btn" onclick="closeModal()">&times;</button></div>
+<div class="modal-body" id="modalBody"></div>
+<div class="modal-footer" id="modalFooter"></div>
+</div>
+</div>
+
+<script>
+const APPS_SCRIPT_URL='YOUR_APPS_SCRIPT_WEB_APP_URL_HERE';
+const ADMIN_PASSWORD='9988';
+let allOrders=[],allProduction=[],allWastage=[],allInventory=[],allItems=[],allSuppliers=[],allInternal=[],allStaff=[],settings={},currentPage='orders';
+
+function unlockAdmin(){const pw=document.getElementById('adminPassword').value;if(pw===ADMIN_PASSWORD){document.getElementById('adminLogin').classList.add('hidden');document.getElementById('adminApp').classList.remove('hidden');initAdmin()}else{document.getElementById('loginError').classList.add('show')}}
+
+function showPage(page){currentPage=page;document.querySelectorAll('.page').forEach(p=>p.classList.add('hidden'));document.getElementById('page'+page.charAt(0).toUpperCase()+page.slice(1)).classList.remove('hidden');document.querySelectorAll('.nav-link').forEach(n=>n.classList.remove('active'));event.currentTarget.classList.add('active');if(page==='orders')renderOrders();if(page==='items'){renderItems();renderSuppliers()}if(page==='internal')renderInternal();if(page==='staff')renderStaff();if(page==='production'){renderProduction();renderWastage()}if(page==='inventory')renderInventory()}
+
+async function initAdmin(){showLoading(true);try{const[ordersRes,prodRes,wasteRes,invRes,itemsRes,suppRes,intRes,staffRes,settingsRes]=await Promise.all([fetch(APPS_SCRIPT_URL+'?action=getOrders'),fetch(APPS_SCRIPT_URL+'?action=getProduction'),fetch(APPS_SCRIPT_URL+'?action=getWastage'),fetch(APPS_SCRIPT_URL+'?action=getInventory'),fetch(APPS_SCRIPT_URL+'?action=getMasterItems'),fetch(APPS_SCRIPT_URL+'?action=getSuppliers'),fetch(APPS_SCRIPT_URL+'?action=getInternalItems'),fetch(APPS_SCRIPT_URL+'?action=getStaff'),fetch(APPS_SCRIPT_URL+'?action=getSettings')]);const ordersData=await ordersRes.json(),prodData=await prodRes.json(),wasteData=await wasteRes.json(),invData=await invRes.json(),itemsData=await itemsRes.json(),suppData=await suppRes.json(),intData=await intRes.json(),staffData=await staffRes.json(),settingsData=await settingsRes.json();if(ordersData.success)allOrders=ordersData.data;if(prodData.success)allProduction=prodData.data;if(wasteData.success)allWastage=wasteData.data;if(invData.success)allInventory=invData.data;if(itemsData.success)allItems=itemsData.data;if(suppData.success)allSuppliers=suppData.data;if(intData.success)allInternal=intData.data;if(staffData.success)allStaff=staffData.data;if(settingsData.success){settings=settingsData.data;loadSettingsUI()}populateFilters();renderOrders();updateStats()}catch(e){console.error(e);showToast('Error loading data','error')}showLoading(false)}
+
+function populateFilters(){const suppSet=new Set(allOrders.map(o=>o.Supplier).filter(Boolean));const suppSelect=document.getElementById('orderSupplierFilter');suppSet.forEach(s=>suppSelect.innerHTML+=`<option value="${s}">${s}</option>`);const monthSelect=document.getElementById('orderMonthFilter');const months=['January','February','March','April','May','June','July','August','September','October','November','December'];months.forEach((m,i)=>monthSelect.innerHTML+=`<option value="${i+1}">${m}</option>`);const itemSuppSelect=document.getElementById('itemSupplierFilter');allSuppliers.forEach(s=>itemSuppSelect.innerHTML+=`<option value="${s.Name}">${s.Name}</option>`);const exportSupp=document.getElementById('exportSupplier');allSuppliers.forEach(s=>exportSupp.innerHTML+=`<option value="${s.Name}">${s.Name}</option>`);const invMonth=document.getElementById('invMonthFilter');months.forEach((m,i)=>invMonth.innerHTML+=`<option value="${i+1}">${m}</option>`);const staffSelect=document.getElementById('settingInventoryStaff');allStaff.filter(s=>s.Approval==='Done').forEach(s=>staffSelect.innerHTML+=`<option value="${s.Name}">${s.Name}</option>`)}
+
+function loadSettingsUI(){document.getElementById('settingEmail').value=settings.adminEmail||'mehedi.src@gmail.com';document.getElementById('settingInventoryActive').value=settings.inventoryActive||'false';document.getElementById('settingInventorySection').value=settings.inventorySection||'';document.getElementById('settingInventoryStaff').value=settings.inventoryStaff||'';document.getElementById('settingWastageReasons').value=settings.wastageReasons||'Expired,Damaged,Overproduction,Spoilage';document.getElementById('settingAdditionalLink').value=settings.additionalLink||'';document.getElementById('settingAdditionalTitle').value=settings.additionalTitle||''}
+
+function updateStats(){document.getElementById('statTotalOrders').textContent=allOrders.length;document.getElementById('statPendingOrders').textContent=allOrders.filter(o=>o.Status==='Pending').length;document.getElementById('statReceivedOrders').textContent=allOrders.filter(o=>o.Status==='Received').length}
+
+function renderOrders(){const tbody=document.getElementById('ordersTableBody');tbody.innerHTML='';const filtered=getFilteredOrders();filtered.forEach(order=>{tbody.innerHTML+=`<tr><td><input type="checkbox" class="order-check" data-id="${order['Raw ID']}"></td><td>${order['Raw ID']}</td><td>${order.Date}</td><td>${order.Time||''}</td><td>${order['Item Name']||order['Items name']}</td><td>${order.Quantity}</td><td>${order.Unit}</td><td>${order.Supplier||'N/A'}</td><td><span class="badge badge-${(order.Status||'pending').toLowerCase()}">${order.Status||'Pending'}</span></td><td>${order['Received Date']||'-'}</td><td>${order['Logged By']||order['Logged by']||'N/A'}</td><td><select onchange="changeOrderStatus(${order['Raw ID']},this.value)" style="padding:4px 8px;font-size:12px;border-radius:4px;border:1px solid var(--border)"><option value="">Change</option><option value="Pending">Pending</option><option value="Received">Received</option><option value="Cancelled">Cancelled</option></select><button class="btn-sm btn-danger-sm" style="padding:4px 8px;font-size:12px;margin-left:4px" onclick="deleteOrder(${order['Raw ID']})">Delete</button></td></tr>`})}
+
+function getFilteredOrders(){const search=document.getElementById('orderSearchFilter').value.toLowerCase(),status=document.getElementById('orderStatusFilter').value,supplier=document.getElementById('orderSupplierFilter').value,month=document.getElementById('orderMonthFilter').value,from=document.getElementById('orderDateFrom').value,to=document.getElementById('orderDateTo').value;return allOrders.filter(o=>{if(search&&!(o['Item Name']||o['Items name']||'').toLowerCase().includes(search))return false;if(status&&o.Status!==status)return false;if(supplier&&o.Supplier!==supplier)return false;if(month){const d=new Date(o.Date);if(d.getMonth()+1!=month)return false}if(from&&new Date(o.Date)<new Date(from))return false;if(to&&new Date(o.Date)>new Date(to))return false;return true})}
+
+function filterOrders(){renderOrders()}
+function toggleSelectAllOrders(){const checked=document.getElementById('selectAllOrders').checked;document.querySelectorAll('.order-check').forEach(c=>c.checked=checked)}
+
+async function changeOrderStatus(rawId,status){if(!status)return;showLoading(true);try{const res=await fetch(APPS_SCRIPT_URL,{method:'POST',body:JSON.stringify({action:'updateOrderStatus',rawId,status})});const data=await res.json();if(data.success){const order=allOrders.find(o=>o['Raw ID']==rawId);if(order){order.Status=status;if(status==='Received')order['Received Date']=new Date().toISOString().split('T')[0]}renderOrders();updateStats();showToast('Status updated','success')}}catch(e){showToast('Error updating status','error')}showLoading(false)}
+
+async function bulkUpdateStatus(){const status=prompt('Enter new status (Pending/Received/Cancelled):');if(!status||!['Pending','Received','Cancelled'].includes(status))return;const checked=Array.from(document.querySelectorAll('.order-check:checked')).map(c=>c.dataset.id);if(checked.length===0){showToast('No orders selected','error');return}showLoading(true);try{const res=await fetch(APPS_SCRIPT_URL,{method:'POST',body:JSON.stringify({action:'bulkUpdateStatus',ids:checked,status})});const data=await res.json();if(data.success){checked.forEach(id=>{const order=allOrders.find(o=>o['Raw ID']==id);if(order){order.Status=status;if(status==='Received')order['Received Date']=new Date().toISOString().split('T')[0]}});renderOrders();updateStats();showToast('Bulk update successful','success')}}catch(e){showToast('Error','error')}showLoading(false)}
+
+async function bulkDeleteOrders(){const checked=Array.from(document.querySelectorAll('.order-check:checked')).map(c=>c.dataset.id);if(checked.length===0){showToast('No orders selected','error');return}if(!confirm('Delete '+checked.length+' orders?'))return;showLoading(true);for(const id of checked){try{await fetch(APPS_SCRIPT_URL,{method:'POST',body:JSON.stringify({action:'deleteRecord',sheet:'Orders',id:id,idColumn:'Raw ID'})})}catch(e){}}allOrders=allOrders.filter(o=>!checked.includes(String(o['Raw ID'])));renderOrders();updateStats();showLoading(false);showToast('Deleted successfully','success')}
+
+async function deleteOrder(rawId){if(!confirm('Delete this order?'))return;showLoading(true);try{await fetch(APPS_SCRIPT_URL,{method:'POST',body:JSON.stringify({action:'deleteRecord',sheet:'Orders',id:rawId,idColumn:'Raw ID'})});allOrders=allOrders.filter(o=>o['Raw ID']!=rawId);renderOrders();updateStats();showToast('Deleted','success')}catch(e){showToast('Error','error')}showLoading(false)}
+
+function downloadOrdersCSV(){const filtered=getFilteredOrders();const headers=['Raw ID','Time','Date','Item Name','Quantity','Unit','Supplier','Status','Received Date','Logged By'];let csv=headers.join(',')+'\n';filtered.forEach(o=>{csv+=[o['Raw ID'],o.Time||'',o.Date,`"${(o['Item Name']||o['Items name']||'').replace(/"/g,'""')}"`,o.Quantity,o.Unit,`"${(o.Supplier||'').replace(/"/g,'""')}"`,o.Status||'Pending',o['Received Date']||'',o['Logged By']||o['Logged by']||''].join(',')+'\n'});downloadCSV(csv,'orders_export.csv')}
+
+function shareOrdersWhatsApp(){const filtered=getFilteredOrders();if(filtered.length===0){showToast('No orders to share','error');return}const bySupplier={};filtered.forEach(o=>{const sup=o.Supplier||'No Supplier';if(!bySupplier[sup])bySupplier[sup]=[];bySupplier[sup].push(o)});let text='*Goya Restaurant - Orders*\n\n';Object.keys(bySupplier).forEach(sup=>{text+='*Supplier: '+sup+'*\n';bySupplier[sup].forEach((o,i)=>{text+=(i+1)+'. '+(o['Item Name']||o['Items name'])+' - '+o.Quantity+' '+o.Unit+'\n'});text+='\n'});window.open('https://wa.me/?text='+encodeURIComponent(text),'_blank')}
+
+function renderItems(){const tbody=document.getElementById('itemsTableBody');const search=document.getElementById('itemSearch').value.toLowerCase(),type=document.getElementById('itemTypeFilter').value,supplier=document.getElementById('itemSupplierFilter').value;const filtered=allItems.filter(i=>{if(search&&!i.Name.toLowerCase().includes(search))return false;if(type&&i['Item Type']!==type)return false;if(supplier&&i.Supplier!==supplier)return false;return true});tbody.innerHTML='';filtered.forEach(item=>{const typeBadge=`<span class="badge badge-${(item['Item Type']||'').toLowerCase()}">${item['Item Type']||'N/A'}</span>`;tbody.innerHTML+=`<tr><td>${item['Raw ID']}</td><td>${item.Name}</td><td>${item.SKU}</td><td>${item['Storage Unit']}</td><td>${item['Ingredient Unit']}</td><td>${typeBadge}</td><td>${item.Supplier||'N/A'}</td><td><button class="btn-sm btn-danger-sm" style="padding:4px 8px;font-size:12px" onclick="deleteItem(${item['Raw ID']})">Delete</button></td></tr>`})}
+function filterItems(){renderItems()}
+
+function renderSuppliers(){const tbody=document.getElementById('suppliersTableBody');tbody.innerHTML='';allSuppliers.forEach(s=>{tbody.innerHTML+=`<tr><td>${s['Raw ID']}</td><td>${s.Name}</td><td>${s['Phone Number']||s.Phone||'-'}</td><td>${s.Email||'-'}</td><td><button class="btn-sm btn-danger-sm" style="padding:4px 8px;font-size:12px" onclick="deleteSupplier(${s['Raw ID']})">Delete</button></td></tr>`})}
+
+function openAddItemModal(){document.getElementById('modalTitle').textContent='Add Master Item';document.getElementById('modalBody').innerHTML=`<div class="form-group"><label>Name</label><input type="text" id="newItemName"></div><div class="form-group"><label>SKU</label><input type="text" id="newItemSKU"></div><div class="form-group"><label>Storage Unit</label><input type="text" id="newItemStorage" placeholder="KG, BATCH, L, PKT"></div><div class="form-group"><label>Ingredient Unit</label><input type="text" id="newItemIngredient" placeholder="Ml, Gram, Pcs"></div><div class="form-group"><label>Item Type</label><select id="newItemType"><option value="Bar">Bar</option><option value="Kitchen">Kitchen</option><option value="Pastry">Pastry</option><option value="Packaging">Packaging</option></select></div><div class="form-group"><label>Supplier</label><select id="newItemSupplier"><option value="">Select Supplier</option>${allSuppliers.map(s=>`<option value="${s.Name}">${s.Name}</option>`).join('')}</select></div>`;document.getElementById('modalFooter').innerHTML=`<button class="btn-sm btn-secondary-sm" onclick="closeModal()">Cancel</button><button class="btn-sm btn-primary-sm" onclick="saveNewItem()">Save</button>`;document.getElementById('modalOverlay').classList.add('show')}
+
+async function saveNewItem(){const data={name:document.getElementById('newItemName').value,sku:document.getElementById('newItemSKU').value,storageUnit:document.getElementById('newItemStorage').value,ingredientUnit:document.getElementById('newItemIngredient').value,itemType:document.getElementById('newItemType').value,supplier:document.getElementById('newItemSupplier').value};if(!data.name||!data.sku){showToast('Name and SKU required','error');return}showLoading(true);try{const res=await fetch(APPS_SCRIPT_URL,{method:'POST',body:JSON.stringify({action:'addItem',...data})});const result=await res.json();if(result.success){allItems.push({'Raw ID':allItems.length+1,Name:data.name,SKU:data.sku,'Storage Unit':data.storageUnit,'Ingredient Unit':data.ingredientUnit,'Item Type':data.itemType,Supplier:data.supplier});renderItems();closeModal();showToast('Item added','success')}}catch(e){showToast('Error','error')}showLoading(false)}
+
+async function deleteItem(rawId){if(!confirm('Delete this item?'))return;showLoading(true);try{await fetch(APPS_SCRIPT_URL,{method:'POST',body:JSON.stringify({action:'deleteRecord',sheet:'Master_Items',id:rawId,idColumn:'Raw ID'})});allItems=allItems.filter(i=>i['Raw ID']!=rawId);renderItems();showToast('Deleted','success')}catch(e){showToast('Error','error')}showLoading(false)}
+
+function openAddSupplierModal(){document.getElementById('modalTitle').textContent='Add Supplier';document.getElementById('modalBody').innerHTML=`<div class="form-group"><label>Name</label><input type="text" id="newSuppName"></div><div class="form-group"><label>Phone (Optional)</label><input type="text" id="newSuppPhone"></div><div class="form-group"><label>Email (Optional)</label><input type="email" id="newSuppEmail"></div>`;document.getElementById('modalFooter').innerHTML=`<button class="btn-sm btn-secondary-sm" onclick="closeModal()">Cancel</button><button class="btn-sm btn-primary-sm" onclick="saveNewSupplier()">Save</button>`;document.getElementById('modalOverlay').classList.add('show')}
+
+async function saveNewSupplier(){const data={name:document.getElementById('newSuppName').value,phone:document.getElementById('newSuppPhone').value,email:document.getElementById('newSuppEmail').value};if(!data.name){showToast('Name required','error');return}showLoading(true);try{const res=await fetch(APPS_SCRIPT_URL,{method:'POST',body:JSON.stringify({action:'addSupplier',...data})});const result=await res.json();if(result.success){allSuppliers.push({'Raw ID':allSuppliers.length+1,Name:data.name,'Phone Number':data.phone,Email:data.email});renderSuppliers();closeModal();showToast('Supplier added','success')}}catch(e){showToast('Error','error')}showLoading(false)}
+
+async function deleteSupplier(rawId){if(!confirm('Delete this supplier?'))return;showLoading(true);try{await fetch(APPS_SCRIPT_URL,{method:'POST',body:JSON.stringify({action:'deleteRecord',sheet:'Suppliers',id:rawId,idColumn:'Raw ID'})});allSuppliers=allSuppliers.filter(s=>s['Raw ID']!=rawId);renderSuppliers();showToast('Deleted','success')}catch(e){showToast('Error','error')}showLoading(false)}
+
+function renderInternal(){const tbody=document.getElementById('internalTableBody');tbody.innerHTML='';allInternal.forEach(item=>{tbody.innerHTML+=`<tr><td>${item['Raw ID']}</td><td>${item.Name}</td><td>${item.SKU}</td><td>${item.Unit}</td><td><button class="btn-sm btn-danger-sm" style="padding:4px 8px;font-size:12px" onclick="deleteInternal(${item['Raw ID']})">Delete</button></td></tr>`})}
+
+function openAddInternalModal(){document.getElementById('modalTitle').textContent='Add Internal Item';document.getElementById('modalBody').innerHTML=`<div class="form-group"><label>Name</label><input type="text" id="newIntName"></div><div class="form-group"><label>SKU</label><input type="text" id="newIntSKU"></div><div class="form-group"><label>Unit</label><input type="text" id="newIntUnit"></div>`;document.getElementById('modalFooter').innerHTML=`<button class="btn-sm btn-secondary-sm" onclick="closeModal()">Cancel</button><button class="btn-sm btn-primary-sm" onclick="saveNewInternal()">Save</button>`;document.getElementById('modalOverlay').classList.add('show')}
+
+async function saveNewInternal(){const data={name:document.getElementById('newIntName').value,sku:document.getElementById('newIntSKU').value,unit:document.getElementById('newIntUnit').value};if(!data.name){showToast('Name required','error');return}showLoading(true);try{const res=await fetch(APPS_SCRIPT_URL,{method:'POST',body:JSON.stringify({action:'addInternalItem',...data})});const result=await res.json();if(result.success){allInternal.push({'Raw ID':allInternal.length+1,Name:data.name,SKU:data.sku,Unit:data.unit});renderInternal();closeModal();showToast('Internal item added','success')}}catch(e){showToast('Error','error')}showLoading(false)}
+
+async function deleteInternal(rawId){if(!confirm('Delete this internal item?'))return;showLoading(true);try{await fetch(APPS_SCRIPT_URL,{method:'POST',body:JSON.stringify({action:'deleteRecord',sheet:'Internal_Items',id:rawId,idColumn:'Raw ID'})});allInternal=allInternal.filter(i=>i['Raw ID']!=rawId);renderInternal();showToast('Deleted','success')}catch(e){showToast('Error','error')}showLoading(false)}
+
+function renderStaff(){const tbody=document.getElementById('staffTableBody');tbody.innerHTML='';allStaff.forEach(s=>{const statusBadge=`<span class="badge badge-${s.Approval==='Done'?'done':'pending-approval'}">${s.Approval}</span>`;tbody.innerHTML+=`<tr><td>${s['Raw ID']}</td><td>${s.Name}</td><td>${s.PIN}</td><td>${statusBadge}</td><td>${s['Registered Date']||s['Date']||'-'}</td><td><button class="btn-sm btn-success-sm" style="padding:4px 8px;font-size:12px" onclick="approveStaff('${s.Name}','Done')">Approve</button><button class="btn-sm btn-danger-sm" style="padding:4px 8px;font-size:12px" onclick="approveStaff('${s.Name}','Rejected')">Reject</button><button class="btn-sm btn-danger-sm" style="padding:4px 8px;font-size:12px" onclick="deleteStaff(${s['Raw ID']})">Delete</button></td></tr>`})}
+
+async function approveStaff(name,status){showLoading(true);try{const res=await fetch(APPS_SCRIPT_URL,{method:'POST',body:JSON.stringify({action:'approveStaff',name,status})});const data=await res.json();if(data.success){const staff=allStaff.find(s=>s.Name===name);if(staff)staff.Approval=status;renderStaff();showToast('Staff '+status.toLowerCase(),'success')}}catch(e){showToast('Error','error')}showLoading(false)}
+
+async function deleteStaff(rawId){if(!confirm('Delete this staff?'))return;showLoading(true);try{await fetch(APPS_SCRIPT_URL,{method:'POST',body:JSON.stringify({action:'deleteRecord',sheet:'Staff',id:rawId,idColumn:'Raw ID'})});allStaff=allStaff.filter(s=>s['Raw ID']!=rawId);renderStaff();showToast('Deleted','success')}catch(e){showToast('Error','error')}showLoading(false)}
+
+function renderProduction(){const tbody=document.getElementById('productionTableBody');const month=document.getElementById('prodMonthFilter').value;let filtered=allProduction;if(month){filtered=filtered.filter(p=>{const d=new Date(p.Date);return d.toISOString().slice(0,7)===month})}tbody.innerHTML='';filtered.forEach(p=>{tbody.innerHTML+=`<tr><td>${p['Raw ID']}</td><td>${p.Date}</td><td>${p.Time||''}</td><td>${p['Item Name']||p.Name}</td><td>${p.Quantity}</td><td>${p.Unit}</td><td>${p.SKU}</td><td>${p['Logged By']||p['Logged by']||'N/A'}</td></tr>`})}
+function filterProduction(){renderProduction()}
+
+function renderWastage(){const tbody=document.getElementById('wastageTableBody');const month=document.getElementById('wasteMonthFilter').value;let filtered=allWastage;if(month){filtered=filtered.filter(w=>{const d=new Date(w.Date);return d.toISOString().slice(0,7)===month})}tbody.innerHTML='';filtered.forEach(w=>{tbody.innerHTML+=`<tr><td>${w['Raw ID']}</td><td>${w.Date}</td><td>${w.Time||''}</td><td>${w['Item Name']||w.Name}</td><td>${w.Quantity}</td><td>${w.Unit}</td><td>${w.SKU}</td><td>${w.Reason||'N/A'}</td><td>${w['Logged By']||w['Logged by']||'N/A'}</td></tr>`})}
+function filterWastage(){renderWastage()}
+
+function downloadProductionCSV(){const month=document.getElementById('prodMonthFilter').value;let filtered=allProduction;if(month){filtered=filtered.filter(p=>{const d=new Date(p.Date);return d.toISOString().slice(0,7)===month})}const headers=['Item Name','SKU','Quantity','Unit'];let csv=headers.join(',')+'\n';filtered.forEach(p=>{csv+=[`"${(p['Item Name']||p.Name||'').replace(/"/g,'""')}"`,p.SKU||'',p.Quantity||'',p.Unit||''].join(',')+'\n'});downloadCSV(csv,'production_export.csv')}
+
+function downloadWastageCSV(){const month=document.getElementById('wasteMonthFilter').value;let filtered=allWastage;if(month){filtered=filtered.filter(w=>{const d=new Date(w.Date);return d.toISOString().slice(0,7)===month})}const headers=['Item Name','SKU','Quantity','Unit'];let csv=headers.join(',')+'\n';filtered.forEach(w=>{csv+=[`"${(w['Item Name']||w.Name||'').replace(/"/g,'""')}"`,w.SKU||'',w.Quantity||'',w.Unit||''].join(',')+'\n'});downloadCSV(csv,'wastage_export.csv')}
+
+function renderInventory(){const tbody=document.getElementById('inventoryTableBody');const section=document.getElementById('invSectionFilter').value,month=document.getElementById('invMonthFilter').value;let filtered=allInventory;if(section)filtered=filtered.filter(i=>i.Section===section);if(month){filtered=filtered.filter(i=>{const d=new Date(i.Date);return d.getMonth()+1==month})}tbody.innerHTML='';filtered.forEach(i=>{tbody.innerHTML+=`<tr><td>${i['Raw ID']}</td><td>${i.Date}</td><td>${i['Item Name']||i.Name}</td><td>${i.SKU}</td><td>${i.Quantity}</td><td>${i.Unit}</td><td>${i.Section||'N/A'}</td><td>${i['Logged By']||i['Logged by']||'N/A'}</td></tr>`})}
+function filterInventory(){renderInventory()}
+
+function downloadInventoryCSV(){const section=document.getElementById('invSectionFilter').value,month=document.getElementById('invMonthFilter').value;let filtered=allInventory;if(section)filtered=filtered.filter(i=>i.Section===section);if(month){filtered=filtered.filter(i=>{const d=new Date(i.Date);return d.getMonth()+1==month})}const headers=['Count ID','Item Name','SKU','Quantity','Unit'];let csv=headers.join(',')+'\n';filtered.forEach(i=>{csv+=['',`"${(i['Item Name']||i.Name||'').replace(/"/g,'""')}"`,i.SKU||'',i.Quantity||'',i.Unit||''].join(',')+'\n'});downloadCSV(csv,'inventory_export.csv')}
+
+function exportData(){const type=document.getElementById('exportType').value,from=document.getElementById('exportFrom').value,to=document.getElementById('exportTo').value,supplier=document.getElementById('exportSupplier').value,itemType=document.getElementById('exportItemType').value;let data=[],headers=[],filename='';switch(type){case'orders':data=allOrders;if(from)data=data.filter(o=>new Date(o.Date)>=new Date(from));if(to)data=data.filter(o=>new Date(o.Date)<=new Date(to));if(supplier)data=data.filter(o=>o.Supplier===supplier);headers=['Raw ID','Time','Date','Item Name','Quantity','Unit','Supplier','Status','Received Date','Logged By'];filename='orders_export.csv';break;case'production':data=allProduction;if(from)data=data.filter(p=>new Date(p.Date)>=new Date(from));if(to)data=data.filter(p=>new Date(p.Date)<=new Date(to));headers=['Raw ID','Time','Date','Item Name','Quantity','Unit','SKU','Logged By'];filename='production_export.csv';break;case'wastage':data=allWastage;if(from)data=data.filter(w=>new Date(w.Date)>=new Date(from));if(to)data=data.filter(w=>new Date(w.Date)<=new Date(to));headers=['Raw ID','Time','Date','Item Name','Quantity','Unit','SKU','Reason','Logged By'];filename='wastage_export.csv';break;case'inventory':data=allInventory;if(from)data=data.filter(i=>new Date(i.Date)>=new Date(from));if(to)data=data.filter(i=>new Date(i.Date)<=new Date(to));headers=['Raw ID','Date','Item Name','SKU','Quantity','Unit','Section','Logged By'];filename='inventory_export.csv';break;case'masterItems':data=allItems;if(itemType)data=data.filter(i=>i['Item Type']===itemType);headers=['Raw ID','Name','SKU','Storage Unit','Ingredient Unit','Item Type','Supplier'];filename='master_items_export.csv';break}let csv=headers.join(',')+'\n';data.forEach(row=>{const vals=headers.map(h=>{const v=row[h]||'';return`"${String(v).replace(/"/g,'""')}"`});csv+=vals.join(',')+'\n'});downloadCSV(csv,filename)}
+
+async function saveSettings(){const newSettings={adminEmail:document.getElementById('settingEmail').value,inventoryActive:document.getElementById('settingInventoryActive').value,inventorySection:document.getElementById('settingInventorySection').value,inventoryStaff:document.getElementById('settingInventoryStaff').value,wastageReasons:document.getElementById('settingWastageReasons').value,additionalLink:document.getElementById('settingAdditionalLink').value,additionalTitle:document.getElementById('settingAdditionalTitle').value};showLoading(true);try{const res=await fetch(APPS_SCRIPT_URL,{method:'POST',body:JSON.stringify({action:'updateSettings',settings:newSettings})});const data=await res.json();if(data.success){settings=newSettings;showToast('Settings saved','success')}}catch(e){showToast('Error saving settings','error')}showLoading(false)}
+
+function downloadCSV(csv,filename){const blob=new Blob([csv],{type:'text/csv'});const url=window.URL.createObjectURL(blob);const a=document.createElement('a');a.href=url;a.download=filename;a.click();window.URL.revokeObjectURL(url)}
+function showToast(message,type){const container=document.getElementById('toastContainer');const toast=document.createElement('div');toast.className='toast toast-'+type;toast.textContent=message;container.appendChild(toast);setTimeout(()=>toast.remove(),3000)}
+function showLoading(show){document.getElementById('loadingOverlay').classList.toggle('show',show)}
+function closeModal(){document.getElementById('modalOverlay').classList.remove('show')}
+function refreshData(){initAdmin()}
+</script>
+</body>
+</html>
