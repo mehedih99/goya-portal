@@ -893,16 +893,26 @@
                             </select>
                         </div>
                         <div class="form-group">
-                            <label>Month</label>
-                            <select id="historyMonthFilter">
-                                <option value="">Current Month</option>
+                            <label>Filter by Status</label>
+                            <select id="historyStatusFilter">
+                                <option value="">All Status</option>
+                                <option value="pending">Pending</option>
+                                <option value="ordered">Ordered</option>
+                                <option value="received">Received</option>
+                                <option value="not_received">Not Received</option>
                             </select>
+                        </div>
+                    </div>
+                    <div class="filter-row">
+                        <div class="form-group">
+                            <label>Search by Order Date</label>
+                            <input type="date" id="historyDateSearch" placeholder="Select date">
                         </div>
                     </div>
                 </div>
 
                 <div class="history-list" id="historyList">
-                    <div style="text-align: center; color: #999; padding: 30px;">No history available</div>
+                    <div style="text-align: center; color: #999; padding: 30px;">Loading history...</div>
                 </div>
             </div>
 
@@ -1567,85 +1577,176 @@
         }
 
         // ===== HISTORY SETUP =====
+        let allHistoryData = [];
+
         function setupHistoryListeners() {
             const typeFilter = document.getElementById('historyTypeFilter');
-            const monthFilter = document.getElementById('historyMonthFilter');
+            const statusFilter = document.getElementById('historyStatusFilter');
+            const dateSearch = document.getElementById('historyDateSearch');
 
             typeFilter.addEventListener('change', filterHistory);
-            monthFilter.addEventListener('change', filterHistory);
+            statusFilter.addEventListener('change', filterHistory);
+            dateSearch.addEventListener('change', filterHistory);
 
-            populateMonthFilter();
             loadHistory();
         }
 
-        function populateMonthFilter() {
-            const select = document.getElementById('historyMonthFilter');
-            const now = new Date();
-            
-            for (let i = 0; i < 12; i++) {
-                const date = new Date(now.getFullYear(), now.getMonth() - i);
-                const option = document.createElement('option');
-                option.value = date.toISOString().substring(0, 7);
-                option.textContent = date.toLocaleDateString('en-US', { month: 'long', year: 'numeric' });
-                if (i === 0) option.textContent = 'Current Month';
-                select.appendChild(option);
-            }
-        }
-
         function loadHistory() {
-            // Mock history data
-            const historyList = [
+            // Mock history data - will be replaced with live data from App Script
+            allHistoryData = [
                 {
-                    type: 'order',
+                    type: 'orders',
+                    id: 'ORD001',
                     title: 'Order #001 - Fresh Foods',
                     status: 'received',
                     date: new Date().toLocaleDateString(),
-                    time: new Date().toLocaleTimeString(),
+                    dateValue: new Date().toISOString().substring(0, 10),
+                    time: '10:30 AM',
                     items: ['Tomatoes - 10 KG', 'Lettuce - 5 KG'],
+                    quantity: '15 Units',
                     submittedBy: 'Default Staff',
+                    supplier: 'Fresh Foods',
                     notes: 'Urgent delivery needed'
+                },
+                {
+                    type: 'orders',
+                    id: 'ORD002',
+                    title: 'Order #002 - Beverages Inc',
+                    status: 'pending',
+                    date: new Date().toLocaleDateString(),
+                    dateValue: new Date().toISOString().substring(0, 10),
+                    time: '11:45 AM',
+                    items: ['Vodka - 2 L', 'Rum - 1 L'],
+                    quantity: '3 L',
+                    submittedBy: 'Default Staff',
+                    supplier: 'Beverages Inc',
+                    notes: 'Standard order'
+                },
+                {
+                    type: 'production',
+                    id: 'PROD001',
+                    title: 'Production - Tomato Prep',
+                    status: 'ordered',
+                    date: new Date().toLocaleDateString(),
+                    dateValue: new Date().toISOString().substring(0, 10),
+                    time: '09:15 AM',
+                    items: ['Tomatoes - 10 KG', 'Prepared & Cut'],
+                    quantity: '10 KG',
+                    submittedBy: 'Default Staff',
+                    notes: 'Morning prep batch'
+                },
+                {
+                    type: 'wastage',
+                    id: 'WAST001',
+                    title: 'Wastage - Spoiled Lettuce',
+                    status: 'received',
+                    date: new Date().toLocaleDateString(),
+                    dateValue: new Date().toISOString().substring(0, 10),
+                    time: '02:30 PM',
+                    items: ['Lettuce - 0.5 KG', 'Reason: Spoiled'],
+                    quantity: '0.5 KG',
+                    submittedBy: 'Default Staff',
+                    notes: 'Quality issue detected'
+                },
+                {
+                    type: 'inventory',
+                    id: 'INV001',
+                    title: 'Inventory Count - Month End',
+                    status: 'not_received',
+                    date: new Date(new Date().setDate(1)).toLocaleDateString(),
+                    dateValue: new Date(new Date().setDate(1)).toISOString().substring(0, 10),
+                    time: '05:00 PM',
+                    items: ['Total Items Counted: 15', 'Quantity Checked'],
+                    quantity: '15 Items',
+                    submittedBy: 'Default Staff',
+                    notes: 'End of month inventory'
                 }
             ];
 
-            displayHistory(historyList);
+            filterHistory();
         }
 
         function displayHistory(historyList) {
             const historyDiv = document.getElementById('historyList');
             
             if (historyList.length === 0) {
-                historyDiv.innerHTML = '<div style="text-align: center; color: #999; padding: 30px;">No history available</div>';
+                historyDiv.innerHTML = '<div style="text-align: center; color: #999; padding: 30px;">No history found matching your filters</div>';
                 return;
             }
 
-            historyDiv.innerHTML = historyList.map((item, idx) => `
-                <div class="history-item clickable">
-                    <div class="history-header">
-                        <div class="history-title">${item.title}</div>
-                        <span class="history-status ${item.status === 'received' ? 'status-received' : 'status-pending'}">${item.status.toUpperCase()}</span>
-                    </div>
-                    <div class="history-meta">
-                        <div>${item.date} at ${item.time}</div>
-                        <div>By: ${item.submittedBy}</div>
-                    </div>
-                    <div class="history-details" id="details-${idx}">
-                        <strong>Items:</strong><br>
-                        ${item.items.join('<br>')}
-                        ${item.notes ? `<br><br><strong>Notes:</strong><br>${item.notes}` : ''}
-                    </div>
-                </div>
-            `).join('');
+            historyDiv.innerHTML = historyList.map((item, idx) => {
+                const statusClass = {
+                    'received': 'status-received',
+                    'pending': 'status-pending',
+                    'ordered': 'status-pending',
+                    'not_received': 'status-pending'
+                }[item.status] || 'status-pending';
 
-            // Add toggle functionality
-            document.querySelectorAll('.history-item').forEach((item, idx) => {
-                item.addEventListener('click', function() {
-                    document.getElementById(`details-${idx}`).classList.toggle('show');
-                });
-            });
+                const statusDisplay = {
+                    'received': 'Received',
+                    'pending': 'Pending',
+                    'ordered': 'Ordered',
+                    'not_received': 'Not Received'
+                }[item.status] || item.status;
+
+                return `
+                    <div class="history-item clickable" onclick="toggleHistoryDetails(${idx})">
+                        <div class="history-header">
+                            <div style="flex: 1;">
+                                <div class="history-title">${item.title}</div>
+                                <div style="font-size: 12px; color: #999; margin-top: 5px;">ID: ${item.id}</div>
+                            </div>
+                            <span class="history-status ${statusClass}">${statusDisplay}</span>
+                        </div>
+                        <div class="history-meta">
+                            <div>📅 ${item.date} at ${item.time}</div>
+                            <div>👤 Submitted by: ${item.submittedBy}</div>
+                            ${item.supplier ? `<div>🏪 Supplier: ${item.supplier}</div>` : ''}
+                            <div>📦 ${item.quantity}</div>
+                        </div>
+                        <div class="history-details" id="details-${idx}">
+                            <strong>Items/Details:</strong><br>
+                            ${item.items.join('<br>')}
+                            ${item.notes ? `<br><br><strong>Notes:</strong><br>${item.notes}` : ''}
+                        </div>
+                    </div>
+                `;
+            }).join('');
+        }
+
+        function toggleHistoryDetails(idx) {
+            const detailsDiv = document.getElementById(`details-${idx}`);
+            if (detailsDiv) {
+                detailsDiv.classList.toggle('show');
+            }
         }
 
         function filterHistory() {
-            loadHistory();
+            const typeFilter = document.getElementById('historyTypeFilter').value;
+            const statusFilter = document.getElementById('historyStatusFilter').value;
+            const dateSearch = document.getElementById('historyDateSearch').value;
+
+            let filtered = allHistoryData;
+
+            // Filter by type - ONLY show selected type (don't mix production with orders)
+            if (typeFilter) {
+                filtered = filtered.filter(item => item.type === typeFilter);
+            }
+
+            // Filter by status
+            if (statusFilter) {
+                filtered = filtered.filter(item => item.status === statusFilter);
+            }
+
+            // Filter by date
+            if (dateSearch) {
+                filtered = filtered.filter(item => item.dateValue === dateSearch);
+            }
+
+            // Sort by date descending (newest first)
+            filtered.sort((a, b) => new Date(b.dateValue) - new Date(a.dateValue));
+
+            displayHistory(filtered);
         }
 
         // ===== MODALS & NOTIFICATIONS =====
