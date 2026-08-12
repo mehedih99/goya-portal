@@ -1232,11 +1232,7 @@
                     </table>
                 </div>
 
-                <div class="form-section" style="margin-top: 30px; border-top: 2px solid #e0e0e0; padding-top: 30px;">
-                    <h4 style="margin-bottom: 15px; color: #d32f2f;">🛑 Danger Zone</h4>
-                    <p style="color: #999; margin-bottom: 15px;">These actions are permanent and cannot be undone</p>
-                    <button class="btn-delete" id="resetDatabaseBtn" style="width: 100%; margin-top: 15px;">Reset All Database</button>
-                </div>
+
             </div>
 
         </div>
@@ -1676,23 +1672,32 @@
                 return;
             }
 
-            // CSV format for Foodics
-            const csv = `item_name,sku,quantity,unit,supplier,status,date,submitted_by,notes
-Tomatoes,TOM001,10,KG,Fresh Foods,Pending,${new Date().toLocaleDateString()},Default Staff,Sample order
-Lettuce,LET001,5,KG,Fresh Foods,Pending,${new Date().toLocaleDateString()},Default Staff,`;
+            // CSV format for Foodics - Purchase Orders
+            const csv = `Order_ID,Item_Name,SKU,Quantity,Unit_Type,Supplier_Name,Order_Status,Order_Date,Time,Submitted_By,Notes
+ORD001,Tomatoes,TOM001,10,KG,Fresh Foods,Received,${new Date().toLocaleDateString()},10:30 AM,Default Staff,Sample order
+ORD002,Lettuce,LET001,5,KG,Fresh Foods,Pending,${new Date().toLocaleDateString()},11:45 AM,Default Staff,";
 
-            downloadCSV(csv, 'orders_foodics.csv');
-            showAdminNotification('success', 'Orders exported for Foodics');
+            downloadCSV(csv, 'purchase_orders_foodics.csv');
+            showAdminNotification('success', 'Purchase Orders exported for Foodics');
         }
 
         // PRODUCTION & WASTAGE REPORTS
         function downloadReport() {
             const type = document.getElementById('reportType').value;
-            const csv = `date,item_name,sku,quantity,unit,submitted_by,notes
-${new Date().toLocaleDateString()},Tomatoes,TOM001,10,KG,Default Staff,Test ${type}`;
-
-            downloadCSV(csv, `${type}_report.csv`);
-            showAdminNotification('success', `${type} report exported`);
+            
+            if (type === 'production') {
+                // Production Report for Foodics
+                const csv = `Production_Date,Item_Name,SKU,Quantity_Produced,Unit_Type,Logged_By,Time,Notes
+${new Date().toLocaleDateString()},Tomatoes,TOM001,10,KG,Default Staff,09:15 AM,Morning prep batch`;
+                downloadCSV(csv, 'production_report_foodics.csv');
+                showAdminNotification('success', 'Production report exported for Foodics');
+            } else {
+                // Wastage Report for Foodics
+                const csv = `Wastage_Date,Item_Name,SKU,Quantity_Wasted,Unit_Type,Wastage_Reason,Logged_By,Time,Notes
+${new Date().toLocaleDateString()},Lettuce,LET001,0.5,KG,Spoiled,Default Staff,02:30 PM,Quality issue detected`;
+                downloadCSV(csv, 'wastage_report_foodics.csv');
+                showAdminNotification('success', 'Wastage report exported for Foodics');
+            }
         }
 
         // INVENTORY CSV
@@ -1700,28 +1705,33 @@ ${new Date().toLocaleDateString()},Tomatoes,TOM001,10,KG,Default Staff,Test ${ty
             const month = document.getElementById('inventoryMonth').value;
             const section = document.getElementById('inventorySection').value;
 
-            const csv = `count_id,item_name,sku,unit,section,counted_quantity,counted_by,date
-,Tomatoes,TOM001,KG,Kitchen,10,Default Staff,${new Date().toLocaleDateString()}`;
+            // Inventory Count for Foodics - Correct Format
+            const csv = `Item_Name,SKU,Unit_Type,Section,Counted_Quantity,Physical_Count,Variance,Counted_By,Count_Date,Count_Time
+Tomatoes,TOM001,KG,Kitchen,10,10,0,Default Staff,${new Date().toLocaleDateString()},05:00 PM
+Lettuce,LET001,KG,Kitchen,5,5,0,Default Staff,${new Date().toLocaleDateString()},05:00 PM
+Vodka,VOD001,L,Bar,2,2,0,Default Staff,${new Date().toLocaleDateString()},05:00 PM`;
 
-            downloadCSV(csv, 'inventory_count.csv');
-            showAdminNotification('success', 'Inventory exported');
+            downloadCSV(csv, 'inventory_count_foodics.csv');
+            showAdminNotification('success', 'Inventory exported for Foodics');
         }
 
         // DATA EXPORT
         function downloadMasterItems() {
-            let csv = `sku,name,type,storage_unit,ingredient_unit,supplier\n`;
+            // Master Items for Foodics
+            let csv = `SKU,Item_Name,Item_Type,Storage_Unit,Ingredient_Unit,Supplier_Name,Active\n`;
             csv += masterItems.map(item => 
-                `${item.sku},${item.name},${item.type},${item.storage_unit},${item.ingredient_unit},${item.supplier}`
+                `${item.sku},${item.name},${item.type},${item.storage_unit},${item.ingredient_unit},${item.supplier},Yes`
             ).join('\n');
 
-            downloadCSV(csv, 'master_items.csv');
-            showAdminNotification('success', 'Master items exported');
+            downloadCSV(csv, 'master_items_foodics.csv');
+            showAdminNotification('success', 'Master items exported for Foodics');
         }
 
         function downloadStaffList() {
-            let csv = `name,pin,section,access_rights\n`;
+            // Staff List
+            let csv = `Staff_Name,PIN_Code,Section,Access_Rights,Status\n`;
             csv += staff.map(s => 
-                `${s.name},${s.pin},${s.section},"${s.access.join('; ')}"`
+                `${s.name},${s.pin},${s.section},"${s.access.join('; ')}",Active`
             ).join('\n');
 
             downloadCSV(csv, 'staff_list.csv');
