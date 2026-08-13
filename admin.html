@@ -1,0 +1,196 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>Goya Admin Panel</title>
+<link rel="stylesheet" href="styles.css">
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+<script src="config.js"></script>
+<script src="app.js" defer></script>
+</head>
+<body data-page="admin">
+<div id="adminLogin" class="login-wrap">
+  <div class="login-card">
+    <img class="logo" src="goya-logo.png" alt="Goya">
+    <h1>Goya Admin Panel</h1>
+    <p>Management access</p>
+    <div class="field"><label>Admin PIN</label><input id="adminPin" class="pin" type="password" inputmode="numeric" maxlength="4" onkeydown="if(event.key==='Enter')GoyaAdmin.adminLogin()"></div>
+    <button class="btn block accent" style="margin-top:14px" onclick="GoyaAdmin.adminLogin()">Unlock Panel</button>
+    <div class="small muted" style="text-align:center;margin-top:15px">Default admin PIN: <strong>9988</strong></div>
+  </div>
+</div>
+
+<div id="adminApp" class="hidden app">
+<div class="shell">
+<aside id="sidebar" class="sidebar">
+  <div class="brand"><img src="goya-logo.png" alt=""><div><strong>GOYA</strong><span>Admin Panel</span></div></div>
+  <div class="nav">
+    <button class="active" onclick="GoyaAdmin.adminNav(this,'adminDashboard')">📊 Dashboard</button>
+    <button onclick="GoyaAdmin.adminNav(this,'adminOrders')">🧾 Orders Management</button>
+    <button onclick="GoyaAdmin.adminNav(this,'adminItems')">🧩 Items & Suppliers</button>
+    <button onclick="GoyaAdmin.adminNav(this,'adminInternal')">🥣 Internal Items</button>
+    <button onclick="GoyaAdmin.adminNav(this,'adminStaff')">👥 Staff</button>
+    <button onclick="GoyaAdmin.adminNav(this,'adminPW')">⚠️ Production & Wastage</button>
+    <button onclick="GoyaAdmin.adminNav(this,'adminInventory')">📦 Inventory Counts</button>
+    <button onclick="GoyaAdmin.adminNav(this,'adminExport')">⬇️ Data Export</button>
+    <button onclick="GoyaAdmin.adminNav(this,'adminSettings')">⚙️ Settings</button>
+    <button onclick="GoyaAdmin.adminLogout()">↪ Logout</button>
+  </div>
+</aside>
+<main class="main">
+<header class="topbar">
+  <div style="display:flex;align-items:center;gap:10px"><button class="hamb mobile-only" onclick="GoyaAdmin.openMobileAdmin()">☰</button><h2>Goya Admin Panel</h2></div>
+  <div class="top-actions"><span class="status"><span class="dot"></span> Supabase connected</span><span class="small muted">No App Script</span></div>
+</header>
+<section class="content">
+
+<!-- DASHBOARD -->
+<div id="adminDashboard" data-page>
+  <div class="section-title"><div><h3>Operations Dashboard</h3><div class="muted small">Live data from Supabase.</div></div><button class="btn secondary" onclick="GoyaAdmin.loadAdminOrders()">↻ Refresh</button></div>
+  <div class="grid grid-4">
+    <div class="card stat"><div class="num" id="statItems">0</div><div class="label">Master Items</div></div>
+    <div class="card stat"><div class="num" id="statInternal">0</div><div class="label">Internal Items</div></div>
+    <div class="card stat"><div class="num" id="statStaff">0</div><div class="label">Active Staff</div></div>
+    <div class="card stat"><div class="num" id="statSuppliers">0</div><div class="label">Active Suppliers</div></div>
+  </div>
+  <div class="card" style="margin-top:16px">
+    <div class="section-title"><h3>Recent Orders</h3><button class="btn ghost" onclick="GoyaAdmin.adminNav(document.querySelector('.nav button:nth-child(2)'),'adminOrders')">Open Orders</button></div>
+    <div class="table-wrap"><table class="table"><thead><tr><th>Order</th><th>Item</th><th>Qty</th><th>Supplier</th><th>Status</th><th>Staff</th><th>Time</th></tr></thead><tbody id="dashboardOrdersBody"></tbody></table></div>
+  </div>
+</div>
+
+<!-- ORDERS -->
+<div id="adminOrders" data-page class="hidden">
+  <div class="section-title"><div><h3>Orders Management</h3><div class="muted small">Filter, bulk update, delete and export Foodics purchase_order.csv.</div></div><button class="btn secondary" onclick="GoyaAdmin.loadAdminOrders()">↻ Refresh</button></div>
+  <div class="card">
+    <div class="form-grid">
+      <div class="field"><label>Search item / SKU</label><input id="orderAdminSearch" placeholder="Search…"></div>
+      <div class="field"><label>Status</label><select id="orderStatusFilter"><option value="">All</option><option>Pending</option><option>Ordered</option><option>Partially Received</option><option>Received</option><option>Cancelled</option></select></div>
+      <div class="field"><label>Supplier</label><select id="orderSupplierFilter"><option value="">All suppliers</option></select></div>
+      <div class="field"><label>From date</label><input id="orderFrom" type="date"></div>
+      <div class="field"><label>To date</label><input id="orderTo" type="date"></div>
+    </div>
+    <div class="toolbar" style="margin-top:12px"><button class="btn" onclick="GoyaAdmin.loadAdminOrders()">Apply Filters</button><button class="btn secondary" onclick="document.getElementById('orderAdminSearch').value='';document.getElementById('orderStatusFilter').value='';document.getElementById('orderSupplierFilter').value='';document.getElementById('orderFrom').value='';document.getElementById('orderTo').value='';GoyaAdmin.loadAdminOrders()">Clear</button><span class="right muted small">Selected rows can be changed together.</span></div>
+  </div>
+  <div class="card" style="margin-top:16px">
+    <div class="toolbar">
+      <select id="bulkStatus" style="padding:10px;border:1px solid var(--line);border-radius:10px"><option>Pending</option><option>Ordered</option><option>Partially Received</option><option>Received</option><option>Cancelled</option></select>
+      <input id="bulkNotes" placeholder="Optional note" style="padding:10px;border:1px solid var(--line);border-radius:10px;min-width:220px">
+      <button class="btn" onclick="GoyaAdmin.bulkStatus()">Save Changes</button>
+      <button class="btn danger" onclick="GoyaAdmin.deleteSelectedOrders()">Delete Selected</button>
+      <button class="btn ok" onclick="GoyaAdmin.exportOrders()">Download Foodics CSV</button>
+      <button class="btn secondary" onclick="GoyaAdmin.whatsappSupplier()">Supplier WhatsApp</button>
+    </div>
+    <div class="table-wrap" style="margin-top:12px"><table class="table"><thead><tr><th><input type="checkbox" onclick="document.querySelectorAll('.orderCheck').forEach(x=>x.checked=this.checked)"></th><th>Order</th><th>Item</th><th>Qty</th><th>Unit</th><th>Supplier</th><th>Status</th><th>Logged By</th><th>Time</th><th>Notes</th></tr></thead><tbody id="adminOrdersBody"></tbody></table></div>
+  </div>
+</div>
+
+<!-- ITEMS + SUPPLIERS -->
+<div id="adminItems" data-page class="hidden">
+  <div class="section-title"><div><h3>Master Items & Suppliers</h3><div class="muted small">Upload your Master Items Excel/CSV template. Upload replaces the current Master Items table.</div></div></div>
+  <div class="grid grid-2">
+    <div class="card">
+      <div class="section-title"><h3>Master Items Import</h3><span class="tag">Foodics source</span></div>
+      <div class="toolbar"><button class="btn" onclick="GoyaAdmin.downloadTemplate('master')">Download Template</button><button class="btn accent" onclick="GoyaAdmin.uploadChange('master')">Upload Excel/CSV</button><input id="masterUpload" type="file" accept=".xlsx,.xls,.csv" class="hidden" onchange="GoyaAdmin.handleUpload('master',this.files[0])"></div>
+      <div class="small muted" style="margin-top:10px">Headers: Row ID, Name, SKU, Storage Unit, Ingredient Unit, Supplier, Items Type.</div>
+    </div>
+    <div class="card">
+      <div class="section-title"><h3>Add Supplier</h3></div>
+      <input id="supplierId" type="hidden">
+      <div class="form-grid"><div class="field"><label>Name</label><input id="supplierName"></div><div class="field"><label>Phone (optional)</label><input id="supplierPhone"></div><div class="field"><label>Email (optional)</label><input id="supplierEmail"></div><div class="field" style="align-self:end"><button class="btn ok" onclick="GoyaAdmin.saveSupplier()">Save Supplier</button></div></div>
+    </div>
+  </div>
+  <div class="card" style="margin-top:16px"><div class="section-title"><h3>Master Items</h3></div><div class="table-wrap"><table class="table"><thead><tr><th>Row ID</th><th>Name</th><th>SKU</th><th>Storage</th><th>Ingredient</th><th>Supplier</th><th>Type</th><th></th></tr></thead><tbody id="masterBody"></tbody></table></div></div>
+  <div class="card" style="margin-top:16px"><div class="section-title"><h3>Suppliers</h3></div><div class="table-wrap"><table class="table"><thead><tr><th>Name</th><th>Phone</th><th>Email</th><th>Active</th><th></th></tr></thead><tbody id="supplierBody"></tbody></table></div></div>
+</div>
+
+<!-- INTERNAL -->
+<div id="adminInternal" data-page class="hidden">
+  <div class="section-title"><div><h3>Internal Items</h3><div class="muted small">Production and wastage search list.</div></div></div>
+  <div class="card">
+    <div class="toolbar"><button class="btn" onclick="GoyaAdmin.downloadTemplate('internal')">Download Template</button><button class="btn accent" onclick="GoyaAdmin.uploadChange('internal')">Upload Excel/CSV</button><input id="internalUpload" type="file" accept=".xlsx,.xls,.csv" class="hidden" onchange="GoyaAdmin.handleUpload('internal',this.files[0])"></div>
+    <div class="small muted" style="margin-top:10px">Headers: Row ID, Name, SKU, Storage Unit, Ingredient Unit, Items Type.</div>
+  </div>
+  <div class="card" style="margin-top:16px"><div class="table-wrap"><table class="table"><thead><tr><th>Row ID</th><th>Name</th><th>SKU</th><th>Storage</th><th>Ingredient</th><th>Type</th><th></th></tr></thead><tbody id="internalBody"></tbody></table></div></div>
+  <div class="card" style="margin-top:16px"><div class="section-title"><h3>Wastage Reasons</h3></div><div class="toolbar"><input id="reasonName" placeholder="e.g. Expired / Damaged / Wrong preparation"><button class="btn ok" onclick="GoyaAdmin.saveReason()">Add Reason</button></div><div class="table-wrap" style="margin-top:12px"><table class="table"><thead><tr><th>Reason</th><th>Status</th><th></th></tr></thead><tbody id="reasonBody"></tbody></table></div></div>
+</div>
+
+<!-- STAFF -->
+<div id="adminStaff" data-page class="hidden">
+  <div class="section-title"><div><h3>Staff Management</h3><div class="muted small">No registration. Staff log in only with their 4-digit PIN.</div></div></div>
+  <div class="card">
+    <input id="staffId" type="hidden">
+    <div class="form-grid">
+      <div class="field"><label>Name</label><input id="staffName"></div>
+      <div class="field"><label>New PIN (4 digits)</label><input id="staffPinNew" inputmode="numeric" maxlength="4"></div>
+      <div class="field"><label>Sections (comma separated)</label><input id="staffSections" placeholder="Bar, Kitchen"></div>
+      <div class="field" style="align-self:end"><label>Active</label><input id="staffActive" type="checkbox" checked style="width:20px;height:20px"></div>
+    </div>
+    <div class="toolbar" style="margin-top:12px"><label><input id="canOrder" type="checkbox" checked> Orders</label><label><input id="canProd" type="checkbox" checked> Production</label><label><input id="canWaste" type="checkbox" checked> Wastage</label><label><input id="canInv" type="checkbox"> Inventory</label><button class="btn ok right" onclick="GoyaAdmin.saveStaff()">Save Staff</button></div>
+  </div>
+  <div class="card" style="margin-top:16px"><div class="table-wrap"><table class="table"><thead><tr><th>Name</th><th>Status</th><th>Order</th><th>Production</th><th>Wastage</th><th>Inventory</th><th>Sections</th><th></th></tr></thead><tbody id="staffBody"></tbody></table></div></div>
+</div>
+
+<!-- PRODUCTION / WASTAGE -->
+<div id="adminPW" data-page class="hidden">
+  <div class="section-title"><div><h3>Production & Wastage</h3><div class="muted small">Foodics export format is exactly: name, sku, storage_quantity, ingredients_quantity.</div></div></div>
+  <div class="card">
+    <div class="toolbar"><div class="field"><label>From</label><input id="pwFrom" type="date"></div><div class="field"><label>To</label><input id="pwTo" type="date"></div><select id="pwKind" style="padding:10px;border:1px solid var(--line);border-radius:10px"><option value="production">Production</option><option value="wastage">Wastage</option></select><button class="btn" onclick="GoyaAdmin.loadProductionWastage(document.getElementById('pwKind').value)">Load</button><button class="btn ok" onclick="GoyaAdmin.exportPW()">Download CSV</button></div>
+  </div>
+  <div class="card" style="margin-top:16px"><div class="table-wrap"><table class="table"><thead><tr><th>Name</th><th>SKU</th><th>Storage Qty</th><th>Ingredients Qty</th><th>Logged By</th><th>Time</th><th>Reason</th></tr></thead><tbody id="pwBody"></tbody></table></div></div>
+</div>
+
+<!-- INVENTORY -->
+<div id="adminInventory" data-page class="hidden">
+  <div class="section-title"><div><h3>Inventory Counts</h3><div class="muted small">Activate a month and assign staff/sections.</div></div></div>
+  <div class="card">
+    <input id="invId" type="hidden">
+    <div class="form-grid"><div class="field"><label>Month</label><input id="invSessionMonth" type="date" value=""></div><div class="field"><label>Title</label><input id="invTitle" placeholder="August 2026 Inventory Count"></div><div class="field"><label>Sections</label><input id="invSections" placeholder="Bar, Kitchen, Pastry, Packaging"></div><div class="field"><label>Assigned Staff</label><select id="invAssigned" multiple size="4"></select></div></div>
+    <div class="toolbar" style="margin-top:12px"><label><input id="invActive" type="checkbox"> Active</label><button class="btn ok right" onclick="GoyaAdmin.saveInventorySession()">Save Session</button></div>
+  </div>
+  <div class="card" style="margin-top:16px"><div class="section-title"><h3>Sessions</h3></div><div class="table-wrap"><table class="table"><thead><tr><th>Month</th><th>Title</th><th>Status</th><th>Sections</th><th>Assigned</th><th></th></tr></thead><tbody id="invSessionBody"></tbody></table></div></div>
+  <div class="card" style="margin-top:16px">
+    <div class="toolbar"><div class="field"><label>Count month</label><input id="invMonth" type="month"></div><div class="field"><label>Section</label><select id="invSection"><option value="">All</option><option>Bar</option><option>Kitchen</option><option>Pastry</option><option>Packaging</option></select></div><button class="btn" onclick="GoyaAdmin.loadInventoryCounts()">Load Counts</button><button class="btn ok" onclick="GoyaAdmin.exportInventory()">Download Foodics CSV</button></div>
+    <div class="table-wrap" style="margin-top:12px"><table class="table"><thead><tr><th>Inventory Item Name</th><th>Inventory Item SKU</th><th>Section</th><th>Storage quantity</th><th>Ingredients quantity</th><th>Counted By</th><th>Counted At</th></tr></thead><tbody id="invCountBody"></tbody></table></div>
+  </div>
+</div>
+
+<!-- EXPORT -->
+<div id="adminExport" data-page class="hidden">
+  <div class="section-title"><div><h3>Data Export</h3><div class="muted small">Master Items can be filtered by supplier and item type.</div></div></div>
+  <div class="card">
+    <div class="toolbar"><select id="exportSupplier"><option value="">All suppliers</option></select><select id="exportType"><option value="">All types</option><option>Bar</option><option>Kitchen</option><option>Pastry</option><option>Packaging</option></select><button class="btn ok" onclick="GoyaAdmin.exportMasterFiltered()">Download Master Items CSV</button><button class="btn secondary" onclick="GoyaAdmin.exportInternalAll()">Download Internal Items CSV</button></div>
+  </div>
+  <div class="card" style="margin-top:16px"><div class="section-title"><h3>Import Templates</h3></div><div class="toolbar"><button class="btn" onclick="GoyaAdmin.downloadTemplate('master')">Master Items Template</button><button class="btn" onclick="GoyaAdmin.downloadTemplate('internal')">Internal Items Template</button></div></div>
+</div>
+
+<!-- SETTINGS -->
+<div id="adminSettings" data-page class="hidden">
+  <div class="section-title"><div><h3>Settings</h3><div class="muted small">Supabase is the only database connection. There is no App Script setting.</div></div></div>
+  <div class="grid grid-2">
+    <div class="card"><h3>Manager Notifications</h3><div class="field"><label>Manager Email</label><input id="managerEmail" type="email"></div><div class="field" style="margin-top:10px"><label>WhatsApp phone (optional)</label><input id="waPhone" placeholder="Country code + number, digits only"></div><button class="btn ok" style="margin-top:12px" onclick="GoyaAdmin.saveSettings()">Save Settings</button></div>
+    <div class="card"><h3>Additional Info</h3><label><input id="infoEnabled" type="checkbox"> Enable Additional Info tab when pages exist</label><div class="small muted" style="margin-top:8px">Staff will see only active pages.</div></div>
+  </div>
+  <div class="card" style="margin-top:16px">
+    <div class="section-title"><h3>Additional Pages</h3></div>
+    <input id="infoId" type="hidden">
+    <div class="form-grid"><div class="field"><label>Title</label><input id="infoTitle"></div><div class="field"><label>Sort order</label><input id="infoSort" type="number" value="0"></div><div class="field"><label>Active</label><input id="infoActive" type="checkbox" checked style="width:20px;height:20px"></div><div class="field"><label>Body</label><textarea id="infoBodyText" rows="3"></textarea></div></div>
+    <button class="btn ok" style="margin-top:10px" onclick="GoyaAdmin.saveInfo()">Save Page</button>
+    <div class="table-wrap" style="margin-top:12px"><table class="table"><thead><tr><th>Title</th><th>Active</th><th>Order</th><th></th></tr></thead><tbody id="infoAdminBody"></tbody></table></div>
+  </div>
+</div>
+
+</section>
+</main>
+</div>
+</div>
+<script>
+document.addEventListener('DOMContentLoaded',()=>{
+  const m=new Date();document.getElementById('invMonth').value=m.toISOString().slice(0,7);
+  document.getElementById('invSessionMonth').value=m.toISOString().slice(0,10);
+  document.getElementById('staffPinNew').addEventListener('input',e=>e.target.value=e.target.value.replace(/\D/g,'').slice(0,4));
+});
+</script>
+</body>
+</html>
