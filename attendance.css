@@ -5,3 +5,6 @@
 /* V9 attendance review / split shift */
 .sub-time{min-width:112px}.device-compare{min-width:180px;font-size:12px;line-height:1.35}.origin-pill{white-space:nowrap}.review-row{background:#fff8e8}.sub-edit{min-width:105px}.table-wrap table input[type=time]{padding:7px 8px}.table-wrap table input[type=checkbox]{width:auto}.split-badge{display:inline-block;padding:2px 7px;border-radius:999px;background:#eef4ff;font-size:11px;font-weight:700}.selected-row{background:#eef6f1}
 @media(max-width:800px){.table-wrap{overflow:auto}.table-wrap table{min-width:1180px}}
+
+/* V10 comparison/report UI */
+.diff-ok{color:#47725e;font-weight:700}.diff-warn{color:#a55b27;font-weight:800}.compare-stack{min-width:155px;line-height:1.45}.compare-stack small{display:block;color:#69756f}.report-actions{display:flex;gap:8px;flex-wrap:wrap}.final-report-row{border:1px solid #dfe5e1;border-radius:14px;padding:12px;display:flex;justify-content:space-between;gap:12px;align-items:center;background:#fff;margin-bottom:8px}@media(max-width:760px){.final-report-row{align-items:flex-start;flex-direction:column}.my-att-share-tools{display:grid!important;grid-template-columns:1fr!important}.my-att-share-tools>*{width:100%!important}}
