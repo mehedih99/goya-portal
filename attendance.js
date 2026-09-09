@@ -22,7 +22,7 @@
   async function logout(){try{if(state.token)await rpc('logout',{p_token:state.token})}catch{}state.token=null;location.reload()}
   async function bootstrap(){const d=await rpc('attendance_bootstrap',{p_token:state.token});state.staff=d.staff||[];state.settings=d.settings||{};fillStaffSelects();fillSettings();const t=today();$('dashDate').value=t;$('manualDate').value=t;$('dailyDate').value=t;$('monthPick').value=monthNow();if($('subMonth'))$('subMonth').value=monthNow();const first=`${monthNow()}-01`;$('histFrom').value=first;$('histTo').value=t;await loadDashboard()}
   function fillStaffSelects(){['manualStaff','fileStaff'].forEach(id=>{$(id).innerHTML=state.staff.map(s=>`<option value="${s.id}">${esc(s.name)}${s.employee_code?` · ${esc(s.employee_code)}`:''}</option>`).join('')});const opts='<option value="">All Staff</option>'+state.staff.map(s=>`<option value="${s.id}">${esc(s.name)}</option>`).join('');$('histStaff').innerHTML=opts;if($('subStaff'))$('subStaff').innerHTML=opts}
-  function fillSettings(){const s=state.settings;$('setStart').value=s.operational_start||'08:00';$('setCutoff').value=s.operational_cutoff||'02:00';$('setGrace').value=s.late_grace_minutes??15;$('setPresence').value=(s.default_presence_minutes??540)/60;$('setBreak').value=s.default_break_minutes??60;if($('setLastShift'))$('setLastShift').value=s.last_shift_start||'17:00';if($('setDuplicateWindow'))$('setDuplicateWindow').value=s.duplicate_punch_window_minutes??5;if($('shiftPreview'))$('shiftPreview').textContent=buildHourlyShiftTimes(s.operational_start||'08:00',s.last_shift_start||'17:00').map(formatClock).join(', ')}
+  function fillSettings(){const s=state.settings;$('setStart').value=s.operational_start||'08:00';$('setCutoff').value=s.operational_cutoff||'02:00';$('setGrace').value=s.late_grace_minutes??15;$('setPresence').value=(s.default_presence_minutes??540)/60;$('setBreak').value=s.default_break_minutes??60;if($('setLastShift'))$('setLastShift').value=s.last_shift_start||'17:00';if($('setDuplicateWindow'))$('setDuplicateWindow').value=Math.max(10,Number(s.duplicate_punch_window_minutes??10));if($('shiftPreview'))$('shiftPreview').textContent=buildHourlyShiftTimes(s.operational_start||'08:00',s.last_shift_start||'17:00').map(formatClock).join(', ')}
   function recordStatus(r,date){if(!r)return 'No Record';if(r.day_off)return 'Day Off';if(r.split_shift&&(!r.punch_in||!r.punch_out||!r.shift2_in||!r.shift2_out))return date===today()?'On Duty':'Missing Punch';if(r.punch_in&&!r.punch_out)return date===today()?'On Duty':'Missing Punch';if(!r.punch_in&&r.punch_out)return 'Missing Punch';if(r.punch_in&&r.punch_out)return 'Completed';return 'No Record'}
   function rowForStaff(s,r,date){return {staff:s,record:r,status:recordStatus(r,date)}}
   async function getRange(start,end){const d=await rpc('attendance_records_range',{p_token:state.token,p_start:start,p_end:end});state.staff=d.staff||state.staff;fillStaffSelects();return d.records||[]}
@@ -30,7 +30,7 @@
   function statusPill(s){const cls=s==='Completed'?'ok':s==='Day Off'?'off':s==='Missing Punch'?'missing':s==='On Duty'?'ok':'';return `<span class="pill ${cls}">${esc(s)}</span>`}
 
   // -------- DEVICE FILE PARSER V14 --------
-  const timeRegex=/(?:^|\D)([01]?\d|2[0-3]):([0-5]\d)(?::([0-5]\d))?(?:\D|$)/g;
+  const timeRegex=/\b([01]?\d|2[0-3]):([0-5]\d)(?::([0-5]\d))?\b/g;
   function parseTimes(v){if(v==null||v==='')return[];if(v instanceof Date)return [`${pad(v.getHours())}:${pad(v.getMinutes())}`];if(typeof v==='number'&&v>=0&&v<1){const mins=Math.round(v*1440)%1440;return [`${pad(Math.floor(mins/60))}:${pad(mins%60)}`]};const str=String(v);const out=[];timeRegex.lastIndex=0;let m;while((m=timeRegex.exec(str)))out.push(`${pad(+m[1])}:${m[2]}`);return out}
   function validYMD(y,m,d){const dt=new Date(y,m-1,d);return y>=2000&&y<=2100&&m>=1&&m<=12&&d>=1&&d<=31&&dt.getFullYear()===y&&dt.getMonth()===m-1&&dt.getDate()===d}
   function ymd(y,m,d){return validYMD(+y,+m,+d)?`${+y}-${pad(+m)}-${pad(+d)}`:null}
@@ -44,9 +44,62 @@
   function formatClock(t){const [h,m]=t.split(':').map(Number),ap=h>=12?'PM':'AM',hh=h%12||12;return `${hh}:${pad(m)} ${ap}`}
   function matchedShiftForPunch(punchIn,operationalDate){if(!punchIn)return null;const first=state.settings.operational_start||'08:00',last=state.settings.last_shift_start||'17:00',shifts=Array.isArray(state.settings.shift_start_times)&&state.settings.shift_start_times.length?state.settings.shift_start_times:buildHourlyShiftTimes(first,last);const d=new Date(String(punchIn).replace(' ','T'));if(Number.isNaN(d.getTime()))return null;const punchMin=d.getHours()*60+d.getMinutes();let best=null;for(const sh of shifts){const sm=toMin(sh),dist=Math.abs(punchMin-sm);if(!best||dist<best.dist||(dist===best.dist&&sm>best.min))best={time:sh,min:sm,dist}}if(!best)return null;const grace=Number(state.settings.late_grace_minutes??15),late=Math.max(0,punchMin-best.min)>grace?Math.max(0,punchMin-best.min):0;return {...best,late,scheduled:`${operationalDate}T${best.time}:00`}}
   function collapseDuplicateEvents(events,windowMin){if(!events.length)return {events:[],duplicates:0};const sorted=[...events].sort((a,b)=>a.dt.localeCompare(b.dt)),out=[],clusters=[];for(const e of sorted){const last=clusters.at(-1);if(last&&minutesBetweenDt(last.at(-1).dt,e.dt)>=0&&minutesBetweenDt(last.at(-1).dt,e.dt)<=windowMin)last.push(e);else clusters.push([e])}let duplicates=0;for(const c of clusters){out.push(c[0]);duplicates+=Math.max(0,c.length-1)}return {events:out,duplicates}}
-  function normalizeEvents(events){const cutoff=$('setCutoff')?.value||state.settings.operational_cutoff||'02:00',cutM=toMin(cutoff),dupWin=Number($('setDuplicateWindow')?.value||state.settings.duplicate_punch_window_minutes||5);const grouped=new Map();events.forEach(e=>{const cleanName=String(e.name||'').trim();if(!cleanName||cleanName.toLowerCase()==='goya lounge'||!e.date||!e.time)return;const tm=toMin(e.time),isMidnightOut=tm<=cutM,op=isMidnightOut?addDays(e.date,-1):e.date,key=`${cleanName.toLowerCase()}|${op}`;if(!/^\d{4}-\d{2}-\d{2}$/.test(op))return;if(!grouped.has(key))grouped.set(key,{name:cleanName,employee_code:e.code||'',operational_date:op,events:[]});grouped.get(key).events.push({date:e.date,time:e.time,dt:combineLocal(e.date,e.time),isMidnightOut})});return [...grouped.values()].map(g=>{g.events.sort((a,b)=>a.dt.localeCompare(b.dt));const collapsed=collapseDuplicateEvents(g.events,dupWin),ev=collapsed.events;let pin='',pout='',s2in='',s2out='',split=false,review=false,anomaly='';if(ev.length===1){if(ev[0].isMidnightOut)pout=ev[0].dt;else pin=ev[0].dt;review=true}else if(ev.length===2){if(ev[0].isMidnightOut){pout=ev[0].dt;review=true}else{pin=ev[0].dt;pout=ev[1].dt}}else if(ev.length===3){pin=ev[0].isMidnightOut?'':ev[0].dt;pout=ev.at(-1).dt;review=true;anomaly='3 unique punches - review'}else if(ev.length===4){const gap=minutesBetweenDt(ev[1].dt,ev[2].dt),seg1=minutesBetweenDt(ev[0].dt,ev[1].dt),seg2=minutesBetweenDt(ev[2].dt,ev[3].dt);if(!ev[0].isMidnightOut&&gap>=30&&seg1>=30&&seg2>=30){split=true;pin=ev[0].dt;pout=ev[1].dt;s2in=ev[2].dt;s2out=ev[3].dt}else{pin=ev[0].isMidnightOut?'':ev[0].dt;pout=ev.at(-1).dt;review=true;anomaly='4 punches did not look like a genuine split shift'}}else if(ev.length>4){pin=ev[0].isMidnightOut?'':ev[0].dt;pout=ev.at(-1).dt;review=true;anomaly=`${ev.length} unique punches - review`}
-    if(collapsed.duplicates>0)anomaly=[anomaly,`${collapsed.duplicates} duplicate punch${collapsed.duplicates===1?'':'es'} ignored`].filter(Boolean).join(' · ');
-    return {name:g.name,employee_code:g.employee_code,operational_date:g.operational_date,punch_in:pin,punch_out:pout,split_shift:split,shift2_in:s2in,shift2_out:s2out,break_taken:true,note:'',review_needed:review||!pin||!pout||(split&&(!s2in||!s2out)),duplicate_punches:collapsed.duplicates,anomaly};}).sort((a,b)=>a.operational_date.localeCompare(b.operational_date)||a.name.localeCompare(b.name))}
+  function normalizeEvents(events){
+    const cutoff=$('setCutoff')?.value||state.settings.operational_cutoff||'02:00',cutM=toMin(cutoff);
+    const dupWin=Math.max(10,Number($('setDuplicateWindow')?.value||state.settings.duplicate_punch_window_minutes||10));
+    const lastShift=toMin(state.settings.last_shift_start||'17:00'),singleOutThreshold=Math.min(23*60+59,lastShift+60);
+    const grouped=new Map();
+    events.forEach(e=>{
+      const cleanName=String(e.name||'').trim();
+      if(!cleanName||cleanName.toLowerCase()==='goya lounge'||!e.date||!e.time)return;
+      const tm=toMin(e.time),isMidnightOut=tm<=cutM,op=isMidnightOut?addDays(e.date,-1):e.date,key=`${cleanName.toLowerCase()}|${op}`;
+      if(!/^\d{4}-\d{2}-\d{2}$/.test(op))return;
+      if(!grouped.has(key))grouped.set(key,{name:cleanName,employee_code:e.code||'',operational_date:op,events:[]});
+      grouped.get(key).events.push({date:e.date,time:e.time,clockMin:tm,dt:combineLocal(e.date,e.time),isMidnightOut});
+    });
+    return [...grouped.values()].map(g=>{
+      g.events.sort((a,b)=>a.dt.localeCompare(b.dt));
+      const collapsed=collapseDuplicateEvents(g.events,dupWin),ev=collapsed.events;
+      let pin='',pout='',s2in='',s2out='',split=false,review=false,anomaly='';
+      const n=ev.length;
+      if(n===1){
+        // A lone midnight/late-evening punch is much more plausibly an OUT than a new shift start.
+        if(ev[0].isMidnightOut||ev[0].clockMin>singleOutThreshold){pout=ev[0].dt;anomaly='Missing Punch In';}
+        else{pin=ev[0].dt;anomaly='Missing Punch Out';}
+        review=true;
+      }else if(n>=2){
+        // If the first remaining punch itself is far beyond the final possible shift start,
+        // do not invent a late shift. Keep the latest punch as OUT and flag Missing In.
+        if(ev[0].clockMin>singleOutThreshold&&!ev[0].isMidnightOut){
+          pout=ev.at(-1).dt;review=true;anomaly='Late-evening punch treated as Punch Out · Missing Punch In';
+        }else{
+          // Detect a real split shift by the largest internal off-duty gap. This still works
+          // when extra device punches remain after duplicate cleanup.
+          let splitAt=-1,largestGap=-1;
+          if(n>=4){
+            for(let i=0;i<n-1;i++){
+              const gap=minutesBetweenDt(ev[i].dt,ev[i+1].dt);
+              if(gap>largestGap){largestGap=gap;splitAt=i;}
+            }
+          }
+          if(n>=4&&splitAt>=0&&largestGap>=60){
+            const seg1=minutesBetweenDt(ev[0].dt,ev[splitAt].dt),seg2=minutesBetweenDt(ev[splitAt+1].dt,ev.at(-1).dt);
+            if(seg1>=30&&seg2>=30){
+              split=true;pin=ev[0].dt;pout=ev[splitAt].dt;s2in=ev[splitAt+1].dt;s2out=ev.at(-1).dt;
+              if(n>4)anomaly=`${n-4} extra punch${n-4===1?'':'es'} ignored around split shift`;
+            }
+          }
+          if(!split){
+            pin=ev[0].dt;pout=ev.at(-1).dt;
+            if(n>2){review=true;anomaly=`${n-2} extra unique punch${n-2===1?'':'es'} ignored; first/last used`}
+          }
+        }
+      }
+      if(collapsed.duplicates>0)anomaly=[anomaly,`${collapsed.duplicates} duplicate punch${collapsed.duplicates===1?'':'es'} ignored`].filter(Boolean).join(' · ');
+      const incomplete=!pin||!pout||(split&&(!s2in||!s2out));
+      return {name:g.name,employee_code:g.employee_code,operational_date:g.operational_date,punch_in:pin,punch_out:pout,split_shift:split,shift2_in:s2in,shift2_out:s2out,break_taken:true,note:'',review_needed:review||incomplete,duplicate_punches:collapsed.duplicates,anomaly};
+    }).sort((a,b)=>a.operational_date.localeCompare(b.operational_date)||a.name.localeCompare(b.name));
+  }
   function detectTablePattern(aoa){const aliases={name:['name','employee name','staff','person name','enroll name'],code:['id','employee id','employee code','user id','enroll number','no.','no'],date:['date','punch date','attendance date'],time:['time','punch time','check time','datetime','date/time']};let best=null;aoa.slice(0,20).forEach((row,ri)=>{const low=row.map(x=>String(x??'').trim().toLowerCase());const find=arr=>low.findIndex(x=>arr.includes(x));const idx={name:find(aliases.name),code:find(aliases.code),date:find(aliases.date),time:find(aliases.time)};const score=Object.values(idx).filter(x=>x>=0).length;if(idx.name>=0&&idx.date>=0&&idx.time>=0&&(!best||score>best.score))best={ri,idx,score}});return best}
   function parseFlat(aoa,pat,fileName=''){const vals=aoa.slice(pat.ri+1).map(r=>r[pat.idx.date]);const orientation=inferTwoPartOrientation(vals)||'DM',year=fileYearHint(fileName,aoa),ev=[];for(let i=pat.ri+1;i<aoa.length;i++){const r=aoa[i],name=String(r[pat.idx.name]??'').trim();if(!name||name.toLowerCase()==='goya lounge')continue;const code=pat.idx.code>=0?String(r[pat.idx.code]??'').trim():'',dval=r[pat.idx.date],tval=r[pat.idx.time];let date=strictExcelDate(dval,year,orientation);if(!date&&tval instanceof Date)date=ymd(tval.getFullYear(),tval.getMonth()+1,tval.getDate());if(!date)continue;for(const time of parseTimes(tval))ev.push({name,code,date,time})}return ev}
   function parseDayView(aoa,fileName=''){let h=-1,idx={};for(let ri=0;ri<Math.min(30,aoa.length);ri++){const low=aoa[ri].map(x=>String(x??'').trim().toLowerCase());const name=low.indexOf('name'),date=low.indexOf('punch date'),p1=low.findIndex(x=>/^punch\s*1$/.test(x)||x==='punch1');if(name>=0&&date>=0&&p1>=0){h=ri;idx={name,date,code:low.indexOf('person code'),dept:low.indexOf('department'),punchCols:low.map((x,i)=>/^punch\s*\d+$/.test(x)||/^punch\d+$/.test(x)?i:-1).filter(i=>i>=0)};break}}if(h<0)return null;const vals=aoa.slice(h+1).map(r=>r[idx.date]),orientation=inferTwoPartOrientation(vals)||'DM',year=fileYearHint(fileName,aoa),ev=[];for(let i=h+1;i<aoa.length;i++){const r=aoa[i],name=String(r[idx.name]??'').trim();if(!name||name.toLowerCase()==='goya lounge')continue;const code=idx.code>=0?String(r[idx.code]??'').trim():'',date=strictExcelDate(r[idx.date],year,orientation);if(!date)continue;for(const ci of idx.punchCols)for(const time of parseTimes(r[ci]))ev.push({name,code,date,time})}return ev}
