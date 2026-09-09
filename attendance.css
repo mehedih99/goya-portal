@@ -8,3 +8,5 @@
 
 /* V10 comparison/report UI */
 .diff-ok{color:#47725e;font-weight:700}.diff-warn{color:#a55b27;font-weight:800}.compare-stack{min-width:155px;line-height:1.45}.compare-stack small{display:block;color:#69756f}.report-actions{display:flex;gap:8px;flex-wrap:wrap}.final-report-row{border:1px solid #dfe5e1;border-radius:14px;padding:12px;display:flex;justify-content:space-between;gap:12px;align-items:center;background:#fff;margin-bottom:8px}@media(max-width:760px){.final-report-row{align-items:flex-start;flex-direction:column}.my-att-share-tools{display:grid!important;grid-template-columns:1fr!important}.my-att-share-tools>*{width:100%!important}}
+/* V14 device accuracy / approval additions */
+.duplicate-text{color:#8a5a00;font-weight:700;margin-top:4px}.setting-summary{grid-column:1/-1;padding:12px 14px;border:1px solid #dfe7e2;border-radius:12px;background:#f7faf8}.small-btn{padding:7px 10px;font-size:12px}.selected-count{display:inline-flex;align-items:center;padding:0 8px;font-weight:700;color:#53615c}.compare-stack{display:flex;flex-direction:column;gap:4px}.diff-ok{color:#2f6b4f;font-weight:700}.diff-warn{color:#9a5b13;font-weight:700}
