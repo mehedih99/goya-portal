@@ -22,6 +22,7 @@
   const openSession=()=>daySessions().find(s=>!s.check_out_at)||null;
   function verificationBadge(ok,text){return `<span class="live-verify ${ok?'ok':'bad'}">${ok?'✓':'!'} ${esc(text)}</span>`}
   function rowVerification(row){const ss=row.sessions||[];if(!ss.length)return '—';const okIn=ss.every(s=>s.check_in_verified),outs=ss.filter(s=>s.check_out_at),okOut=outs.length===ss.length&&outs.every(s=>s.check_out_verified);return okIn&&okOut?'Verified':'Review'}
+  function friendlyPunchError(message=''){const m=String(message||'');if(/attendance_live_one_open_session_idx|duplicate key value violates unique constraint/i.test(m))return 'You already have an active attendance session. The current live session will be restored.';if(/already checked in/i.test(m))return 'You already have an active attendance session.';if(/already worked today/i.test(m))return 'You already completed a session today. Use Rejoin to continue your split shift.';if(/No active Check In found/i.test(m))return 'No active Check In was found. Refresh the page and try again.';return m||'Attendance action could not be completed.'}
   function statusLabel(row){return row.sessions?.length?(row.sessions.some(s=>!s.check_out_at)?'On Duty':(row.classification||'Duty')):(row.classification||'Day Off - Pending Review')}
   function setBreakUI(value){pendingBreakTaken=value!==false;const host=$('liveBreakTaken');if(host)host.querySelectorAll('button[data-value]').forEach(b=>b.classList.toggle('active',(b.dataset.value==='true')===pendingBreakTaken))}
   function render(){if(!current)return;const t=totals(),open=openSession(),hasSessions=daySessions().length>0,work=$('liveWorkingTime'),sub=$('liveTimerSub'),subLabel=$('liveTimerSubLabel'),ring=$('liveTimerRing');if(work)work.textContent=clockLabel(t.sec);if(t.remaining>0){if(subLabel)subLabel.textContent='Duty Remaining';if(sub)sub.textContent=clockLabel(t.remaining*60)}else{if(subLabel)subLabel.textContent='OT';if(sub)sub.textContent=clockLabel(t.liveOt*60)}if(ring){ring.classList.toggle('is-ot',t.remaining<=0);ring.classList.toggle('is-live',!!open)}
@@ -84,7 +85,49 @@
     return {...gps,ip,verify};
   }
   async function refresh(silent=false){try{const d=await rpc('staff_live_attendance_status',{p_token:ctx().token});current=d;serverOffset=new Date(d.server_now).getTime()-Date.now();if(current?.day)pendingBreakTaken=current.day.break_taken!==false;render();if(!silent)await loadHistory()}catch(e){if(!silent)toast(e.message,true)}}
-  async function doAction(type){if(busy)return;busy=true;setButtons(true);try{const v=await verifyWorkplace();let d;if(type==='out')d=await rpc('staff_live_attendance_check_out',{p_token:ctx().token,p_lat:v.lat,p_lon:v.lon,p_public_ip:v.ip,p_break_taken:pendingBreakTaken});else{d=await rpc('staff_live_attendance_check_in',{p_token:ctx().token,p_lat:v.lat,p_lon:v.lon,p_public_ip:v.ip,p_rejoin:type==='rejoin'});await rpc('staff_live_attendance_set_break',{p_token:ctx().token,p_break_taken:pendingBreakTaken})}toast(d?.message||`${type==='out'?'Check Out':type==='rejoin'?'Rejoin':'Check In'} successful.`);$('liveActionModal')?.classList.add('hidden');await refresh()}catch(e){if(!e.verificationShown){showActionMessage('Attendance action failed',e.message,true);toast(e.message,true)}}finally{busy=false;setButtons(false)}}
+  async function doAction(type){
+    if(busy)return;
+    busy=true;setButtons(true);
+    try{
+      // Always read the latest server state first. This restores an already-open session
+      // after refresh, device change or a previous duplicate tap instead of inserting again.
+      await refresh(true);
+      const existingOpen=openSession();
+      if((type==='in'||type==='rejoin')&&existingOpen){
+        $('liveActionModal')?.classList.add('hidden');
+        render();
+        toast('You are already checked in. Your live timer has been restored.');
+        return;
+      }
+      if(type==='out'&&!existingOpen){
+        throw new Error('No active Check In was found. Refresh the page and try again.');
+      }
+      const v=await verifyWorkplace();
+      let d;
+      if(type==='out'){
+        d=await rpc('staff_live_attendance_check_out',{p_token:ctx().token,p_lat:v.lat,p_lon:v.lon,p_public_ip:v.ip,p_break_taken:pendingBreakTaken});
+      }else{
+        d=await rpc('staff_live_attendance_check_in',{p_token:ctx().token,p_lat:v.lat,p_lon:v.lon,p_public_ip:v.ip,p_rejoin:type==='rejoin'});
+        if(d?.duplicate){
+          await refresh(true);
+          $('liveActionModal')?.classList.add('hidden');
+          render();
+          toast('You are already checked in. Your active session was restored.');
+          return;
+        }
+        await rpc('staff_live_attendance_set_break',{p_token:ctx().token,p_break_taken:pendingBreakTaken});
+      }
+      toast(d?.message||`${type==='out'?'Check Out':type==='rejoin'?'Rejoin':'Check In'} successful.`);
+      $('liveActionModal')?.classList.add('hidden');
+      await refresh();
+    }catch(e){
+      const msg=friendlyPunchError(e?.message);
+      if(/active attendance session|already checked in/i.test(msg)){
+        try{await refresh(true);render();$('liveActionModal')?.classList.add('hidden')}catch{}
+      }
+      if(!e.verificationShown){showActionMessage('Attendance action failed',msg,true);toast(msg,true)}
+    }finally{busy=false;setButtons(false)}
+  }
   function confirmAction(){if(pendingAction)doAction(pendingAction)}
   function setButtons(dis){['liveCheckInBtn','liveCheckOutBtn','liveRejoinBtn','liveActionConfirmBtn'].forEach(id=>{if($(id))$(id).disabled=dis})}
   async function chooseBreak(value){pendingBreakTaken=value;setBreakUI(value);render();if(current?.day){try{await rpc('staff_live_attendance_set_break',{p_token:ctx().token,p_break_taken:value});current.day.break_taken=value;render();toast(value?'Break set: 9h presence / 8h net.':'No break: 8h presence target.')}catch(e){toast(e.message,true)}}}
@@ -106,8 +149,8 @@
       b.style.pointerEvents='auto';
       b.onclick=e=>{e.preventDefault();e.stopPropagation();requestAction(type)};
     });
-    if(!document.documentElement.dataset.goyaLivePunchDelegated){
-      document.documentElement.dataset.goyaLivePunchDelegated='1';
+    if(!document.documentElement.dataset.goyaLivePunchDelegatedV23){
+      document.documentElement.dataset.goyaLivePunchDelegatedV23='1';
       document.addEventListener('click',e=>{
         const b=e.target.closest?.('#liveCheckInBtn,#liveCheckOutBtn,#liveRejoinBtn');
         if(!b)return;

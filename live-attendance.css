@@ -66,3 +66,150 @@ body.goya-modern-app #staffLiveAttendance .live-timer-ring{background:conic-grad
 @media(max-width:1100px){.live-control-head,.live-control-row{grid-template-columns:1fr 1fr .8fr .8fr .9fr .55fr .55fr 1fr 1.7fr;font-size:11px;gap:8px}.live-report-controls .live-admin-filterbar{grid-template-columns:repeat(3,1fr)}}
 @media(max-width:760px){body.goya-modern-app .content{padding:12px!important}body.goya-modern-app .sidebar{width:min(88vw,320px)!important}body.goya-modern-app .topbar{min-height:64px}.live-control-head{display:none}.live-control-list{background:transparent;border:0;box-shadow:none;display:grid;gap:10px}.live-control-row{display:grid;grid-template-columns:1fr 1fr;gap:8px 12px;background:#fff;border:1px solid var(--goya-app-line)!important;border-radius:16px;padding:13px;box-shadow:0 8px 24px rgba(23,63,53,.05)}.live-control-row>*:nth-child(n+3):not(.live-control-actions){font-size:11px;color:#5d6a64}.live-control-actions{grid-column:1/-1;justify-content:flex-start;flex-wrap:wrap;padding-top:6px}.live-control-actions .btn{flex:1 1 90px}.live-control-name{grid-column:1/2}.live-status-pill{justify-self:end}.live-control-row.is-live{background:linear-gradient(180deg,#effaf4,#fff 45%)}#liveControlSummary{grid-template-columns:repeat(3,1fr)}.live-control-clear{grid-column:1/-1;min-height:40px}.live-report-controls .live-admin-filterbar{grid-template-columns:1fr!important}.live-report-summary{grid-template-columns:repeat(2,1fr)}.live-person-summary article>div{grid-template-columns:repeat(3,1fr)}body.goya-modern-app .login-card{padding:28px 22px!important;border-radius:24px!important}}
 @media(max-width:430px){#liveControlSummary{gap:7px}.live-control-stat{padding:10px}.live-control-stat strong{font-size:19px}.live-person-summary article>div{grid-template-columns:repeat(2,1fr)}.live-report-actions .btn{flex:1 1 100%!important}}
+
+/* =========================================================
+   V23 FINAL — Apple-Inspired Clean + mobile-first hardening
+   Loaded after legacy portal styles so these are safe visual overrides.
+   ========================================================= */
+:root{
+  --goya-apple-bg:#f5f5f7;
+  --goya-apple-card:#ffffff;
+  --goya-apple-text:#1d1d1f;
+  --goya-apple-sub:#6e6e73;
+  --goya-apple-line:#e5e5ea;
+  --goya-apple-green:#2f6f57;
+  --goya-apple-green-soft:#edf6f1;
+  --goya-apple-red:#b54843;
+  --goya-apple-blue:#2767c8;
+  --goya-apple-radius:18px;
+  --goya-apple-shadow:0 8px 30px rgba(0,0,0,.055);
+}
+body.goya-apple-clean{background:var(--goya-apple-bg)!important;color:var(--goya-apple-text)!important;font-family:-apple-system,BlinkMacSystemFont,"SF Pro Text","Segoe UI",Roboto,Helvetica,Arial,sans-serif!important;-webkit-font-smoothing:antialiased;text-rendering:optimizeLegibility}
+body.goya-apple-clean .main{background:var(--goya-apple-bg)!important;min-width:0!important}
+body.goya-apple-clean .content{max-width:1500px;margin:0 auto;padding:24px!important}
+body.goya-apple-clean .topbar{background:rgba(255,255,255,.94)!important;border-bottom:1px solid var(--goya-apple-line)!important;backdrop-filter:saturate(180%) blur(16px);-webkit-backdrop-filter:saturate(180%) blur(16px)}
+body.goya-apple-clean .topbar h2{font-weight:700!important;letter-spacing:-.02em}
+body.goya-apple-clean .card,
+body.goya-apple-clean .live-app-card,
+body.goya-apple-clean .live-admin-card,
+body.goya-apple-clean .live-history-day,
+body.goya-apple-clean .stat{background:var(--goya-apple-card)!important;border:1px solid var(--goya-apple-line)!important;border-radius:var(--goya-apple-radius)!important;box-shadow:var(--goya-apple-shadow)!important}
+body.goya-apple-clean .page-head h1,
+body.goya-apple-clean .live-admin-head h1{font-weight:760!important;letter-spacing:-.035em;color:var(--goya-apple-text)!important}
+body.goya-apple-clean .page-head p,
+body.goya-apple-clean .muted,
+body.goya-apple-clean .small.muted{color:var(--goya-apple-sub)!important}
+body.goya-apple-clean .btn,
+body.goya-apple-clean button{border-radius:12px;transition:transform .14s ease,background .14s ease,box-shadow .14s ease}
+body.goya-apple-clean .btn:active,
+body.goya-apple-clean button:active{transform:scale(.985)}
+body.goya-apple-clean input,
+body.goya-apple-clean select,
+body.goya-apple-clean textarea{border:1px solid var(--goya-apple-line)!important;border-radius:12px!important;background:#fff!important;box-shadow:none!important;min-height:44px;color:var(--goya-apple-text)!important}
+body.goya-apple-clean input:focus,
+body.goya-apple-clean select:focus,
+body.goya-apple-clean textarea:focus{outline:3px solid rgba(47,111,87,.14)!important;border-color:#7fa998!important}
+
+/* Staff live punch */
+body.goya-staff-app .live-att-shell{max-width:980px;margin:0 auto;gap:18px!important}
+body.goya-staff-app .live-att-main{padding:24px!important;overflow:hidden}
+body.goya-staff-app .live-timer-ring{width:min(430px,62vw)!important;height:auto!important;aspect-ratio:1/1;margin:18px auto!important;border-radius:50%!important}
+body.goya-staff-app .live-ring-inner{padding:9%!important}
+body.goya-staff-app #liveWorkingTime{font-size:clamp(42px,7vw,72px)!important;letter-spacing:-.05em;line-height:1!important}
+body.goya-staff-app #liveTimerSub{font-size:clamp(25px,4vw,38px)!important;letter-spacing:-.025em}
+body.goya-staff-app .live-punch-btn{min-width:160px!important;min-height:54px!important;border-radius:999px!important;box-shadow:0 8px 22px rgba(47,111,87,.18)!important;position:relative!important;z-index:20!important;pointer-events:auto!important;touch-action:manipulation!important}
+body.goya-staff-app .live-timer-ring::before,
+body.goya-staff-app .live-timer-ring::after,
+body.goya-staff-app .live-ring-inner::before,
+body.goya-staff-app .live-ring-inner::after{pointer-events:none!important}
+body.goya-staff-app .live-segmented{background:#eef0f2!important;border:0!important;padding:4px!important;border-radius:14px!important}
+body.goya-staff-app .live-segmented button{min-height:44px!important;border:0!important;background:transparent!important;color:var(--goya-apple-sub)!important}
+body.goya-staff-app .live-segmented button.active{background:#fff!important;color:var(--goya-apple-green)!important;box-shadow:0 2px 8px rgba(0,0,0,.08)!important}
+body.goya-staff-app .live-month-dashboard{gap:10px!important}
+body.goya-staff-app .live-month-dashboard>div{border:1px solid var(--goya-apple-line)!important;background:#fff!important;border-radius:15px!important;box-shadow:none!important}
+body.goya-staff-app .app-filter-panel{background:#fafafa!important;border:1px solid var(--goya-apple-line)!important;border-radius:16px!important;padding:14px!important}
+body.goya-staff-app .app-clear-btn{background:#f0f1f2!important;color:var(--goya-apple-text)!important;border:0!important}
+
+/* Admin live attendance */
+body.goya-attendance-admin .live-admin-filterbar{background:#fff!important;border:1px solid var(--goya-apple-line)!important;border-radius:16px!important;padding:12px!important;gap:10px!important}
+body.goya-attendance-admin .live-admin-stats{gap:10px!important;margin:12px 0!important}
+body.goya-attendance-admin .live-stat-btn,
+body.goya-attendance-admin .live-control-stat{background:#fff!important;border:1px solid var(--goya-apple-line)!important;border-radius:16px!important;box-shadow:none!important;cursor:pointer!important;pointer-events:auto!important}
+body.goya-attendance-admin .live-stat-btn.active-filter,
+body.goya-attendance-admin .live-control-stat.active-filter{background:var(--goya-apple-green-soft)!important;border-color:#9fc7b6!important;box-shadow:0 0 0 2px rgba(47,111,87,.08)!important}
+body.goya-attendance-admin .legacy-dashboard-cards{display:none!important}
+body.goya-attendance-admin .live-admin-table{background:#fff!important;border:1px solid var(--goya-apple-line)!important;border-radius:16px!important;overflow:auto!important}
+body.goya-attendance-admin .live-admin-table table{border-collapse:separate!important;border-spacing:0!important;width:100%!important}
+body.goya-attendance-admin .live-admin-table th{position:sticky;top:0;background:#fafafa!important;color:var(--goya-apple-sub)!important;font-size:11px!important;text-transform:uppercase;letter-spacing:.04em;border-bottom:1px solid var(--goya-apple-line)!important}
+body.goya-attendance-admin .live-admin-table td{border-bottom:1px solid #f0f0f2!important;vertical-align:middle!important}
+body.goya-attendance-admin .live-control-list{background:#fff!important;border:1px solid var(--goya-apple-line)!important;border-radius:16px!important;overflow:hidden!important}
+body.goya-attendance-admin .live-control-row,
+body.goya-attendance-admin .live-control-head{grid-template-columns:minmax(150px,1.3fr) minmax(145px,1.2fr) 105px 100px 120px 80px 70px 110px minmax(240px,1.6fr)!important;padding:12px 14px!important;border-bottom:1px solid #f0f0f2!important;align-items:center!important}
+body.goya-attendance-admin .live-control-row.is-live{background:linear-gradient(90deg,#f2fbf6,#fff)!important}
+body.goya-attendance-admin .live-dot{width:9px!important;height:9px!important;background:#2dbd72!important;border-radius:50%;display:inline-block;margin-right:7px;box-shadow:0 0 0 0 rgba(45,189,114,.55);animation:goyaLivePulse 1.6s infinite}
+@keyframes goyaLivePulse{0%{box-shadow:0 0 0 0 rgba(45,189,114,.5)}70%{box-shadow:0 0 0 8px rgba(45,189,114,0)}100%{box-shadow:0 0 0 0 rgba(45,189,114,0)}}
+body.goya-attendance-admin .live-report-controls{padding:14px!important;margin-bottom:12px!important}
+body.goya-attendance-admin .live-report-actions{display:flex!important;flex-wrap:wrap!important;gap:8px!important;margin-top:10px!important}
+body.goya-attendance-admin .live-report-summary{display:grid!important;grid-template-columns:repeat(auto-fit,minmax(130px,1fr))!important;gap:10px!important}
+body.goya-attendance-admin .live-report-summary>div,
+body.goya-attendance-admin .live-person-summary>div{background:#fff!important;border:1px solid var(--goya-apple-line)!important;border-radius:14px!important;box-shadow:none!important}
+.live-verify.manual{background:#f1f1f4!important;color:#53535a!important;border-color:#dedee4!important}
+
+/* Verification Settings */
+.live-verification-test-card{margin-top:16px;padding:16px;border:1px solid var(--goya-apple-line);border-radius:16px;background:#fafafa;display:grid;grid-template-columns:1fr auto;gap:12px;align-items:center}
+.live-verification-test-card>div:first-child{display:grid;gap:4px}.live-verification-test-card span{color:var(--goya-apple-sub);font-size:13px}.live-verification-test-result{grid-column:1/-1;background:#fff;border:1px solid var(--goya-apple-line);border-radius:13px;padding:12px}.verify-test-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:10px}.verify-test-grid span{display:grid;gap:3px}.ok-text{color:#24774f}.bad-text{color:#b54843}
+
+/* Overtime consolidated hub */
+.ot-hub-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}
+.ot-hub-grid>button{text-align:left;background:#fff;border:1px solid var(--goya-apple-line);border-radius:17px;padding:18px;display:grid;gap:6px;box-shadow:var(--goya-apple-shadow);color:var(--goya-apple-text)}
+.ot-hub-grid>button span{font-size:16px;font-weight:750}.ot-hub-grid>button small{font-size:13px;color:var(--goya-apple-sub);font-weight:400}
+
+/* Mobile drawer + layout hardening */
+@media(max-width:900px){
+  body.goya-apple-clean .content{padding:14px!important;max-width:none!important}
+  body.goya-apple-clean .topbar{min-height:64px!important;padding:0 14px!important;position:sticky!important;top:0!important;z-index:1200!important}
+  body.goya-apple-clean .topbar h2{font-size:19px!important;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  body.goya-apple-clean .topbar .right,body.goya-apple-clean .topbar .conn{font-size:12px!important;white-space:nowrap}
+  body.goya-apple-clean .mobile-menu{display:grid!important;place-items:center;width:44px!important;height:44px!important;min-width:44px!important;border-radius:13px!important;background:#eeeeef!important;color:#1d1d1f!important;border:0!important;position:relative!important;z-index:5001!important}
+  body.goya-apple-clean .sidebar{position:fixed!important;left:0!important;top:0!important;bottom:0!important;width:min(82vw,320px)!important;max-width:320px!important;height:100dvh!important;z-index:5000!important;transform:translateX(-105%)!important;transition:transform .24s cubic-bezier(.2,.8,.2,1)!important;overflow-y:auto!important;overscroll-behavior:contain!important;box-shadow:18px 0 45px rgba(0,0,0,.16)!important}
+  body.goya-apple-clean .sidebar.open{transform:translateX(0)!important}
+  body.goya-apple-clean .main{width:100%!important;margin-left:0!important;max-width:100vw!important;overflow-x:hidden!important}
+  body.goya-apple-clean .page-head{gap:10px!important;margin-bottom:14px!important}
+  body.goya-apple-clean .page-head h1{font-size:28px!important;line-height:1.08!important}
+  body.goya-apple-clean .page-head p{font-size:14px!important;line-height:1.45!important}
+  body.goya-staff-app .live-att-main{padding:16px!important;border-radius:20px!important}
+  body.goya-staff-app .live-timer-ring{width:min(78vw,340px)!important;max-width:340px!important;margin:14px auto!important}
+  body.goya-staff-app #liveWorkingTime{font-size:clamp(42px,13vw,60px)!important}
+  body.goya-staff-app #liveTimerSub{font-size:clamp(26px,8vw,34px)!important}
+  body.goya-staff-app .live-ring-label,body.goya-staff-app .live-ring-sub-label{font-size:13px!important}
+  body.goya-staff-app .live-punch-btn{min-width:150px!important;min-height:52px!important;font-size:18px!important}
+  body.goya-staff-app .live-mini-grid{grid-template-columns:1fr 1fr!important;gap:10px!important}
+  body.goya-staff-app .live-break-card{grid-column:1/-1!important}
+  body.goya-staff-app .live-history-filters{grid-template-columns:1fr!important}
+  body.goya-staff-app .live-history-table{display:none!important}
+  body.goya-attendance-admin .live-admin-filterbar{display:grid!important;grid-template-columns:1fr!important}
+  body.goya-attendance-admin .live-admin-filterbar .btn{width:100%!important}
+  body.goya-attendance-admin .live-admin-stats{grid-template-columns:repeat(2,minmax(0,1fr))!important}
+  body.goya-attendance-admin .live-control-list{overflow:visible!important;border:0!important;background:transparent!important}
+  body.goya-attendance-admin .live-control-head{display:none!important}
+  body.goya-attendance-admin .live-control-row{display:grid!important;grid-template-columns:1fr 1fr!important;gap:10px!important;background:#fff!important;border:1px solid var(--goya-apple-line)!important;border-radius:16px!important;margin-bottom:10px!important;padding:14px!important}
+  body.goya-attendance-admin .live-control-row>*{min-width:0!important}
+  body.goya-attendance-admin .live-control-name,body.goya-attendance-admin .live-control-actions{grid-column:1/-1!important}
+  body.goya-attendance-admin .live-control-actions{display:flex!important;flex-wrap:wrap!important;gap:7px!important}
+  body.goya-attendance-admin .live-admin-table{border:0!important;background:transparent!important;overflow:visible!important}
+  body.goya-attendance-admin .live-admin-table table,body.goya-attendance-admin .live-admin-table thead,body.goya-attendance-admin .live-admin-table tbody,body.goya-attendance-admin .live-admin-table tr,body.goya-attendance-admin .live-admin-table th,body.goya-attendance-admin .live-admin-table td{display:block!important;width:100%!important}
+  body.goya-attendance-admin .live-admin-table thead{display:none!important}
+  body.goya-attendance-admin .live-admin-table tr{background:#fff!important;border:1px solid var(--goya-apple-line)!important;border-radius:16px!important;margin:0 0 10px!important;padding:10px 12px!important;box-shadow:0 4px 18px rgba(0,0,0,.035)!important}
+  body.goya-attendance-admin .live-admin-table td{border:0!important;padding:6px 0!important;display:flex!important;justify-content:space-between!important;gap:12px!important;align-items:flex-start!important}
+  body.goya-attendance-admin .live-admin-table td:empty{display:none!important}
+  .ot-hub-grid{grid-template-columns:1fr!important}
+  .live-verification-test-card{grid-template-columns:1fr!important}.live-verification-test-card .btn{width:100%!important}.live-verification-test-result{grid-column:1!important}
+}
+@media(max-width:430px){
+  body.goya-apple-clean .content{padding:10px!important}
+  body.goya-staff-app .live-att-main{padding:13px!important}
+  body.goya-staff-app .live-timer-ring{width:min(82vw,320px)!important}
+  body.goya-staff-app #liveWorkingTime{font-size:clamp(40px,14vw,56px)!important}
+  body.goya-staff-app .live-month-dashboard{grid-template-columns:repeat(2,minmax(0,1fr))!important}
+  body.goya-apple-clean .topbar .right{display:none!important}
+}
