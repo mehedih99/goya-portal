@@ -1,6 +1,6 @@
 (() => {
   const cfg=window.GOYA_CONFIG||{};
-  let sb=null,liveState={dashboard:null,history:[],rules:{},settingsLocations:[],serverOffset:0,timer:null};
+  let sb=null,liveState={dashboard:null,history:[],rules:{},settingsLocations:[],serverOffset:0,timer:null},dashboardFilter='',controlTarget=null;
   const $=id=>document.getElementById(id),pad=n=>String(n).padStart(2,'0'),esc=v=>String(v??'').replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#039;'}[m]));
   const ctx=()=>window.GoyaAttendance?._liveContext?.()||{};
   async function client(){if(!cfg.SUPABASE_URL||!cfg.SUPABASE_ANON_KEY)throw new Error('Supabase config missing');if(!sb)sb=window.supabase.createClient(cfg.SUPABASE_URL,cfg.SUPABASE_ANON_KEY,{auth:{persistSession:false,autoRefreshToken:false}});return sb}
@@ -21,7 +21,7 @@
     $('liveDashboardRows').innerHTML=rowHtml;
     const cards=$('liveDashboardCards');if(cards)cards.innerHTML=rows.map(r=>{const c=calc(r,serverNow),ss=r.sessions||[],first=ss[0],open=ss.find(s=>!s.check_out_at);return `<article class="live-duty-card ${open?'active':''}"><header><div><strong>${esc(r.staff_name)}</strong><span>${esc((r.sections||[]).join(', ')||'—')}</span></div><b>${esc(status(r))}</b></header><div class="live-duty-grid"><span>Check In<b>${fmtTime(first?.check_in_at)}</b></span><span>Working<b>${mins(c.sec/60)}</b></span><span>${open?(c.remaining>0?'Remaining':'OT'):'Sessions'}<b>${open?(c.remaining>0?mins(c.remaining):mins(c.liveOt)):ss.length}</b></span><span>Late<b>${r.late_minutes?`${r.late_minutes}m`:'—'}</b></span></div><footer>${verificationBadge(r)}${ss.length?`<button class="btn secondary tiny" onclick="GoyaLiveAdmin.editDay('${r.staff_id}','${r.operational_date}')">${open?'Fix Checkout':'Edit'}</button>`:''}</footer></article>`}).join('');
   }
-  async function loadDashboard(){try{const date=$('liveDashDate')?.value||new Date().toISOString().slice(0,10),d=await rpc('attendance_live_admin_dashboard',{p_token:ctx().token,p_date:date});liveState.dashboard=d;liveState.rules=d.rules||{};liveState.serverOffset=new Date(d.server_now).getTime()-Date.now();renderDashboard();clearInterval(liveState.timer);liveState.timer=setInterval(renderDashboard,1000)}catch(e){toast(e.message,true)}}
+  async function loadDashboard(){try{const date=$('liveDashDate')?.value||new Date().toISOString().slice(0,10),d=await rpc('attendance_live_admin_dashboard',{p_token:ctx().token,p_date:date});liveState.dashboard=d;liveState.rules=d.rules||{};liveState.serverOffset=new Date(d.server_now).getTime()-Date.now();renderDashboard();applyDashboardFilter();clearInterval(liveState.timer);liveState.timer=setInterval(renderDashboard,1000)}catch(e){toast(e.message,true)}}
   function classificationOptions(cur){return ['Day Off - Pending Review','Weekly Off','Leave','Sick Leave','Unpaid Leave','Absent','Public Holiday','Other Approved','Duty'].map(x=>`<option${x===cur?' selected':''}>${x}</option>`).join('')}
   function applyMonth(){const m=$('liveHistMonth')?.value;if(!m)return;const [y,mo]=m.split('-').map(Number),end=new Date(y,mo,0).getDate();$('liveHistFrom').value=`${m}-01`;$('liveHistTo').value=`${m}-${pad(end)}`}
   async function loadHistory(){try{const from=$('liveHistFrom').value,to=$('liveHistTo').value,staff=$('liveHistStaff').value||null;if(!from||!to)return toast('Select From and To dates.',true);const d=await rpc('attendance_live_admin_history',{p_token:ctx().token,p_start:from,p_end:to,p_staff_id:staff});liveState.rules=d.rules||liveState.rules;liveState.serverOffset=new Date(d.server_now).getTime()-Date.now();liveState.history=d.rows||[];renderHistory()}catch(e){toast(e.message,true)}}
@@ -53,9 +53,60 @@
   function removeLocation(i){liveState.settingsLocations.splice(i,1);renderLocations()}
   async function saveSettings(){const ips=[...new Set($('liveApprovedIps').value.split(/\s+/).map(x=>x.trim()).filter(Boolean))],value={require_location:$('liveRequireLocation').checked,require_network:$('liveRequireNetwork').checked,duty_presence_minutes:Math.round((+$('liveDutyHours').value||9)*60),regular_net_minutes:480,break_minutes:+$('liveBreakMinutes').value||60,late_grace_minutes:15,operational_cutoff:'02:00',shift_start_times:['08:00','09:00','10:00','11:00','12:00','13:00','14:00','15:00','16:00','17:00'],locations:liveState.settingsLocations,approved_public_ips:ips};try{liveState.rules=await rpc('attendance_live_admin_save_settings',{p_token:ctx().token,p_value:value});toast('Live Attendance settings saved.')}catch(e){toast(e.message,true)}}
   function fillStaffFilter(){const sel=$('liveHistStaff'),staff=ctx().staff||[];if(sel&&!sel.dataset.ready){sel.innerHTML='<option value="">All Staff</option>'+staff.map(s=>`<option value="${s.portal_staff_id||s.id}">${esc(s.name)}</option>`).join('');sel.dataset.ready='1'}}
+
+  function setDashboardFilter(filter,btn){
+    dashboardFilter=filter||'';
+    document.querySelectorAll('.live-stat-btn').forEach(x=>x.classList.toggle('active-filter',!!dashboardFilter&&x.dataset.filter===dashboardFilter));
+    const label=$('liveDashboardFilterLabel');if(label)label.textContent=dashboardFilter?`Filtered: ${dashboardFilter}`:'Showing all staff';
+    applyDashboardFilter();
+  }
+  function applyDashboardFilter(){
+    const matches=el=>{
+      if(!dashboardFilter)return true;
+      const txt=el.textContent||'';
+      if(dashboardFilter==='Late'){
+        const m=txt.match(/Late\s*([0-9]+)\s*(?:m|min)/i);return !!(m&&Number(m[1])>0);
+      }
+      return txt.toLowerCase().includes(dashboardFilter.toLowerCase());
+    };
+    document.querySelectorAll('#liveDashboardRows tr').forEach(r=>r.style.display=matches(r)?'':'none');
+    document.querySelectorAll('#liveDashboardCards .live-duty-card').forEach(r=>r.style.display=matches(r)?'':'none');
+  }
+  function renderControl(){
+    const d=liveState.dashboard;if(!d)return;const rows=groupDashboard(d),serverNow=d.server_now,host=$('liveControlCards');
+    let on=0,done=0,pending=0,late=0;
+    rows.forEach(r=>{const st=status(r);if(st==='On Duty')on++;else if((r.sessions||[]).length)done++;if(st==='Day Off - Pending Review')pending++;if((r.late_minutes||0)>0)late++});
+    const sum=$('liveControlSummary');if(sum)sum.innerHTML=[['On Duty',on],['Completed',done],['Late',late],['Pending Review',pending]].map(([k,v])=>`<div><span>${k}</span><strong>${v}</strong></div>`).join('');
+    if(host)host.innerHTML=rows.map(r=>{const c=calc(r,serverNow),ss=r.sessions||[],open=ss.some(x=>!x.check_out_at),last=ss[ss.length-1],st=status(r);return `<article class="live-control-card ${open?'active':''}"><header><div><strong>${esc(r.staff_name)}</strong><span>${esc((r.sections||[]).join(', ')||'—')}</span></div><b>${esc(st)}</b></header><div class="live-control-live"><span>Check In<b>${fmtTime(ss[0]?.check_in_at)}</b></span><span>Working<b>${mins(c.sec/60)}</b></span><span>${open?(c.remaining>0?'Remaining':'OT'):'Sessions'}<b>${open?(c.remaining>0?mins(c.remaining):mins(c.liveOt)):ss.length}</b></span><span>Late<b>${r.late_minutes?`${r.late_minutes}m`:'—'}</b></span></div><div class="live-control-actions"><button class="btn success tiny" ${open?'disabled':''} onclick="GoyaLiveAdmin.openManualControl('${r.staff_id}','${esc(r.staff_name)}','${ss.length?'REJOIN':'CHECK_IN'}')">${ss.length?'Rejoin':'Check In'}</button><button class="btn danger tiny" ${open?'':'disabled'} onclick="GoyaLiveAdmin.openManualControl('${r.staff_id}','${esc(r.staff_name)}','CHECK_OUT')">Check Out</button>${ss.length?`<button class="btn secondary tiny" onclick="GoyaLiveAdmin.editDay('${r.staff_id}','${r.operational_date}')">Edit Sessions</button>`:''}</div><footer>${verificationBadge(r)}<span>${esc(locationText(r))}</span></footer></article>`}).join('');
+  }
+  async function loadControl(){
+    try{const date=$('liveControlDate')?.value||new Date().toISOString().slice(0,10),d=await rpc('attendance_live_admin_dashboard',{p_token:ctx().token,p_date:date});liveState.dashboard=d;liveState.rules=d.rules||{};liveState.serverOffset=new Date(d.server_now).getTime()-Date.now();renderControl();clearInterval(liveState.timer);liveState.timer=setInterval(renderControl,1000)}catch(e){toast(e.message,true)}
+  }
+  function openControl(){if(!$('liveControlDate').value)$('liveControlDate').value=new Date().toISOString().slice(0,10);loadControl()}
+  function openManualControl(staffId,staffName,action){
+    controlTarget={staffId,staffName};
+    $('liveControlModalTitle').textContent=`${staffName} · Manual Attendance`;
+    $('liveControlAction').value=action||'CHECK_IN';
+    const now=new Date(Date.now()+liveState.serverOffset);now.setMinutes(now.getMinutes()-now.getTimezoneOffset());$('liveControlTime').value=now.toISOString().slice(0,16);
+    $('liveControlBreak').value='true';$('liveControlNote').value='';
+    $('liveControlModal').classList.remove('hidden');
+  }
+  function closeControlModal(){$('liveControlModal')?.classList.add('hidden');controlTarget=null}
+  async function saveManualControl(){
+    if(!controlTarget)return;
+    const action=$('liveControlAction').value,when=$('liveControlTime').value,note=$('liveControlNote').value.trim();
+    if(!when)return toast('Select attendance date and time.',true);
+    if(!note)return toast('Add a short reason for the manual attendance action.',true);
+    if(!confirm(`Save manual ${action.replace('_',' ')} for ${controlTarget.staffName}?`))return;
+    try{
+      const d=new Date(when);if(Number.isNaN(d.getTime()))throw new Error('Invalid date/time.');
+      await rpc('attendance_live_admin_manual_action',{p_token:ctx().token,p_staff_id:controlTarget.staffId,p_action:action,p_at:d.toISOString(),p_break_taken:$('liveControlBreak').value==='true',p_note:note});
+      toast('Manual attendance saved and audit history updated.');closeControlModal();await loadControl();
+    }catch(e){toast(e.message,true)}
+  }
   function openDashboard(){fillStaffFilter();if(!$('liveDashDate').value)$('liveDashDate').value=new Date().toISOString().slice(0,10);loadDashboard()}
   function openHistory(){fillStaffFilter();const d=new Date(),end=d.toISOString().slice(0,10),month=end.slice(0,7),start=`${month}-01`;if(!$('liveHistMonth').value)$('liveHistMonth').value=month;if(!$('liveHistFrom').value)$('liveHistFrom').value=start;if(!$('liveHistTo').value)$('liveHistTo').value=end;loadHistory()}
   function openSettings(){loadSettings()}
-  window.GoyaLiveAdmin={openDashboard,loadDashboard,openHistory,loadHistory,renderHistory,applyMonth,saveClassification,editDay,saveSessionEdit,closeEdit,exportExcel,exportPDF,openSettings,loadSettings,detectLocation,detectIp,addLocation,removeLocation,saveSettings};
+  window.GoyaLiveAdmin={openDashboard,loadDashboard,setDashboardFilter,openControl,loadControl,openManualControl,closeControlModal,saveManualControl,openHistory,loadHistory,renderHistory,applyMonth,saveClassification,editDay,saveSessionEdit,closeEdit,exportExcel,exportPDF,openSettings,loadSettings,detectLocation,detectIp,addLocation,removeLocation,saveSettings};
   if(window.GoyaAttendance){window.GoyaAttendance.openLiveDashboard=openDashboard;window.GoyaAttendance.openLiveHistory=openHistory;window.GoyaAttendance.openLiveSettings=openSettings;}
 })();
