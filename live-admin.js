@@ -96,7 +96,6 @@
     if(!controlTarget)return;
     const action=$('liveControlAction').value,when=$('liveControlTime').value,note=$('liveControlNote').value.trim();
     if(!when)return toast('Select attendance date and time.',true);
-    if(!note)return toast('Add a short reason for the manual attendance action.',true);
     if(!confirm(`Save manual ${action.replace('_',' ')} for ${controlTarget.staffName}?`))return;
     try{
       const d=new Date(when);if(Number.isNaN(d.getTime()))throw new Error('Invalid date/time.');

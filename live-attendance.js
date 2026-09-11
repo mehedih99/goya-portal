@@ -34,9 +34,39 @@
   async function getPublicIp(){for(const url of ['https://api.ipify.org?format=json','https://api64.ipify.org?format=json']){try{const r=await fetch(url,{cache:'no-store'});if(r.ok){const j=await r.json();if(j.ip)return j.ip}}catch{}}throw new Error('Could not verify office network public IP. Check internet and try again.')}
   function getGps(){return new Promise((resolve,reject)=>{if(!navigator.geolocation)return reject(new Error('GPS is not supported on this device/browser.'));navigator.geolocation.getCurrentPosition(p=>resolve({lat:p.coords.latitude,lon:p.coords.longitude,accuracy:p.coords.accuracy}),e=>reject(new Error(e.code===1?'Location permission is required. Please allow location access and try again.':e.code===3?'Location request timed out. Move near a window or enable precise location, then try again.':'Could not get workplace GPS location.')),{enableHighAccuracy:true,timeout:20000,maximumAge:5000})})}
   function showActionMessage(title,text,isError=true){const modal=$('liveActionModal');if(!modal)return toast(text,isError);$('liveActionModalTitle').textContent=title;$('liveActionModalText').textContent=text;$('liveActionModalStatus').innerHTML=isError?'<span class="live-verify bad">Verification failed</span>':'<span class="live-verify ok">Ready</span>';$('liveActionConfirmBtn').classList.toggle('hidden',isError);modal.classList.remove('hidden')}
-  function requestAction(type){if(busy)return;pendingAction=type;const label=type==='out'?'Check Out':type==='rejoin'?'Rejoin':'Check In';$('liveActionModalTitle').textContent=`Confirm ${label}`;$('liveActionModalText').textContent='Workplace GPS and approved office network will be verified before this attendance action is saved.';$('liveActionModalStatus').innerHTML='<span class="live-verify wait">Ready to verify</span>';$('liveActionConfirmBtn').textContent=`Confirm ${label}`;$('liveActionConfirmBtn').classList.remove('hidden');$('liveActionModal').classList.remove('hidden')}
+  function requestAction(type){
+    if(busy)return;
+    const modal=$('liveActionModal');
+    if(!modal){toast('Attendance confirmation panel could not open. Please refresh the page.',true);return;}
+    pendingAction=type;
+    const label=type==='out'?'Check Out':type==='rejoin'?'Rejoin':'Check In';
+    $('liveActionModalTitle').textContent=`Confirm ${label}`;
+    $('liveActionModalText').textContent='Workplace GPS and approved office network will be verified before this attendance action is saved.';
+    $('liveActionModalStatus').innerHTML='<span class="live-verify wait">Ready to verify</span>';
+    $('liveActionConfirmBtn').textContent=`Confirm ${label}`;
+    $('liveActionConfirmBtn').classList.remove('hidden');
+    modal.classList.remove('hidden');
+  }
   function closeActionModal(){if(!busy)$('liveActionModal')?.classList.add('hidden')}
-  async function verifyWorkplace(){const box=$('liveVerifyBox'),status=$('liveActionModalStatus');if(box)box.innerHTML='<span class="live-verify wait">Verifying GPS and office network…</span>';if(status)status.innerHTML='<span class="live-verify wait">Checking workplace…</span>';const [gps,ip]=await Promise.all([getGps(),getPublicIp()]);const verify=await publicRpc('attendance_live_verify_workplace',{p_lat:gps.lat,p_lon:gps.lon,p_public_ip:ip});if(!verify?.ok){const distance=Number(verify?.distance_m);let reason=verify?.reason||'Workplace verification failed.';if(/outside/i.test(reason)&&Number.isFinite(distance))reason=`You are outside the approved duty location. You are approximately ${Math.round(distance)} m from the nearest approved workplace.`;if(box)box.innerHTML=`${verificationBadge(false,'Location / Network Failed')}`;showActionMessage('Cannot Check In',reason,true);const err=new Error(reason);err.verificationShown=true;throw err}if(box)box.innerHTML=`${verificationBadge(true,`GPS ±${Math.round(gps.accuracy||0)}m`)} ${verificationBadge(true,`Network verified`)}`;if(status)status.innerHTML=`${verificationBadge(true,verify.location_name||'Workplace')} ${verificationBadge(true,'Office network')}`;return {...gps,ip,verify}}
+  async function verifyWorkplace(){
+    const box=$('liveVerifyBox'),status=$('liveActionModalStatus');
+    if(box)box.innerHTML='<span class="live-verify wait">Verifying GPS and office network…</span>';
+    if(status)status.innerHTML='<span class="live-verify wait">Checking workplace…</span>';
+    const [gps,ip]=await Promise.all([getGps(),getPublicIp()]);
+    const verify=await publicRpc('attendance_live_verify_workplace',{p_lat:gps.lat,p_lon:gps.lon,p_public_ip:ip});
+    if(!verify?.ok){
+      const distance=Number(verify?.distance_m);
+      let reason=verify?.reason||'Workplace verification failed.';
+      if(/outside/i.test(reason)&&Number.isFinite(distance))reason=`You are outside the approved duty location. You are approximately ${Math.round(distance)} m from the nearest approved workplace.`;
+      if(box)box.innerHTML=`${verificationBadge(false,'Location / Network Failed')}`;
+      const label=pendingAction==='out'?'Check Out':pendingAction==='rejoin'?'Rejoin':'Check In';
+      showActionMessage(`Cannot ${label}`,reason,true);
+      const err=new Error(reason);err.verificationShown=true;throw err;
+    }
+    if(box)box.innerHTML=`${verificationBadge(true,`GPS ±${Math.round(gps.accuracy||0)}m`)} ${verificationBadge(true,`Network verified`)}`;
+    if(status)status.innerHTML=`${verificationBadge(true,verify.location_name||'Workplace')} ${verificationBadge(true,'Office network')}`;
+    return {...gps,ip,verify};
+  }
   async function refresh(silent=false){try{const d=await rpc('staff_live_attendance_status',{p_token:ctx().token});current=d;serverOffset=new Date(d.server_now).getTime()-Date.now();if(current?.day)pendingBreakTaken=current.day.break_taken!==false;render();if(!silent)await loadHistory()}catch(e){if(!silent)toast(e.message,true)}}
   async function doAction(type){if(busy)return;busy=true;setButtons(true);try{const v=await verifyWorkplace();let d;if(type==='out')d=await rpc('staff_live_attendance_check_out',{p_token:ctx().token,p_lat:v.lat,p_lon:v.lon,p_public_ip:v.ip,p_break_taken:pendingBreakTaken});else{d=await rpc('staff_live_attendance_check_in',{p_token:ctx().token,p_lat:v.lat,p_lon:v.lon,p_public_ip:v.ip,p_rejoin:type==='rejoin'});await rpc('staff_live_attendance_set_break',{p_token:ctx().token,p_break_taken:pendingBreakTaken})}toast(d?.message||`${type==='out'?'Check Out':type==='rejoin'?'Rejoin':'Check In'} successful.`);$('liveActionModal')?.classList.add('hidden');await refresh()}catch(e){if(!e.verificationShown){showActionMessage('Attendance action failed',e.message,true);toast(e.message,true)}}finally{busy=false;setButtons(false)}}
   function confirmAction(){if(pendingAction)doAction(pendingAction)}
@@ -49,7 +79,35 @@
   async function loadHistory(){const month=$('liveHistoryMonth')?.value||new Date().toISOString().slice(0,7);if($('liveHistoryMonth'))$('liveHistoryMonth').value=month;try{const d=await rpc('staff_live_attendance_history',{p_token:ctx().token,p_month:month+'-01'});if(!current)current={rules:d.rules||{}};else current.rules=d.rules||current.rules;historyRows=d.rows||[];renderHistory()}catch(e){toast(e.message,true)}}
   function clearDateFilter(){if($('liveHistoryDate'))$('liveHistoryDate').value='';renderHistory()}
   function downloadPDF(){const rows=filteredHistory();if(!rows.length)return toast('No attendance data to export.',true);if(!window.jspdf?.jsPDF)return toast('PDF library is still loading.',true);const {jsPDF}=window.jspdf,doc=new jsPDF({orientation:'landscape'}),staff=current?.staff?.name||ctx()?.staff?.name||'Staff',month=$('liveHistoryMonth')?.value||'',date=$('liveHistoryDate')?.value||'';let duty=0,off=0,work=0,ot=0,late=0,split=0;rows.forEach(r=>{const c=calcRow(r),ss=r.sessions||[];if(ss.length){duty++;work+=c.sec/60;ot+=c.ot;if(r.late_minutes)late++;if(ss.length>1)split++}else off++});doc.setFontSize(18);doc.text('GOYA - Live Attendance Report',14,16);doc.setFontSize(10);doc.text(`Staff: ${staff}   Period: ${date||month}`,14,24);doc.text(`Duty Days: ${duty}   Day Off: ${off}   Working: ${minsLabel(work)}   OT: ${otText(ot)}   Late Days: ${late}   Split Shifts: ${split}`,14,31);doc.autoTable({startY:37,head:[['Date','Shift Sessions','Working Time','Worked','Net','OT','Late','Break','Status','Verification']],body:rows.map(r=>{const c=calcRow(r),ss=r.sessions||[];return [r.operational_date,ss.length,ss.length?ss.map(s=>`${fmtTime(s.check_in_at)}-${fmtTime(s.check_out_at)}`).join(' | '):'—',ss.length?minsLabel(c.sec/60):'—',ss.length?minsLabel(c.net):'—',c.ot?otText(c.ot):'—',r.late_minutes?`${r.late_minutes} min`:'—',ss.length?(r.break_taken!==false?'Yes':'No'):'—',statusLabel(r),rowVerification(r)]}),styles:{fontSize:8,cellPadding:2},headStyles:{fillColor:[37,58,50]}});const safe=staff.replace(/[^a-z0-9]+/gi,'_').replace(/^_|_$/g,'');doc.save(`Goya_Live_Attendance_${safe}_${date||month}.pdf`)}
-  function bind(){const br=$('liveBreakTaken');br?.querySelectorAll('button[data-value]').forEach(b=>{b.onclick=()=>chooseBreak(b.dataset.value==='true')});[['liveCheckInBtn','in'],['liveCheckOutBtn','out'],['liveRejoinBtn','rejoin']].forEach(([id,type])=>{const b=$(id);if(b){b.onclick=e=>{e.preventDefault();requestAction(type)}}})}
+  function bind(){
+    const br=$('liveBreakTaken');
+    br?.querySelectorAll('button[data-value]').forEach(b=>{b.onclick=()=>chooseBreak(b.dataset.value==='true')});
+    const actions={liveCheckInBtn:'in',liveCheckOutBtn:'out',liveRejoinBtn:'rejoin'};
+    Object.entries(actions).forEach(([id,type])=>{
+      const b=$(id);
+      if(!b)return;
+      b.type='button';
+      b.style.pointerEvents='auto';
+      b.onclick=e=>{e.preventDefault();e.stopPropagation();requestAction(type)};
+    });
+    if(!document.documentElement.dataset.goyaLivePunchDelegated){
+      document.documentElement.dataset.goyaLivePunchDelegated='1';
+      document.addEventListener('click',e=>{
+        const b=e.target.closest?.('#liveCheckInBtn,#liveCheckOutBtn,#liveRejoinBtn');
+        if(!b)return;
+        e.preventDefault();e.stopPropagation();
+        const type=b.id==='liveCheckOutBtn'?'out':b.id==='liveRejoinBtn'?'rejoin':'in';
+        requestAction(type);
+      },true);
+      document.addEventListener('touchend',e=>{
+        const b=e.target.closest?.('#liveCheckInBtn,#liveCheckOutBtn,#liveRejoinBtn');
+        if(!b)return;
+        e.preventDefault();e.stopPropagation();
+        const type=b.id==='liveCheckOutBtn'?'out':b.id==='liveRejoinBtn'?'rejoin':'in';
+        requestAction(type);
+      },{capture:true,passive:false});
+    }
+  }
   async function open(){bind();await refresh();clearInterval(timer);timer=setInterval(tick,1000);clearInterval(refreshTimer);refreshTimer=setInterval(()=>refresh(true),60000)}
   function stop(){clearInterval(timer);clearInterval(refreshTimer)}
   window.GoyaLiveAttendance={open,refresh,checkIn:()=>requestAction('in'),checkOut:()=>requestAction('out'),rejoin:()=>requestAction('rejoin'),chooseBreak,saveBreak:()=>chooseBreak(pendingBreakTaken),loadHistory,renderHistory,clearDateFilter,downloadPDF,requestAction,confirmAction,closeActionModal,stop};
