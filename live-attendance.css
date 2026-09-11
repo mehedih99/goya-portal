@@ -213,3 +213,173 @@ body.goya-attendance-admin .live-person-summary>div{background:#fff!important;bo
   body.goya-staff-app .live-month-dashboard{grid-template-columns:repeat(2,minmax(0,1fr))!important}
   body.goya-apple-clean .topbar .right{display:none!important}
 }
+
+/* ========================================================================== 
+   V24 FINAL - SOFT GLASS UI
+   Safe visual override for Staff + Attendance Admin. Existing portal logic,
+   tables and Supabase data remain untouched.
+   ========================================================================== */
+:root{
+  --sg-bg:#eef4f1;
+  --sg-bg-2:#f7faf8;
+  --sg-glass:rgba(255,255,255,.72);
+  --sg-glass-strong:rgba(255,255,255,.88);
+  --sg-border:rgba(255,255,255,.72);
+  --sg-line:rgba(35,65,54,.10);
+  --sg-text:#1f2f29;
+  --sg-muted:#75827c;
+  --sg-green:#2f7057;
+  --sg-green-2:#4f9877;
+  --sg-green-soft:rgba(72,143,109,.12);
+  --sg-danger:#a84c47;
+  --sg-shadow:0 18px 50px rgba(42,68,58,.10);
+  --sg-shadow-soft:0 8px 28px rgba(42,68,58,.07);
+}
+body.goya-soft-glass{
+  color:var(--sg-text)!important;
+  background:
+    radial-gradient(circle at 8% 8%,rgba(107,176,143,.18),transparent 28%),
+    radial-gradient(circle at 92% 16%,rgba(219,195,132,.12),transparent 24%),
+    linear-gradient(145deg,#edf4f1 0%,#f8faf9 58%,#eef4f1 100%)!important;
+  min-height:100dvh;
+}
+body.goya-soft-glass:before{
+  content:"";position:fixed;inset:0;pointer-events:none;z-index:-1;
+  background:linear-gradient(120deg,rgba(255,255,255,.26),rgba(255,255,255,0));
+}
+body.goya-soft-glass .topbar,
+body.goya-soft-glass .card,
+body.goya-soft-glass .live-app-card,
+body.goya-soft-glass .live-soft-card,
+body.goya-soft-glass .live-history-card,
+body.goya-soft-glass .live-admin-card,
+body.goya-soft-glass .live-report-controls,
+body.goya-soft-glass .live-control-list,
+body.goya-soft-glass .login-card{
+  background:var(--sg-glass)!important;
+  border:1px solid var(--sg-border)!important;
+  box-shadow:var(--sg-shadow-soft)!important;
+  backdrop-filter:blur(20px) saturate(135%)!important;
+  -webkit-backdrop-filter:blur(20px) saturate(135%)!important;
+}
+body.goya-soft-glass .topbar{border-bottom-color:rgba(255,255,255,.6)!important}
+body.goya-soft-glass .content{background:transparent!important}
+body.goya-soft-glass .sidebar{
+  background:linear-gradient(180deg,rgba(25,58,47,.95),rgba(31,67,55,.93))!important;
+  backdrop-filter:blur(20px)!important;-webkit-backdrop-filter:blur(20px)!important;
+  border-right:1px solid rgba(255,255,255,.10)!important;
+}
+body.goya-soft-glass .sidebar .nav button{border-radius:14px!important;margin:2px 8px!important;transition:.18s ease!important}
+body.goya-soft-glass .sidebar .nav button:hover{background:rgba(255,255,255,.09)!important;transform:translateY(-1px)}
+body.goya-soft-glass .sidebar .nav button.active{background:rgba(255,255,255,.16)!important;box-shadow:inset 0 0 0 1px rgba(255,255,255,.08)!important}
+body.goya-soft-glass input,
+body.goya-soft-glass select,
+body.goya-soft-glass textarea,
+body.goya-soft-glass .app-input-shell{
+  background:rgba(255,255,255,.75)!important;
+  border:1px solid rgba(41,69,58,.12)!important;
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.78)!important;
+  border-radius:14px!important;
+}
+body.goya-soft-glass input:focus,
+body.goya-soft-glass select:focus,
+body.goya-soft-glass textarea:focus{outline:none!important;border-color:rgba(47,112,87,.42)!important;box-shadow:0 0 0 4px rgba(47,112,87,.09)!important}
+body.goya-soft-glass .btn,
+body.goya-soft-glass button{transition:transform .16s ease,box-shadow .16s ease,background .16s ease,border-color .16s ease}
+body.goya-soft-glass .btn:hover:not(:disabled),body.goya-soft-glass button:hover:not(:disabled){transform:translateY(-1px)}
+body.goya-soft-glass .btn:not(.secondary):not(.danger),body.goya-soft-glass .btn.success{background:linear-gradient(135deg,var(--sg-green),#3e8265)!important;color:#fff!important;border-color:transparent!important;box-shadow:0 8px 20px rgba(47,112,87,.16)!important}
+body.goya-soft-glass .btn.secondary{background:rgba(255,255,255,.68)!important;border-color:rgba(41,69,58,.10)!important;color:var(--sg-text)!important}
+body.goya-soft-glass .btn.danger{background:rgba(168,76,71,.10)!important;color:#94423e!important;border-color:rgba(168,76,71,.12)!important;box-shadow:none!important}
+body.goya-soft-glass .live-header-badge,
+body.goya-soft-glass .live-status-pill,
+body.goya-soft-glass .live-day-chip,
+body.goya-soft-glass .live-saved-chip,
+body.goya-soft-glass .live-inline-live{background:rgba(255,255,255,.62)!important;border:1px solid rgba(255,255,255,.75)!important;backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px);box-shadow:0 4px 14px rgba(35,65,54,.05)}
+body.goya-soft-glass .live-saved-chip{display:inline-flex;padding:6px 9px;border-radius:999px;font-size:11px;font-weight:800;color:#3e6555}
+body.goya-soft-glass .live-inline-live{display:inline-flex;align-items:center;margin-left:8px;padding:4px 7px;border-radius:999px;font-size:9px;font-weight:900;letter-spacing:.08em;color:#27724e}
+body.goya-soft-glass .live-timer-ring{background:conic-gradient(#3b8969 0 78%,rgba(255,255,255,.54) 78% 100%)!important;box-shadow:0 25px 70px rgba(48,102,79,.17),inset 0 0 0 1px rgba(255,255,255,.65)!important}
+body.goya-soft-glass .live-ring-inner{background:rgba(255,255,255,.75)!important;backdrop-filter:blur(22px)!important;-webkit-backdrop-filter:blur(22px)!important;box-shadow:inset 0 0 0 1px rgba(255,255,255,.9),0 8px 28px rgba(43,79,64,.06)!important}
+body.goya-soft-glass .live-mini-grid>div,
+body.goya-soft-glass .live-month-dashboard>div,
+body.goya-soft-glass .live-report-summary>div,
+body.goya-soft-glass .live-person-summary article,
+body.goya-soft-glass .stat,
+body.goya-soft-glass .live-control-stat,
+body.goya-soft-glass .live-control-clear{
+  background:rgba(255,255,255,.66)!important;
+  border:1px solid rgba(255,255,255,.78)!important;
+  box-shadow:var(--sg-shadow-soft)!important;
+  backdrop-filter:blur(16px)!important;-webkit-backdrop-filter:blur(16px)!important;
+}
+body.goya-soft-glass .live-stat-btn.active-filter,
+body.goya-soft-glass .live-control-stat.active-filter,
+body.goya-soft-glass .live-control-clear.active-filter,
+body.goya-soft-glass .live-history-quickbar button.active-filter{background:rgba(78,151,116,.17)!important;border-color:rgba(56,124,94,.28)!important;box-shadow:0 8px 22px rgba(46,109,82,.10)!important}
+body.goya-soft-glass .live-admin-filterbar,
+body.goya-soft-glass .live-history-filters,
+body.goya-soft-glass .app-filter-panel{background:rgba(255,255,255,.42)!important;border:1px solid rgba(255,255,255,.62)!important;border-radius:20px!important;padding:12px!important;backdrop-filter:blur(16px)!important;-webkit-backdrop-filter:blur(16px)!important}
+body.goya-soft-glass .live-admin-table,
+body.goya-soft-glass .live-control-list{background:rgba(255,255,255,.58)!important;border:1px solid rgba(255,255,255,.74)!important;box-shadow:var(--sg-shadow-soft)!important;backdrop-filter:blur(16px)!important;-webkit-backdrop-filter:blur(16px)!important}
+body.goya-soft-glass .live-admin-table th,
+body.goya-soft-glass .live-control-head{background:rgba(241,246,243,.86)!important;color:#687970!important}
+body.goya-soft-glass .live-admin-table td,
+body.goya-soft-glass .live-control-row{border-bottom-color:rgba(52,81,69,.08)!important}
+body.goya-soft-glass .live-control-row.is-live{background:linear-gradient(90deg,rgba(221,247,233,.62),rgba(255,255,255,.52))!important}
+body.goya-soft-glass .live-modal{background:rgba(22,40,33,.46)!important;backdrop-filter:blur(10px)!important;-webkit-backdrop-filter:blur(10px)!important}
+body.goya-soft-glass .live-modal-card{background:rgba(252,254,253,.88)!important;border:1px solid rgba(255,255,255,.86)!important;box-shadow:0 30px 90px rgba(22,44,35,.24)!important;backdrop-filter:blur(28px) saturate(140%)!important;-webkit-backdrop-filter:blur(28px) saturate(140%)!important}
+body.goya-soft-glass .live-action-modal-card{border-radius:28px!important}
+body.goya-soft-glass .live-history-day{background:rgba(255,255,255,.66)!important;border-color:rgba(255,255,255,.78)!important;backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px)}
+
+/* V24 Admin Control columns */
+body.goya-attendance-admin .live-control-row,
+body.goya-attendance-admin .live-control-head{
+  grid-template-columns:minmax(135px,1.2fr) minmax(135px,1.25fr) 90px 90px 95px 85px 70px 70px minmax(225px,1.55fr)!important;
+}
+.live-control-actions{display:flex;align-items:center;gap:7px;flex-wrap:wrap}
+.live-text{color:#2e7e59;font-weight:800}.live-inline-live .live-dot{margin-right:4px}
+
+/* V24 History organization */
+.live-report-toolbar{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-top:12px}
+.live-export-menu{position:relative}.live-export-menu>summary{list-style:none;cursor:pointer;display:inline-flex;align-items:center;justify-content:center;min-height:42px;padding:0 16px;border-radius:13px;background:rgba(255,255,255,.72);border:1px solid rgba(41,69,58,.10);font-weight:800}.live-export-menu>summary::-webkit-details-marker{display:none}.live-export-menu[open]>summary{background:rgba(78,151,116,.14)}.live-export-menu>div{position:absolute;z-index:80;top:48px;left:0;min-width:180px;padding:8px;background:rgba(255,255,255,.94);border:1px solid rgba(255,255,255,.9);border-radius:16px;box-shadow:0 18px 42px rgba(34,58,49,.16);backdrop-filter:blur(18px);display:grid;gap:6px}.live-export-menu>div .btn{width:100%;justify-content:flex-start}
+.live-history-quickbar{display:flex;gap:8px;flex-wrap:wrap;margin:12px 0}.live-history-quickbar button{border:1px solid rgba(255,255,255,.72);background:rgba(255,255,255,.58);padding:9px 12px;border-radius:999px;font-size:12px;font-weight:800;color:#53665e;cursor:pointer;box-shadow:0 5px 16px rgba(34,58,49,.04)}
+.live-single-person-summary>div{grid-template-columns:repeat(5,minmax(0,1fr))!important}
+
+/* V24 Manual + Edit dialogs */
+.live-manual-grid{grid-template-columns:repeat(4,minmax(0,1fr))!important}.live-manual-note{grid-column:1/-1!important}.live-edit-day-grid{display:grid;grid-template-columns:1fr 1.2fr 1.7fr auto;gap:10px;align-items:end;padding:12px;border-radius:18px;background:rgba(255,255,255,.55);border:1px solid rgba(255,255,255,.78);margin-bottom:12px}.live-edit-day-grid label{display:grid;gap:6px;font-size:11px;font-weight:800;color:#6a7972}.live-edit-note{min-width:0}.live-edit-toolbar{display:flex;justify-content:flex-end;margin-bottom:4px}.live-edit-actions{display:flex;gap:6px;align-items:center}
+
+/* V24 Settings */
+.settings-grid-soft{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px}.settings-soft-card{padding:18px!important}.settings-save-row{justify-content:flex-end;margin:14px 0}.legacy-settings-card{margin-top:16px}.soft-switch{padding:11px 12px;border-radius:14px;background:rgba(255,255,255,.52);border:1px solid rgba(255,255,255,.7);margin-bottom:12px}
+
+/* Staff soft-glass polish */
+body.goya-staff-app.goya-soft-glass .live-att-shell{max-width:1100px;margin:0 auto}
+body.goya-staff-app.goya-soft-glass .live-punch-btn{box-shadow:0 12px 30px rgba(38,91,67,.18)!important}
+body.goya-staff-app.goya-soft-glass .live-history-card{padding:18px!important}
+body.goya-staff-app.goya-soft-glass .live-shift-timeline>div{background:rgba(255,255,255,.52)!important;border:1px solid rgba(255,255,255,.68)!important}
+
+@media(max-width:1100px){
+  .settings-grid-soft{grid-template-columns:1fr}
+  .live-manual-grid{grid-template-columns:repeat(2,minmax(0,1fr))!important}
+  .live-edit-day-grid{grid-template-columns:1fr 1fr}.live-edit-note{grid-column:1/-1}.live-edit-day-grid>.btn{width:100%}
+}
+@media(max-width:900px){
+  body.goya-soft-glass .sidebar{background:linear-gradient(180deg,rgba(25,58,47,.98),rgba(30,66,54,.97))!important}
+  body.goya-staff-app.goya-soft-glass .live-timer-ring{width:min(76vw,330px)!important}
+  body.goya-staff-app.goya-soft-glass .live-att-main{overflow:visible!important}
+  body.goya-staff-app.goya-soft-glass .live-page-head{display:grid!important;grid-template-columns:1fr auto!important}
+  body.goya-attendance-admin .live-control-row{grid-template-columns:1fr 1fr!important}
+  body.goya-attendance-admin .live-control-row>span:nth-of-type(n){display:flex;justify-content:space-between}
+  .live-manual-grid{grid-template-columns:1fr!important}.live-manual-note{grid-column:1!important}
+  .live-edit-session{grid-template-columns:1fr!important;align-items:stretch!important}.live-edit-actions{justify-content:flex-end}
+  .live-edit-day-grid{grid-template-columns:1fr!important}.live-edit-note{grid-column:1!important}
+  .live-export-menu>div{position:fixed;left:14px;right:14px;top:auto;bottom:18px;min-width:0}
+  .live-single-person-summary>div{grid-template-columns:repeat(2,minmax(0,1fr))!important}
+}
+@media(max-width:480px){
+  body.goya-staff-app.goya-soft-glass .live-timer-ring{width:min(82vw,305px)!important;padding:10px!important}
+  body.goya-staff-app.goya-soft-glass .live-ring-inner{padding:20px!important}
+  body.goya-staff-app.goya-soft-glass #liveWorkingTime{font-size:clamp(38px,13vw,52px)!important}
+  body.goya-staff-app.goya-soft-glass #liveTimerSub{font-size:clamp(23px,7vw,30px)!important}
+  body.goya-staff-app.goya-soft-glass .live-mini-grid{grid-template-columns:1fr 1fr!important}
+  body.goya-staff-app.goya-soft-glass .live-break-card{grid-column:1/-1!important}
+  .live-history-quickbar{overflow-x:auto;flex-wrap:nowrap;padding-bottom:4px}.live-history-quickbar button{white-space:nowrap}
+}
