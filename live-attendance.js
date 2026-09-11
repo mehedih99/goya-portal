@@ -32,7 +32,23 @@
   }
   function tick(){render()}
   async function getPublicIp(){for(const url of ['https://api.ipify.org?format=json','https://api64.ipify.org?format=json']){try{const r=await fetch(url,{cache:'no-store'});if(r.ok){const j=await r.json();if(j.ip)return j.ip}}catch{}}throw new Error('Could not verify office network public IP. Check internet and try again.')}
-  function getGps(){return new Promise((resolve,reject)=>{if(!navigator.geolocation)return reject(new Error('GPS is not supported on this device/browser.'));navigator.geolocation.getCurrentPosition(p=>resolve({lat:p.coords.latitude,lon:p.coords.longitude,accuracy:p.coords.accuracy}),e=>reject(new Error(e.code===1?'Location permission is required. Please allow location access and try again.':e.code===3?'Location request timed out. Move near a window or enable precise location, then try again.':'Could not get workplace GPS location.')),{enableHighAccuracy:true,timeout:20000,maximumAge:5000})})}
+  function getGps(){
+    return new Promise((resolve,reject)=>{
+      if(!navigator.geolocation)return reject(new Error('GPS is not supported on this device/browser.'));
+      let attempts=0,best=null,finished=false;
+      const fail=e=>{if(finished)return;finished=true;reject(new Error(e?.code===1?'Location permission is required. Please allow precise location and try again.':e?.code===3?'Fresh location timed out. Keep GPS on, move near a window and try again.':'Could not get fresh workplace GPS location.'))};
+      const read=()=>navigator.geolocation.getCurrentPosition(p=>{
+        const age=Date.now()-(p.timestamp||0),g={lat:p.coords.latitude,lon:p.coords.longitude,accuracy:p.coords.accuracy,timestamp:p.timestamp,age};
+        if(!best||g.accuracy<best.accuracy)best=g;
+        attempts++;
+        if(age<=15000&&(g.accuracy||9999)<=100){finished=true;return resolve(g)}
+        if(attempts<3)return setTimeout(read,650);
+        if(best&&best.age<=30000){finished=true;return resolve(best)}
+        fail({code:3});
+      },fail,{enableHighAccuracy:true,timeout:12000,maximumAge:0});
+      read();
+    })
+  }
   function showActionMessage(title,text,isError=true){const modal=$('liveActionModal');if(!modal)return toast(text,isError);$('liveActionModalTitle').textContent=title;$('liveActionModalText').textContent=text;$('liveActionModalStatus').innerHTML=isError?'<span class="live-verify bad">Verification failed</span>':'<span class="live-verify ok">Ready</span>';$('liveActionConfirmBtn').classList.toggle('hidden',isError);modal.classList.remove('hidden')}
   function requestAction(type){
     if(busy)return;
