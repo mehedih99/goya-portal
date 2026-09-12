@@ -82,17 +82,42 @@
   async function doAction(type){if(busy)return;busy=true;setButtons(true);try{const v=await verifyWorkplace();let d;if(type==='out')d=await rpc('staff_live_attendance_check_out',{p_token:ctx().token,p_lat:v.lat,p_lon:v.lon,p_public_ip:v.ip,p_break_taken:pendingBreakTaken});else{d=await rpc('staff_live_attendance_check_in',{p_token:ctx().token,p_lat:v.lat,p_lon:v.lon,p_public_ip:v.ip,p_rejoin:type==='rejoin'});await rpc('staff_live_attendance_set_break',{p_token:ctx().token,p_break_taken:pendingBreakTaken});if(splitShiftEnabled())await rpc('staff_live_attendance_set_split',{p_token:ctx().token,p_split_shift:pendingSplitShift})}toast(d?.message||`${type==='out'?'Check Out':type==='rejoin'?'Rejoin':'Check In'} successful.`);$('liveActionModal')?.classList.add('hidden');await refresh()}catch(e){if(!e.verificationShown){showActionMessage('Attendance action failed',e.message,true);toast(e.message,true)}}finally{busy=false;setButtons(false)}}
   function confirmAction(){if(pendingAction)doAction(pendingAction)}
   function setButtons(dis){['liveCheckInBtn','liveCheckOutBtn','liveRejoinBtn','liveActionConfirmBtn'].forEach(id=>{if($(id))$(id).disabled=dis})}
-  async function chooseBreak(value){if(!allowBreakSelection()){pendingBreakTaken=defaultBreakTaken();setBreakUI(pendingBreakTaken);toast('Break selection is locked by Admin.',true);return;}pendingBreakTaken=value;setBreakUI(value);render();if(current?.day){try{await rpc('staff_live_attendance_set_break',{p_token:ctx().token,p_break_taken:value});current.day.break_taken=value;render();toast(value?'Break set: 9h presence / 8h net.':'No break: 8h presence target.')}catch(e){toast(e.message,true)}}}
-  async function chooseSplit(value){
-    if(!splitShiftEnabled()){pendingSplitShift=false;setSplitUI(false);toast('Split Shift is disabled by Admin.',true);return;}
-    pendingSplitShift=value===true;setSplitUI(pendingSplitShift);render();
+  async function chooseBreak(value){
+    if(!allowBreakSelection()){pendingBreakTaken=defaultBreakTaken();setBreakUI(pendingBreakTaken);toast('Break selection is locked by Admin.',true);return;}
+    const requested=value!==false;
+    pendingBreakTaken=requested;
+    setBreakUI(requested);
     if(current?.day){
       try{
-        await rpc('staff_live_attendance_set_split',{p_token:ctx().token,p_split_shift:pendingSplitShift});
-        current.day.split_shift_allowed=pendingSplitShift;
+        await rpc('staff_live_attendance_set_break',{p_token:ctx().token,p_break_taken:requested});
+        current.day.break_taken=requested;
+        pendingBreakTaken=requested;
         render();
-        toast(pendingSplitShift?'Split Shift ON. You can Check Out and Rejoin later today.':'Split Shift OFF. Rejoin is disabled for this day.');
-      }catch(e){toast(e.message,true)}
+        toast(requested?'Break set: 9h presence / 8h net.':'No break: 8h presence target.');
+      }catch(e){
+        pendingBreakTaken=current.day.break_taken!==false;
+        setBreakUI(pendingBreakTaken);
+        toast(e.message,true);
+      }
+    }
+  }
+  async function chooseSplit(value){
+    if(!splitShiftEnabled()){pendingSplitShift=false;setSplitUI(false);toast('Split Shift is disabled by Admin.',true);return;}
+    const requested=value===true;
+    pendingSplitShift=requested;
+    setSplitUI(requested);
+    if(current?.day){
+      try{
+        await rpc('staff_live_attendance_set_split',{p_token:ctx().token,p_split_shift:requested});
+        current.day.split_shift_allowed=requested;
+        pendingSplitShift=requested;
+        render();
+        toast(requested?'Split Shift ON. You can Check Out and Rejoin later today.':'Split Shift OFF. Rejoin is disabled for this day.');
+      }catch(e){
+        pendingSplitShift=current.day.split_shift_allowed===true;
+        setSplitUI(pendingSplitShift);
+        toast(e.message,true);
+      }
     }
   }
   function durationMinutes(a,b){if(!a||!b)return 0;const x=new Date(a).getTime(),y=new Date(b).getTime();return Number.isFinite(x)&&Number.isFinite(y)&&y>x?(y-x)/60000:0}
