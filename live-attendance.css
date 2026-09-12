@@ -86,3 +86,15 @@
   .live-control-row .control-actions{grid-template-columns:1fr!important}
   .live-report-actions{grid-template-columns:1fr!important}
 }
+/* V35 settings controls */
+#liveBreakTaken.is-locked{opacity:.72;filter:saturate(.7)}
+#liveBreakTaken.is-locked button{cursor:not-allowed!important;pointer-events:none}
+
+/* V36: explicit live shift/break settings controls */
+.live-rules-panel{border:1px solid #dfe8e3;border-radius:20px;padding:18px;background:linear-gradient(180deg,#fff,#f8fbf9);box-shadow:0 10px 30px rgba(37,58,50,.06)}
+.live-rules-title h3{margin:0 0 4px}.live-rules-title p{margin:0}
+.live-rule-toggle-row{display:flex;align-items:center;justify-content:space-between;gap:18px;padding:15px 0;border-top:1px solid #e8eeea}.live-rule-toggle-row:first-of-type{margin-top:12px}.live-rule-toggle-row>div{display:grid;gap:4px}.live-rule-toggle-row strong{font-size:15px}.live-rule-toggle-row span{font-size:12px;color:#758078}
+.switch-control{position:relative;width:52px;height:30px;flex:0 0 52px}.switch-control input{opacity:0;width:0;height:0}.switch-slider{position:absolute;inset:0;border-radius:999px;background:#d9dfdc;cursor:pointer;transition:.2s}.switch-slider:before{content:"";position:absolute;width:24px;height:24px;left:3px;top:3px;border-radius:50%;background:#fff;box-shadow:0 2px 8px rgba(0,0,0,.15);transition:.2s}.switch-control input:checked+.switch-slider{background:#397a5c}.switch-control input:checked+.switch-slider:before{transform:translateX(22px)}
+.live-rule-fields{margin-top:14px}.live-rule-state{display:flex;gap:8px;flex-wrap:wrap;margin-top:12px}.live-rule-state span,.live-shift-rule-banner span{display:inline-flex;align-items:center;padding:7px 10px;border-radius:999px;background:#edf5f0;color:#315f49;font-size:11px;font-weight:800}
+.live-shift-rule-banner{display:flex;gap:8px;flex-wrap:wrap;justify-content:center;margin:10px 0 2px}
+@media(max-width:700px){.live-rule-toggle-row{align-items:flex-start}.live-rules-panel{padding:14px}.live-rule-fields{grid-template-columns:1fr}.live-shift-rule-banner{justify-content:flex-start}}
