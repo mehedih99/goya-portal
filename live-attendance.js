@@ -26,6 +26,31 @@
   function effectiveStartMs(session,index,row=dayInfo()){let ms=new Date(session.check_in_at).getTime();if(index===0){const sm=matchedShift({...row,sessions:activeSessions(row)});const date=row.operational_date||current?.operational_date;if(sm!=null&&date){const sch=zonedLocalToUtcMs(date,sm);if(Number.isFinite(sch)&&ms<sch)ms=sch}}return ms}
   function calcRow(row,liveNow=false){const sessions=activeSessions(row);let sec=0;const now=liveNow?nowMs():0;sessions.forEach((s,i)=>{const st=effectiveStartMs(s,i,{...row,sessions}),en=s.check_out_at?new Date(s.check_out_at).getTime():(liveNow?now:st);if(Number.isFinite(st)&&Number.isFinite(en)&&en>st)sec+=(en-st)/1000});const rules=current?.rules||{},breakTaken=row.break_taken!==false,breakMin=breakTaken?(Number(rules.break_minutes)||60):0,regular=Number(rules.regular_net_minutes)||480,target=breakTaken?(Number(rules.duty_presence_minutes)||540):regular,net=Math.max(0,sec/60-breakMin),ot=Math.floor(Math.max(0,net-regular)/30)*30;return {sec,net,ot,target,remaining:Math.max(0,target-sec/60),liveOt:Math.max(0,net-regular)}}
   const totals=()=>calcRow({...dayInfo(),operational_date:current?.operational_date,sessions:daySessions()},true);
+  // Live timer uses the actual accumulated punched time so it starts immediately
+  // after Check In. Payroll/history calculations still use calcRow(), which keeps
+  // the scheduled-start clamp for early punches.
+  function liveTotals(){
+    const sessions=activeSessions({sessions:daySessions()});
+    let sec=0;
+    const now=nowMs();
+    sessions.forEach(s=>{
+      const st=new Date(s.check_in_at).getTime();
+      const en=s.check_out_at?new Date(s.check_out_at).getTime():now;
+      if(Number.isFinite(st)&&Number.isFinite(en)&&en>st)sec+=(en-st)/1000;
+    });
+    const rules=current?.rules||{};
+    const breakTaken=dayInfo().break_taken!==false;
+    const regular=Number(rules.regular_net_minutes)||480;
+    const target=breakTaken?(Number(rules.duty_presence_minutes)||540):regular;
+    const breakMin=breakTaken?(Number(rules.break_minutes)||60):0;
+    const net=Math.max(0,sec/60-breakMin);
+    return {
+      sec,
+      target,
+      remaining:Math.max(0,target-sec/60),
+      liveOt:Math.max(0,net-regular)
+    };
+  }
   const openSession=()=>daySessions().find(s=>!s.check_out_at)||null;
   function verificationBadge(ok,text){return `<span class="live-verify ${ok?'ok':'bad'}">${ok?'✓':'!'} ${esc(text)}</span>`}
   function rowVerification(row){const ss=row.sessions||[];if(!ss.length)return '—';const okIn=ss.every(s=>s.check_in_verified),outs=ss.filter(s=>s.check_out_at),okOut=outs.length===ss.length&&outs.every(s=>s.check_out_verified);return okIn&&okOut?'Verified':'Review'}
@@ -35,7 +60,7 @@
   function setSplitUI(value){pendingSplitShift=value===true;const host=$('liveSplitShift');if(host)host.querySelectorAll('button[data-value]').forEach(b=>b.classList.toggle('active',(b.dataset.value==='true')===pendingSplitShift))}
   function render(){
     if(!current)return;
-    const t=totals(),open=openSession(),active=activeSessions({sessions:daySessions()}),hasSessions=active.length>0;
+    const t=liveTotals(),open=openSession(),active=activeSessions({sessions:daySessions()}),hasSessions=active.length>0;
     const work=$('liveWorkingTime'),sub=$('liveTimerSub'),subLabel=$('liveTimerSubLabel'),ring=$('liveTimerRing'),done=$('liveDutyComplete');
     if(work)work.textContent=clockLabel(t.sec);
     if(!open&&hasSessions&&!pendingSplitShift){
