@@ -91,7 +91,7 @@
 
   async function staffLogout(){try{if(state.token)await rpc('logout',{p_token:state.token});}catch{} state.token=null;state.user=null;location.reload();}
 
-  window.GoyaStaff={staffLogin,nav:staffNav,mobileMenu,searchMaster,pickOrderItem,addOrderLine,setOrderNote,removeOrder,submitOrder,searchItems,pickItem,addLine,removeLine,submitProduction,submitWastage,staffHistory,historyTab,renderHistory,statusCard:statusCardClick,submitComplaint,loadInventory,filterInventoryRows,saveDraft,reviewInventory,closeReview,saveOperationalDraft,myAttendanceToggle,mySplitToggle,myAttendanceShareMode,submitMyAttendance,loadMyAttendance,editMyAttendance,shareMyAttendanceWhatsApp,shareMyAttendance,staffLogout};
+  window.GoyaStaff={staffLogin,nav:staffNav,mobileMenu,searchMaster,pickOrderItem,addOrderLine,setOrderNote,removeOrder,submitOrder,searchItems,pickItem,addLine,removeLine,submitProduction,submitWastage,staffHistory,historyTab,renderHistory,statusCard:statusCardClick,submitComplaint,loadInventory,filterInventoryRows,saveDraft,reviewInventory,closeReview,saveOperationalDraft,myAttendanceToggle,mySplitToggle,myAttendanceShareMode,submitMyAttendance,loadMyAttendance,editMyAttendance,shareMyAttendanceWhatsApp,shareMyAttendance,staffLogout,_liveContext:()=>({token:state.token,user:state.user,data:state.data,staff:state.user})};
 
   // ---------- ADMIN ----------
   async function adminLogin(){const pin=$('adminPin').value.trim();if(!/^\d{4,12}$/.test(pin)){toast('Enter your Admin PIN.',true);return;}try{const d=await rpc('admin_login',{p_pin:pin});state.token=d.token;await adminLoad();$('adminLogin').classList.add('hidden');$('adminApp').classList.remove('hidden');$('adminPin').value='';toast('Admin panel unlocked.');}catch(e){toast(e.message,true)}}
