@@ -170,6 +170,10 @@
     const finalY=doc.lastAutoTable?.finalY||70;doc.setFontSize(8);doc.setTextColor(110);doc.text(`Summary: ${data.length} staff · ${totalDays} OT day(s) · ${otText(total)} total overtime`,14,Math.min(finalY+8,285));doc.setTextColor(0);
     doc.save(overtimeFileBase('pdf'))
   }
+  async function getPublicIp(){for(const url of ['https://api.ipify.org?format=json','https://api64.ipify.org?format=json']){try{const r=await fetch(url,{cache:'no-store'});if(r.ok){const j=await r.json();if(j.ip)return j.ip}}catch{}}throw new Error('Could not detect public IP.')}
+  function getGps(){return new Promise((resolve,reject)=>navigator.geolocation?navigator.geolocation.getCurrentPosition(p=>resolve({lat:p.coords.latitude,lon:p.coords.longitude,accuracy:p.coords.accuracy,timestamp:p.timestamp}),e=>reject(new Error(e.code===1?'Allow precise location permission first.':'Could not get fresh GPS.')),{enableHighAccuracy:true,timeout:20000,maximumAge:0}):reject(new Error('GPS unsupported.')))}
+  async function testVerification(){const box=$('liveVerificationTest');if(box)box.innerHTML='<span class="live-verify wait">Testing fresh GPS + office network…</span>';try{const [g,ip]=await Promise.all([getGps(),getPublicIp()]);const v=await publicRpc('attendance_live_verify_workplace',{p_lat:g.lat,p_lon:g.lon,p_public_ip:ip});const distance=Number(v?.distance_m);if(box)box.innerHTML=`<div class="verify-test-grid"><span>GPS <b>${v?.location_ok!==false?'Captured':'Failed'} · ±${Math.round(g.accuracy||0)}m</b></span><span>Distance <b>${Number.isFinite(distance)?Math.round(distance)+'m':'—'}</b></span><span>Network <b>${v?.network_ok!==false&&v?.ok?'Passed':(v?.network_ok===false?'Failed':'Checked')}</b></span><span>Public IP <b>${esc(ip)}</b></span><span>Overall <b class="${v?.ok?'ok-text':'bad-text'}">${v?.ok?'Verified':'Not Verified'}</b></span></div>`;toast(v?.ok?'Workplace verification passed.':'Workplace verification did not pass.',!v?.ok)}catch(e){if(box)box.innerHTML=`<span class="live-verify bad">${esc(e.message)}</span>`;toast(e.message,true)}}
+  function renderLocations(){const host=$('liveLocationList');if(!host)return;host.innerHTML=liveState.settingsLocations.length?liveState.settingsLocations.map((l,i)=>`<div class="live-location-row"><div><strong>${esc(l.name||'Workplace')}</strong><span>${Number(l.lat).toFixed(6)}, ${Number(l.lon).toFixed(6)} · ${l.radius_m||150}m</span></div><button class="btn danger tiny" onclick="GoyaLiveAdmin.removeLocation(${i})">Remove</button></div>`).join(''):'<div class="live-empty">No workplace location configured yet.</div>'}
   async function loadSettings(){try{const r=await rpc('attendance_live_admin_settings',{p_token:ctx().token});liveState.rules=r||{};liveState.settingsLocations=Array.isArray(r.locations)?r.locations:[];$('liveRequireLocation').checked=r.require_location!==false;$('liveRequireNetwork').checked=r.require_network!==false;if($('liveEnableBreakOption'))$('liveEnableBreakOption').checked=r.enable_break_option!==false;if($('liveEnableSplitOption'))$('liveEnableSplitOption').checked=r.enable_split_shift_option!==false;$('liveDutyHours').value=(Number(r.duty_presence_minutes)||540)/60;$('liveBreakMinutes').value=Number(r.break_minutes)||60;$('liveApprovedIps').value=(Array.isArray(r.approved_public_ips)?r.approved_public_ips:[]).join('\n');renderLocations()}catch(e){toast(e.message,true)}}
   async function detectLocation(){try{const g=await getGps();$('liveLocLat').value=g.lat.toFixed(7);$('liveLocLon').value=g.lon.toFixed(7);toast(`GPS captured ±${Math.round(g.accuracy||0)}m`)}catch(e){toast(e.message,true)}}
   async function detectIp(){try{const ip=await getPublicIp(),box=$('liveApprovedIps'),ips=box.value.split(/\s+/).filter(Boolean);if(!ips.includes(ip))ips.push(ip);box.value=ips.join('\n');toast(`Current public IP added: ${ip}`)}catch(e){toast(e.message,true)}}
@@ -209,6 +213,31 @@
     },{capture:true});
   }
   closeExportMenuOnOutsideClick();
+
+
+  let autoBootDone=false,autoBootTimer=null;
+  function localToday(){try{return new Intl.DateTimeFormat('en-CA',{timeZone:timezone(),year:'numeric',month:'2-digit',day:'2-digit'}).format(new Date()).replace(/\//g,'-')}catch{return new Date().toISOString().slice(0,10)}}
+  async function tryAutoBoot(){
+    if(autoBootDone)return;
+    const app=$('attApp');
+    if(!app||app.classList.contains('hidden'))return;
+    const c=ctx();
+    if(!c.token)return;
+    autoBootDone=true;
+    try{
+      const today=localToday();
+      if($('liveDashDate')&&!$('liveDashDate').value)$('liveDashDate').value=today;
+      if($('liveControlDate')&&!$('liveControlDate').value)$('liveControlDate').value=today;
+      await openDashboard();
+    }catch(e){autoBootDone=false;toast('Live Attendance could not load. '+(e?.message||'Please refresh.'),true)}
+  }
+  function startAutoBootWatcher(){
+    if(autoBootTimer)return;
+    let tries=0;
+    autoBootTimer=setInterval(()=>{tries++;tryAutoBoot();if(autoBootDone||tries>80){clearInterval(autoBootTimer);autoBootTimer=null}},250);
+    setTimeout(tryAutoBoot,0);
+  }
+  if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',startAutoBootWatcher,{once:true});else startAutoBootWatcher();
 
   window.GoyaLiveAdmin={openDashboard,loadDashboard,setDashboardFilter,applyDashboardFilter,openControl,loadControl,setControlFilter,openManualControl,closeControlModal,saveManualControl,openHistory,loadHistory,renderHistory,setHistoryQuickFilter,applyMonth,saveClassification,deleteHistoryDay,editDay,saveDayEdit,saveSessionEdit,deleteSession,closeEdit,exportExcel,exportPDF,exportOvertimeExcel,exportOvertimePDF,openSettings,loadSettings,detectLocation,detectIp,testVerification,addLocation,removeLocation,saveSettings};
   if(window.GoyaAttendance){window.GoyaAttendance.openLiveDashboard=openDashboard;window.GoyaAttendance.openLiveHistory=openHistory;window.GoyaAttendance.openLiveSettings=openSettings;}
