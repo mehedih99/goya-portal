@@ -1,6 +1,6 @@
 (() => {
   const cfg=window.GOYA_CONFIG||{};
-  let sb=null,timer=null,refreshTimer=null,serverOffset=0,current=null,busy=false,historyRows=[],pendingAction=null,pendingBreakTaken=true,pendingSplitShift=false,splitSaving=false,splitRequestSeq=0;
+  let sb=null,timer=null,refreshTimer=null,serverOffset=0,current=null,busy=false,historyRows=[],legacyRows=[],pendingAction=null,pendingBreakTaken=true;
   const $=id=>document.getElementById(id),pad=n=>String(n).padStart(2,'0');
   const esc=v=>String(v??'').replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#039;'}[m]));
   const ctx=()=>window.GoyaStaff?._liveContext?.()||{};
@@ -15,103 +15,24 @@
   const clockLabel=sec=>{sec=Math.max(0,Math.floor(sec));return `${pad(Math.floor(sec/3600))}:${pad(Math.floor((sec%3600)/60))}:${pad(sec%60)}`};
   const daySessions=()=>Array.isArray(current?.sessions)?current.sessions:[];
   const dayInfo=()=>current?.day||{break_taken:pendingBreakTaken,late_minutes:0,classification:'Duty'};
-  const breakOptionEnabled=()=>current?.rules?.enable_break_option!==false;
-  const splitOptionEnabled=()=>current?.rules?.enable_split_shift_option!==false;
   const nowMs=()=>Date.now()+serverOffset;
-  function activeSessions(row){return (Array.isArray(row?.sessions)?row.sessions:[]).filter(s=>!s.is_deleted).slice().sort((a,b)=>new Date(a.check_in_at)-new Date(b.check_in_at))}
-  function minutesAtZone(ts,row){const d=new Date(ts);if(Number.isNaN(d.getTime()))return null;const tz=current?.rules?.timezone||'Asia/Dubai';const parts=new Intl.DateTimeFormat('en-GB',{timeZone:tz,hour:'2-digit',minute:'2-digit',hour12:false}).formatToParts(d);const h=Number(parts.find(x=>x.type==='hour')?.value),m=Number(parts.find(x=>x.type==='minute')?.value);return Number.isFinite(h)&&Number.isFinite(m)?h*60+m:null}
-  function zonedLocalToUtcMs(dateStr,minuteOfDay,tz=(current?.rules?.timezone||'Asia/Dubai')){const [y,mo,d]=String(dateStr||'').split('-').map(Number),h=Math.floor(minuteOfDay/60),mi=minuteOfDay%60;if(!y||!mo||!d)return NaN;let guess=Date.UTC(y,mo-1,d,h,mi,0);for(let i=0;i<2;i++){const parts=new Intl.DateTimeFormat('en-CA',{timeZone:tz,year:'numeric',month:'2-digit',day:'2-digit',hour:'2-digit',minute:'2-digit',second:'2-digit',hour12:false}).formatToParts(new Date(guess));const get=t=>Number(parts.find(x=>x.type===t)?.value);const shown=Date.UTC(get('year'),get('month')-1,get('day'),get('hour'),get('minute'),get('second'));const target=Date.UTC(y,mo-1,d,h,mi,0);guess+=target-shown}return guess}
-  function matchedShift(row){const ss=activeSessions(row);if(!ss.length)return null;const punch=minutesAtZone(ss[0].check_in_at,row);if(punch==null)return null;const rr=current?.rules||{},shifts=Array.isArray(rr.shift_start_times)?rr.shift_start_times:['08:00','09:00','10:00','11:00','12:00','13:00','14:00','15:00','16:00','17:00'];const mins=shifts.map(v=>{const [h,m]=String(v).split(':').map(Number);return h*60+m}).filter(Number.isFinite).sort((a,b)=>a-b);if(!mins.length)return null;const last=mins[mins.length-1];if(punch>last+60)return null;let best=null,bestDist=null;mins.forEach(sm=>{const dist=Math.abs(punch-sm);if(bestDist==null||dist<bestDist||(dist===bestDist&&sm>best)){best=sm;bestDist=dist}});return best}
-  function derivedLate(row){const ss=activeSessions(row);if(!ss.length)return 0;const punch=minutesAtZone(ss[0].check_in_at,row),sh=matchedShift(row),grace=Number(current?.rules?.late_grace_minutes)||15;if(punch==null||sh==null)return 0;return punch-sh>grace?punch-sh:0}
-  function effectiveStartMs(session,index,row=dayInfo()){let ms=new Date(session.check_in_at).getTime();if(index===0){const sm=matchedShift({...row,sessions:activeSessions(row)});const date=row.operational_date||current?.operational_date;if(sm!=null&&date){const sch=zonedLocalToUtcMs(date,sm);if(Number.isFinite(sch)&&ms<sch)ms=sch}}return ms}
-  function calcRow(row,liveNow=false){const sessions=activeSessions(row);let sec=0;const now=liveNow?nowMs():0;sessions.forEach((s,i)=>{const st=effectiveStartMs(s,i,{...row,sessions}),en=s.check_out_at?new Date(s.check_out_at).getTime():(liveNow?now:st);if(Number.isFinite(st)&&Number.isFinite(en)&&en>st)sec+=(en-st)/1000});const rules=current?.rules||{},breakTaken=row.break_taken!==false,breakMin=breakTaken?(Number(rules.break_minutes)||60):0,regular=Number(rules.regular_net_minutes)||480,target=breakTaken?(Number(rules.duty_presence_minutes)||540):regular,net=Math.max(0,sec/60-breakMin),ot=Math.floor(Math.max(0,net-regular)/30)*30;return {sec,net,ot,target,remaining:Math.max(0,target-sec/60),liveOt:Math.max(0,net-regular)}}
+  function effectiveStartMs(session,index,row=dayInfo()){let ms=new Date(session.check_in_at).getTime();if(index===0&&row.scheduled_start){const date=row.operational_date||current?.operational_date;const sch=new Date(`${date}T${String(row.scheduled_start).slice(0,5)}:00+04:00`).getTime();if(Number.isFinite(sch)&&ms<sch)ms=sch}return ms}
+  function calcRow(row,liveNow=false){if(row?.legacy_precalc){const x=row.legacy_precalc;return {sec:Number(x.sec)||0,net:Number(x.net)||0,ot:Number(x.ot)||0,target:Number(x.target)||0,remaining:0,liveOt:Number(x.ot)||0}}const sessions=Array.isArray(row.sessions)?row.sessions:[];let sec=0;const now=liveNow?nowMs():0;sessions.forEach((s,i)=>{const st=effectiveStartMs(s,i,row),en=s.check_out_at?new Date(s.check_out_at).getTime():(liveNow?now:st);if(Number.isFinite(st)&&Number.isFinite(en)&&en>st)sec+=(en-st)/1000});const rules=current?.rules||{},breakTaken=row.break_taken!==false,breakMin=breakTaken?(Number(rules.break_minutes)||60):0,regular=Number(rules.regular_net_minutes)||480,target=breakTaken?(Number(rules.duty_presence_minutes)||540):regular,net=Math.max(0,sec/60-breakMin),ot=Math.floor(Math.max(0,net-regular)/30)*30;return {sec,net,ot,target,remaining:Math.max(0,target-sec/60),liveOt:Math.max(0,sec/60-target)}}
   const totals=()=>calcRow({...dayInfo(),operational_date:current?.operational_date,sessions:daySessions()},true);
-  // Live timer uses the actual accumulated punched time so it starts immediately
-  // after Check In. Payroll/history calculations still use calcRow(), which keeps
-  // the scheduled-start clamp for early punches.
-  function liveTotals(){
-    const sessions=activeSessions({sessions:daySessions()});
-    let sec=0;
-    const now=nowMs();
-    sessions.forEach(s=>{
-      const st=new Date(s.check_in_at).getTime();
-      const en=s.check_out_at?new Date(s.check_out_at).getTime():now;
-      if(Number.isFinite(st)&&Number.isFinite(en)&&en>st)sec+=(en-st)/1000;
-    });
-    const rules=current?.rules||{};
-    const breakTaken=dayInfo().break_taken!==false;
-    const regular=Number(rules.regular_net_minutes)||480;
-    const target=breakTaken?(Number(rules.duty_presence_minutes)||540):regular;
-    const breakMin=breakTaken?(Number(rules.break_minutes)||60):0;
-    const net=Math.max(0,sec/60-breakMin);
-    return {
-      sec,
-      target,
-      remaining:Math.max(0,target-sec/60),
-      liveOt:Math.max(0,net-regular)
-    };
-  }
   const openSession=()=>daySessions().find(s=>!s.check_out_at)||null;
   function verificationBadge(ok,text){return `<span class="live-verify ${ok?'ok':'bad'}">${ok?'✓':'!'} ${esc(text)}</span>`}
-  function rowVerification(row){const ss=row.sessions||[];if(!ss.length)return '—';const okIn=ss.every(s=>s.check_in_verified),outs=ss.filter(s=>s.check_out_at),okOut=outs.length===ss.length&&outs.every(s=>s.check_out_verified);return okIn&&okOut?'Verified':'Review'}
-  function friendlyPunchError(message=''){const m=String(message||'');if(/attendance_live_one_open_session_idx|duplicate key value violates unique constraint/i.test(m))return 'You already have an active attendance session. The current live session will be restored.';if(/already checked in/i.test(m))return 'You already have an active attendance session.';if(/already worked today/i.test(m))return 'You already completed a session today. Use Rejoin to continue your split shift.';if(/No active Check In found/i.test(m))return 'No active Check In was found. Refresh the page and try again.';return m||'Attendance action could not be completed.'}
-  function statusLabel(row){const ss=activeSessions(row);if(ss.some(s=>!s.check_out_at))return 'On Duty';if(ss.length)return 'Shift Done';return row.classification||'Day Off - Pending Review'}
+  function rowVerification(row){if(row?.legacy)return 'Previous Record';const ss=row.sessions||[];if(!ss.length)return '—';const okIn=ss.every(s=>s.check_in_verified),outs=ss.filter(s=>s.check_out_at),okOut=outs.length===ss.length&&outs.every(s=>s.check_out_verified);return okIn&&okOut?'Verified':'Review'}
+  function statusLabel(row){return row.sessions?.length?(row.sessions.some(s=>!s.check_out_at)?'On Duty':(row.classification||'Duty')):(row.classification||'Day Off - Pending Review')}
   function setBreakUI(value){pendingBreakTaken=value!==false;const host=$('liveBreakTaken');if(host)host.querySelectorAll('button[data-value]').forEach(b=>b.classList.toggle('active',(b.dataset.value==='true')===pendingBreakTaken))}
-  function setSplitUI(value){pendingSplitShift=value===true;const host=$('liveSplitShift');if(host)host.querySelectorAll('button[data-value]').forEach(b=>b.classList.toggle('active',(b.dataset.value==='true')===pendingSplitShift))}
-  function render(){
-    if(!current)return;
-    const t=liveTotals(),open=openSession(),active=activeSessions({sessions:daySessions()}),hasSessions=active.length>0;
-    const work=$('liveWorkingTime'),sub=$('liveTimerSub'),subLabel=$('liveTimerSubLabel'),ring=$('liveTimerRing'),done=$('liveDutyComplete');
-    if(work)work.textContent=clockLabel(t.sec);
-    if(!open&&hasSessions&&!pendingSplitShift){
-      if(subLabel)subLabel.textContent=t.liveOt>0?'Final OT':'Duty Status';
-      if(sub)sub.textContent=t.liveOt>0?clockLabel(t.liveOt*60):'COMPLETE';
-    }else if(t.remaining>0){
-      if(subLabel)subLabel.textContent='Duty Remaining';
-      if(sub)sub.textContent=clockLabel(t.remaining*60);
-    }else{
-      if(subLabel)subLabel.textContent='OT';
-      if(sub)sub.textContent=clockLabel(t.liveOt*60);
-    }
-    if(ring){ring.classList.toggle('is-ot',t.remaining<=0);ring.classList.toggle('is-live',!!open);ring.classList.toggle('is-complete',!open&&hasSessions&&!pendingSplitShift)}
-    if($('liveOperationalDate'))$('liveOperationalDate').textContent=fmtDate(current.operational_date);
-    const liveLate=derivedLate({...dayInfo(),operational_date:current?.operational_date,sessions:daySessions()});
-    if($('liveLate'))$('liveLate').textContent=liveLate>0?`${liveLate} min`:'On Time';
-    if($('liveSessionCount'))$('liveSessionCount').textContent=String(active.length||0);
-    if($('liveStatusText')){$('liveStatusText').textContent=open?'ON DUTY':hasSessions?(pendingSplitShift?'CHECKED OUT':'DUTY COMPLETE'):'READY';$('liveStatusText').className='live-status '+(open?'on':hasSessions?'done':'idle')}
-    if($('liveHeaderBadge'))$('liveHeaderBadge').textContent=open?'Live timer running':hasSessions?(pendingSplitShift?'Split shift paused':'Duty complete'):'Ready to check in';
-    pendingBreakTaken=current?.day?current.day.break_taken!==false:pendingBreakTaken;
-    const breakHost=$('liveBreakTaken')?.closest('.live-option-card'); if(breakHost)breakHost.classList.toggle('hidden',!breakOptionEnabled());
-    setBreakUI(pendingBreakTaken);
-    if(!splitOptionEnabled())pendingSplitShift=false;
-    else if(!splitSaving)pendingSplitShift=current?.day?current.day.split_shift_allowed===true:pendingSplitShift;
-    const splitHost=$('liveSplitShift')?.closest('.live-option-card'); if(splitHost)splitHost.classList.toggle('hidden',!splitOptionEnabled());
-    setSplitUI(pendingSplitShift);
-    $('liveCheckInBtn')?.classList.toggle('hidden',hasSessions||!!open);
-    $('liveCheckOutBtn')?.classList.toggle('hidden',!open);
-    $('liveRejoinBtn')?.classList.toggle('hidden',!splitOptionEnabled()||!pendingSplitShift||!hasSessions||!!open);
-    done?.classList.toggle('hidden',!!open||!hasSessions||(splitOptionEnabled()&&pendingSplitShift));
-    const sess=$('liveSessionList');if(sess){sess.innerHTML=active.length?active.map((x,i)=>`<div class="live-session-row"><div><span class="live-session-no">SHIFT ${i+1}</span><strong>${fmtTime(x.check_in_at)} <span>→</span> ${fmtTime(x.check_out_at)}</strong></div><span class="live-saved-chip">${x.check_out_at?'Saved':'Live'}</span></div>`).join(''):'<div class="live-empty">Your first live shift will appear here after Check In.</div>'}
+  function render(){if(!current)return;const t=totals(),open=openSession(),hasSessions=daySessions().length>0,work=$('liveWorkingTime'),sub=$('liveTimerSub'),subLabel=$('liveTimerSubLabel'),ring=$('liveTimerRing');if(work)work.textContent=clockLabel(t.sec);if(t.remaining>0){if(subLabel)subLabel.textContent='Duty Remaining';if(sub)sub.textContent=clockLabel(t.remaining*60)}else{if(subLabel)subLabel.textContent='OT';if(sub)sub.textContent=clockLabel(t.liveOt*60)}if(ring){ring.classList.toggle('is-ot',t.remaining<=0);ring.classList.toggle('is-live',!!open)}
+    if($('liveOperationalDate'))$('liveOperationalDate').textContent=fmtDate(current.operational_date);if($('liveLate'))$('liveLate').textContent=(dayInfo().late_minutes||0)>0?`${dayInfo().late_minutes} min`:'On Time';if($('liveSessionCount'))$('liveSessionCount').textContent=String(daySessions().length||0);if($('liveStatusText')){$('liveStatusText').textContent=open?'ON DUTY':hasSessions?'CHECKED OUT':'READY';$('liveStatusText').className='live-status '+(open?'on':hasSessions?'done':'idle')}if($('liveHeaderBadge'))$('liveHeaderBadge').textContent=open?'Live timer running':hasSessions?'Shift saved':'Ready to check in';
+    pendingBreakTaken=current?.day?current.day.break_taken!==false:pendingBreakTaken;setBreakUI(pendingBreakTaken);
+    $('liveCheckInBtn')?.classList.toggle('hidden',hasSessions||!!open);$('liveCheckOutBtn')?.classList.toggle('hidden',!open);$('liveRejoinBtn')?.classList.toggle('hidden',!hasSessions||!!open);
+    const sess=$('liveSessionList');if(sess)sess.innerHTML=daySessions().length?daySessions().map(s=>`<div class="live-session-row"><div><span class="live-session-no">SHIFT ${s.session_no}</span><strong>${fmtTime(s.check_in_at)} <span>→</span> ${fmtTime(s.check_out_at)}</strong></div><div class="live-session-verify">${verificationBadge(!!s.check_in_verified,'In')} ${s.check_out_at?verificationBadge(!!s.check_out_verified,'Out'):''}</div></div>`).join(''):'<div class="live-empty">Your first live shift will appear here after Check In.</div>';
   }
   function tick(){render()}
   async function getPublicIp(){for(const url of ['https://api.ipify.org?format=json','https://api64.ipify.org?format=json']){try{const r=await fetch(url,{cache:'no-store'});if(r.ok){const j=await r.json();if(j.ip)return j.ip}}catch{}}throw new Error('Could not verify office network public IP. Check internet and try again.')}
-  function getGps(){
-    return new Promise((resolve,reject)=>{
-      if(!navigator.geolocation)return reject(new Error('GPS is not supported on this device/browser.'));
-      let attempts=0,best=null,finished=false;
-      const fail=e=>{if(finished)return;finished=true;reject(new Error(e?.code===1?'Location permission is required. Please allow precise location and try again.':e?.code===3?'Fresh location timed out. Keep GPS on, move near a window and try again.':'Could not get fresh workplace GPS location.'))};
-      const read=()=>navigator.geolocation.getCurrentPosition(p=>{
-        const age=Date.now()-(p.timestamp||0),g={lat:p.coords.latitude,lon:p.coords.longitude,accuracy:p.coords.accuracy,timestamp:p.timestamp,age};
-        if(!best||g.accuracy<best.accuracy)best=g;
-        attempts++;
-        if(age<=15000&&(g.accuracy||9999)<=100){finished=true;return resolve(g)}
-        if(attempts<3)return setTimeout(read,650);
-        if(best&&best.age<=30000){finished=true;return resolve(best)}
-        fail({code:3});
-      },fail,{enableHighAccuracy:true,timeout:12000,maximumAge:0});
-      read();
-    })
-  }
+  function getGps(){return new Promise((resolve,reject)=>{if(!navigator.geolocation)return reject(new Error('GPS is not supported on this device/browser.'));navigator.geolocation.getCurrentPosition(p=>resolve({lat:p.coords.latitude,lon:p.coords.longitude,accuracy:p.coords.accuracy}),e=>reject(new Error(e.code===1?'Location permission is required. Please allow location access and try again.':e.code===3?'Location request timed out. Move near a window or enable precise location, then try again.':'Could not get workplace GPS location.')),{enableHighAccuracy:true,timeout:20000,maximumAge:0})})}
   function showActionMessage(title,text,isError=true){const modal=$('liveActionModal');if(!modal)return toast(text,isError);$('liveActionModalTitle').textContent=title;$('liveActionModalText').textContent=text;$('liveActionModalStatus').innerHTML=isError?'<span class="live-verify bad">Verification failed</span>':'<span class="live-verify ok">Ready</span>';$('liveActionConfirmBtn').classList.toggle('hidden',isError);modal.classList.remove('hidden')}
   function requestAction(type){
     if(busy)return;
@@ -143,111 +64,27 @@
       const err=new Error(reason);err.verificationShown=true;throw err;
     }
     if(box)box.innerHTML=`${verificationBadge(true,`GPS ±${Math.round(gps.accuracy||0)}m`)} ${verificationBadge(true,`Network verified`)}`;
-    if(status)status.innerHTML=`${verificationBadge(true,verify.location_name||'Workplace')} ${verificationBadge(true,'Office network')}`;
+    if(status)status.innerHTML=`${verificationBadge(true,'Workplace GPS')} ${verificationBadge(true,'Office network')}`;
     return {...gps,ip,verify};
   }
-  async function refresh(silent=false){try{const d=await rpc('staff_live_attendance_status',{p_token:ctx().token});current=d;serverOffset=new Date(d.server_now).getTime()-Date.now();if(current?.day){pendingBreakTaken=current.day.break_taken!==false;pendingSplitShift=splitOptionEnabled()&&current.day.split_shift_allowed===true}else if(!splitOptionEnabled())pendingSplitShift=false;render();if(!silent)await loadHistory()}catch(e){if(!silent)toast(e.message,true)}}
-  async function doAction(type){
-    if(busy)return;
-    busy=true;setButtons(true);
-    try{
-      // Always read the latest server state first. This restores an already-open session
-      // after refresh, device change or a previous duplicate tap instead of inserting again.
-      await refresh(true);
-      const existingOpen=openSession();
-      if((type==='in'||type==='rejoin')&&existingOpen){
-        $('liveActionModal')?.classList.add('hidden');
-        render();
-        toast('You are already checked in. Your live timer has been restored.');
-        return;
-      }
-      if(type==='out'&&!existingOpen){
-        throw new Error('No active Check In was found. Refresh the page and try again.');
-      }
-      if(type==='rejoin'&&!pendingSplitShift){
-        throw new Error('Split Shift is set to No. Change Split Shift to Yes before Rejoin.');
-      }
-      const v=await verifyWorkplace();
-      let d;
-      if(type==='out'){
-        d=await rpc('staff_live_attendance_check_out',{p_token:ctx().token,p_lat:v.lat,p_lon:v.lon,p_public_ip:v.ip,p_break_taken:pendingBreakTaken});
-      }else{
-        d=await rpc('staff_live_attendance_check_in',{p_token:ctx().token,p_lat:v.lat,p_lon:v.lon,p_public_ip:v.ip,p_rejoin:type==='rejoin'});
-        if(d?.duplicate){
-          await refresh(true);
-          $('liveActionModal')?.classList.add('hidden');
-          render();
-          toast('You are already checked in. Your active session was restored.');
-          return;
-        }
-        if(breakOptionEnabled())await rpc('staff_live_attendance_set_break',{p_token:ctx().token,p_break_taken:pendingBreakTaken});
-        await rpc('staff_live_attendance_set_split',{p_token:ctx().token,p_split_shift:splitOptionEnabled()?pendingSplitShift:false});
-      }
-      toast(d?.message||`${type==='out'?'Check Out':type==='rejoin'?'Rejoin':'Check In'} successful.`);
-      $('liveActionModal')?.classList.add('hidden');
-      await refresh();
-    }catch(e){
-      const msg=friendlyPunchError(e?.message);
-      if(/active attendance session|already checked in/i.test(msg)){
-        try{await refresh(true);render();$('liveActionModal')?.classList.add('hidden')}catch{}
-      }
-      if(!e.verificationShown){showActionMessage('Attendance action failed',msg,true);toast(msg,true)}
-    }finally{busy=false;setButtons(false)}
-  }
+  async function refresh(silent=false){try{const d=await rpc('staff_live_attendance_status',{p_token:ctx().token});current=d;serverOffset=new Date(d.server_now).getTime()-Date.now();if(current?.day)pendingBreakTaken=current.day.break_taken!==false;render();if(!silent)await loadHistory()}catch(e){if(!silent)toast(e.message,true)}}
+  async function doAction(type){if(busy)return;busy=true;setButtons(true);try{const v=await verifyWorkplace();let d;if(type==='out')d=await rpc('staff_live_attendance_check_out',{p_token:ctx().token,p_lat:v.lat,p_lon:v.lon,p_public_ip:v.ip,p_break_taken:pendingBreakTaken});else{d=await rpc('staff_live_attendance_check_in',{p_token:ctx().token,p_lat:v.lat,p_lon:v.lon,p_public_ip:v.ip,p_rejoin:type==='rejoin'});await rpc('staff_live_attendance_set_break',{p_token:ctx().token,p_break_taken:pendingBreakTaken})}toast(d?.message||`${type==='out'?'Check Out':type==='rejoin'?'Rejoin':'Check In'} successful.`);$('liveActionModal')?.classList.add('hidden');await refresh()}catch(e){if(!e.verificationShown){showActionMessage('Attendance action failed',e.message,true);toast(e.message,true)}}finally{busy=false;setButtons(false)}}
   function confirmAction(){if(pendingAction)doAction(pendingAction)}
   function setButtons(dis){['liveCheckInBtn','liveCheckOutBtn','liveRejoinBtn','liveActionConfirmBtn'].forEach(id=>{if($(id))$(id).disabled=dis})}
-  async function chooseBreak(value){
-    if(!breakOptionEnabled())return toast('Break selection is disabled by Admin.',true);
-    pendingBreakTaken=value===true;setBreakUI(pendingBreakTaken);render();
-    try{
-      await rpc('staff_live_attendance_set_break',{p_token:ctx().token,p_break_taken:pendingBreakTaken});
-      if(!current.day)current.day={break_taken:pendingBreakTaken,classification:'Duty'};
-      current.day.break_taken=pendingBreakTaken;
-      render();
-      toast(pendingBreakTaken?'Break set: 9h presence / 8h net.':'No break: 8h presence target.');
-    }catch(e){await refresh(true);render();toast(e.message,true)}
-  }
-  async function chooseSplit(value){
-    if(!splitOptionEnabled())return toast('Split Shift is disabled by Admin.',true);
-    if(splitSaving)return;
-    const desired=value===true,seq=++splitRequestSeq;
-    splitSaving=true;pendingSplitShift=desired;setSplitUI(desired);render();
-    const host=$('liveSplitShift');host?.querySelectorAll('button[data-value]').forEach(b=>b.disabled=true);
-    try{
-      await rpc('staff_live_attendance_set_split',{p_token:ctx().token,p_split_shift:desired});
-      if(seq!==splitRequestSeq)return;
-      if(!current.day)current.day={break_taken:pendingBreakTaken,classification:'Duty'};
-      current.day.split_shift_allowed=desired;
-      pendingSplitShift=desired;
-      setSplitUI(desired);render();
-      toast(desired?'Split Shift enabled. Rejoin will be available after Check Out.':'Split Shift disabled. Check Out will finish the duty.');
-    }catch(e){
-      if(seq===splitRequestSeq){await refresh(true);render();toast(e.message,true)}
-    }finally{
-      if(seq===splitRequestSeq){splitSaving=false;host?.querySelectorAll('button[data-value]').forEach(b=>b.disabled=false);render()}
-    }
-  }
-  function renderMonthlyDashboard(rows){const el=$('liveMonthlyDashboard');if(!el)return;let duty=0,offLeave=0,work=0,ot=0,late=0,noBreak=0,split=0,review=0;const offSet=new Set(['Weekly Off','Leave','Sick Leave','Unpaid Leave','Public Holiday','Other Approved']);rows.forEach(r=>{const c=calcRow(r),ss=activeSessions(r),st=statusLabel(r);if(ss.length){duty++;work+=c.sec/60;ot+=c.ot;if(derivedLate(r)>0)late++;if(r.break_taken===false)noBreak++;if(ss.length>1)split++;if(ss.some(x=>!x.check_out_at))review++}else if(offSet.has(st))offLeave++;else if(st==='Day Off - Pending Review'||st==='Absent')review++});el.innerHTML=[['Duty Days',duty],['Off / Leave',offLeave],['Working',minsLabel(work)],['Total OT',otText(ot)],['Late Days',late],['No Break',noBreak],['Split Shift',split],['Review',review]].map(([k,v])=>`<div><span>${k}</span><strong>${v}</strong></div>`).join('')}
+  async function chooseBreak(value){pendingBreakTaken=value;setBreakUI(value);render();if(current?.day){try{await rpc('staff_live_attendance_set_break',{p_token:ctx().token,p_break_taken:value});current.day.break_taken=value;render();toast(value?'Break set: 9h presence / 8h net.':'No break: 8h presence target.')}catch(e){toast(e.message,true)}}}
+  function durationMinutes(a,b){if(!a||!b)return 0;const x=new Date(a).getTime(),y=new Date(b).getTime();return Number.isFinite(x)&&Number.isFinite(y)&&y>x?(y-x)/60000:0}
+  function normalizeLegacyMonth(d){const finals=d?.records||[],subs=d?.submissions||[],finalMap=new Map(finals.map(x=>[x.operational_date,x])),subMap=new Map();for(const x of subs){if(!subMap.has(x.operational_date))subMap.set(x.operational_date,x)}const dates=[...new Set([...finalMap.keys(),...subMap.keys()])];return dates.map(date=>{const f=finalMap.get(date),r=subMap.get(date)||f;if(!r)return null;const off=!!r.day_off;const sessions=[];if(!off&&r.punch_in){sessions.push({session_no:1,check_in_at:r.punch_in,check_out_at:r.punch_out||null,check_in_verified:true,check_out_verified:!!r.punch_out,legacy:true});if(r.split_shift&&r.shift2_in)sessions.push({session_no:2,check_in_at:r.shift2_in,check_out_at:r.shift2_out||null,check_in_verified:true,check_out_verified:!!r.shift2_out,legacy:true})}let worked=sessions.reduce((a,x)=>a+durationMinutes(x.check_in_at,x.check_out_at),0),net=f?.net_work_minutes!=null?Number(f.net_work_minutes):Math.max(0,worked-(r.break_taken===false?0:60)),ot=f?.additional_minutes!=null?Math.floor(Math.max(0,Number(f.additional_minutes))/30)*30:Math.floor(Math.max(0,net-480)/30)*30;return {operational_date:date,break_taken:r.break_taken!==false,classification:off?'Day Off':'Duty',classification_note:r.note||null,late_minutes:Number(f?.late_minutes||r.late_minutes||0),sessions,legacy:true,legacy_precalc:{sec:worked*60,net,ot,target:r.break_taken===false?480:540},legacy_record:r}}).filter(Boolean)}
+  function mergeLiveAndLegacy(live,legacy){const lm=new Map(legacy.map(r=>[r.operational_date,r]));const out=[];for(const r of live){const hasLive=(r.sessions||[]).length>0 || (r.classification&&r.classification!=='Day Off - Pending Review');if(hasLive){out.push(r);lm.delete(r.operational_date)}else if(lm.has(r.operational_date)){out.push(lm.get(r.operational_date));lm.delete(r.operational_date)}else out.push(r)}for(const r of lm.values())out.push(r);return out.sort((a,b)=>String(b.operational_date).localeCompare(String(a.operational_date)))}
+  function renderMonthlyDashboard(rows){const el=$('liveMonthlyDashboard');if(!el)return;let duty=0,off=0,work=0,ot=0,late=0,noBreak=0,split=0,review=0;rows.forEach(r=>{const c=calcRow(r),ss=r.sessions||[],st=statusLabel(r);if(ss.length){duty++;work+=c.sec/60;ot+=c.ot;if((r.late_minutes||0)>0)late++;if(r.break_taken===false)noBreak++;if(ss.length>1)split++}else off++;if(/Pending Review|Review/i.test(st)||ss.some(s=>!s.check_out_at))review++});el.innerHTML=[['Duty Days',duty],['Day Off',off],['Working',minsLabel(work)],['Total OT',otText(ot)],['Late Days',late],['No Break',noBreak],['Split Shift',split],['Review',review]].map(([k,v])=>`<div><span>${k}</span><strong>${v}</strong></div>`).join('')}
   function filteredHistory(){const date=$('liveHistoryDate')?.value||'';return historyRows.filter(r=>!date||r.operational_date===date)}
-  function renderHistory(){const rows=filteredHistory();renderMonthlyDashboard(historyRows);const tbody=$('liveHistoryRows'),cards=$('liveHistoryCards');if(tbody)tbody.innerHTML=rows.length?rows.map(r=>{const c=calcRow(r),s=activeSessions(r),first=s[0],last=s[s.length-1],cls=statusLabel(r),lm=derivedLate(r);return `<tr><td>${esc(r.operational_date)}</td><td>${s.length?`${fmtTime(first?.check_in_at)} → ${fmtTime(last?.check_out_at)}`:'—'}</td><td>${s.length}</td><td>${s.length?minsLabel(c.sec/60):'—'}</td><td>${s.length?minsLabel(c.net):'—'}</td><td>${c.ot?otText(c.ot):'—'}</td><td>${lm?`${lm} min`:'—'}</td><td>${s.length?(r.break_taken!==false?'Yes':'No'):'—'}</td><td>${esc(cls)}</td></tr>`}).join(''):'<tr><td colspan="9" class="empty">No attendance record for selected date.</td></tr>';
-    if(cards)cards.innerHTML=rows.length?rows.map(r=>{const c=calcRow(r),ss=activeSessions(r),st=statusLabel(r),lm=derivedLate(r);return `<article class="live-history-day"><header><div><span>${fmtDate(r.operational_date)}</span><strong>${esc(st)}</strong></div><span class="live-day-chip">${ss.length?`${ss.length} ${ss.length===1?'shift':'shifts'}`:'No shift'}</span></header>${ss.length?`<div class="live-shift-timeline">${ss.map((s,i)=>`<div><b>Shift ${i+1}</b><span>${fmtTime(s.check_in_at)} → ${fmtTime(s.check_out_at)}</span></div>`).join('')}</div>`:'<div class="live-dayoff">No Check In recorded</div>'}<footer><span>Worked <b>${ss.length?minsLabel(c.sec/60):'—'}</b></span><span>Net <b>${ss.length?minsLabel(c.net):'—'}</b></span><span>OT <b>${c.ot?otText(c.ot):'—'}</b></span><span>Late <b>${lm?`${lm}m`:'—'}</b></span></footer></article>`}).join(''):'<div class="live-empty">No attendance record for selected date.</div>'}
-  async function loadHistory(){const month=$('liveHistoryMonth')?.value||new Date().toISOString().slice(0,7);if($('liveHistoryMonth'))$('liveHistoryMonth').value=month;try{const d=await rpc('staff_live_attendance_history',{p_token:ctx().token,p_month:month+'-01'});if(!current)current={rules:d.rules||{}};else current.rules=d.rules||current.rules;historyRows=d.rows||[];renderHistory()}catch(e){toast(e.message,true)}}
+  function renderHistory(){const rows=filteredHistory();renderMonthlyDashboard(historyRows);const tbody=$('liveHistoryRows'),cards=$('liveHistoryCards');if(tbody)tbody.innerHTML=rows.length?rows.map(r=>{const c=calcRow(r),s=r.sessions||[],first=s[0],last=s[s.length-1],cls=statusLabel(r);return `<tr><td>${esc(r.operational_date)}</td><td>${s.length?`${fmtTime(first?.check_in_at)} → ${fmtTime(last?.check_out_at)}`:'—'}</td><td>${s.length}</td><td>${s.length?minsLabel(c.sec/60):'—'}</td><td>${s.length?minsLabel(c.net):'—'}</td><td>${c.ot?otText(c.ot):'—'}</td><td>${r.late_minutes?`${r.late_minutes} min`:'—'}</td><td>${s.length?(r.break_taken!==false?'Yes':'No'):'—'}</td><td>${esc(cls)}</td></tr>`}).join(''):'<tr><td colspan="9" class="empty">No attendance record for selected date.</td></tr>';
+    if(cards)cards.innerHTML=rows.length?rows.map(r=>{const c=calcRow(r),ss=r.sessions||[],st=statusLabel(r);return `<article class="live-history-day"><header><div><span>${fmtDate(r.operational_date)}</span><strong>${esc(st)}</strong></div><span class="live-day-chip">${r.legacy?'Previous Record':(ss.length?`${ss.length} ${ss.length===1?'shift':'shifts'}`:'No shift')}</span></header>${ss.length?`<div class="live-shift-timeline">${ss.map(s=>`<div><b>Shift ${s.session_no}</b><span>${fmtTime(s.check_in_at)} → ${fmtTime(s.check_out_at)}</span><small>${verificationBadge(!!s.check_in_verified&&!!s.check_out_verified,'Verified')}</small></div>`).join('')}</div>`:'<div class="live-dayoff">No Check In recorded</div>'}<footer><span>Worked <b>${ss.length?minsLabel(c.sec/60):'—'}</b></span><span>Net <b>${ss.length?minsLabel(c.net):'—'}</b></span><span>OT <b>${c.ot?otText(c.ot):'—'}</b></span><span>Late <b>${r.late_minutes?`${r.late_minutes}m`:'—'}</b></span></footer></article>`}).join(''):'<div class="live-empty">No attendance record for selected date.</div>'}
+  async function loadHistory(){const month=$('liveHistoryMonth')?.value||new Date().toISOString().slice(0,7);if($('liveHistoryMonth'))$('liveHistoryMonth').value=month;try{const [d,legacy]=await Promise.all([rpc('staff_live_attendance_history',{p_token:ctx().token,p_month:month+'-01'}),rpc('staff_attendance_month_v12',{p_token:ctx().token,p_month:month+'-01'}).catch(()=>({records:[],submissions:[]}))]);if(!current)current={rules:d.rules||{}};else current.rules=d.rules||current.rules;legacyRows=normalizeLegacyMonth(legacy);historyRows=mergeLiveAndLegacy(d.rows||[],legacyRows);renderHistory()}catch(e){toast(e.message,true)}}
   function clearDateFilter(){if($('liveHistoryDate'))$('liveHistoryDate').value='';renderHistory()}
-  function downloadPDF(){
-    const rows=filteredHistory();if(!rows.length)return toast('No attendance data to export.',true);if(!window.jspdf?.jsPDF)return toast('PDF library is still loading.',true);
-    const {jsPDF}=window.jspdf,doc=new jsPDF({orientation:'landscape'}),staff=current?.staff?.name||ctx()?.staff?.name||'Staff',month=$('liveHistoryMonth')?.value||'',date=$('liveHistoryDate')?.value||'';
-    let duty=0,offLeave=0,work=0,net=0,ot=0,late=0,split=0,review=0;const offSet=new Set(['Weekly Off','Leave','Sick Leave','Unpaid Leave','Public Holiday','Other Approved']);
-    rows.forEach(r=>{const c=calcRow(r),ss=activeSessions(r),st=statusLabel(r);if(ss.length){duty++;work+=c.sec/60;net+=c.net;ot+=c.ot;if(derivedLate(r)>0)late++;if(ss.length>1)split++;if(ss.some(x=>!x.check_out_at))review++}else if(offSet.has(st))offLeave++;else if(st==='Day Off - Pending Review'||st==='Absent')review++});
-    doc.setFontSize(19);doc.text('GOYA - Live Attendance Report',14,15);doc.setFontSize(11);doc.text(`Staff: ${staff}`,14,23);doc.setFontSize(9);doc.setTextColor(90);doc.text(`Period: ${date||month}`,14,29);doc.setTextColor(0);
-    const cards=[['Duty Days',duty],['Off / Leave',offLeave],['Net Hours',minsLabel(net)],['OT',otText(ot)],['Late Days',late],['Review',review]];let x=14;cards.forEach(([k,v])=>{doc.setFillColor(246,249,247);doc.setDrawColor(218,228,222);doc.roundedRect(x,34,41,17,3,3,'FD');doc.setFontSize(7.5);doc.setTextColor(94,111,102);doc.text(String(k),x+3,40);doc.setFontSize(11);doc.setTextColor(29,54,45);doc.text(String(v),x+3,47);x+=44});doc.setTextColor(0);
-    doc.autoTable({startY:56,head:[['Date','Sessions','Working Time','Worked','Net','OT','Late','Break','Status']],body:rows.map(r=>{const c=calcRow(r),ss=activeSessions(r),lm=derivedLate(r);return [r.operational_date,ss.length,ss.length?ss.map((x,i)=>`S${i+1} ${fmtTime(x.check_in_at)}-${fmtTime(x.check_out_at)}`).join(' | '):'—',ss.length?minsLabel(c.sec/60):'—',ss.length?minsLabel(c.net):'—',c.ot?otText(c.ot):'—',lm?`${lm} min`:'—',ss.length?(r.break_taken!==false?'Yes':'No'):'—',statusLabel(r)]}),styles:{fontSize:8,cellPadding:2.2,textColor:[42,56,49]},headStyles:{fillColor:[44,92,72],textColor:[255,255,255]},alternateRowStyles:{fillColor:[248,250,249]}});
-    const safe=staff.replace(/[^a-z0-9]+/gi,'_').replace(/^_|_$/g,'');doc.save(`Goya_Live_Attendance_${safe}_${date||month}.pdf`)
-  }
+  function downloadPDF(){const rows=filteredHistory();if(!rows.length)return toast('No attendance data to export.',true);if(!window.jspdf?.jsPDF)return toast('PDF library is still loading.',true);const {jsPDF}=window.jspdf,doc=new jsPDF({orientation:'landscape'}),staff=current?.staff?.name||ctx()?.staff?.name||'Staff',month=$('liveHistoryMonth')?.value||'',date=$('liveHistoryDate')?.value||'';let duty=0,off=0,work=0,ot=0,late=0,split=0;rows.forEach(r=>{const c=calcRow(r),ss=r.sessions||[];if(ss.length){duty++;work+=c.sec/60;ot+=c.ot;if(r.late_minutes)late++;if(ss.length>1)split++}else off++});doc.setFontSize(18);doc.text('GOYA - Live Attendance Report',14,16);doc.setFontSize(10);doc.text(`Staff: ${staff}   Period: ${date||month}`,14,24);doc.text(`Duty Days: ${duty}   Day Off: ${off}   Working: ${minsLabel(work)}   OT: ${otText(ot)}   Late Days: ${late}   Split Shifts: ${split}`,14,31);doc.autoTable({startY:37,head:[['Date','Shift Sessions','Working Time','Worked','Net','OT','Late','Break','Status','Verification']],body:rows.map(r=>{const c=calcRow(r),ss=r.sessions||[];return [r.operational_date,ss.length,ss.length?ss.map(s=>`${fmtTime(s.check_in_at)}-${fmtTime(s.check_out_at)}`).join(' | '):'—',ss.length?minsLabel(c.sec/60):'—',ss.length?minsLabel(c.net):'—',c.ot?otText(c.ot):'—',r.late_minutes?`${r.late_minutes} min`:'—',ss.length?(r.break_taken!==false?'Yes':'No'):'—',statusLabel(r),rowVerification(r)]}),styles:{fontSize:8,cellPadding:2},headStyles:{fillColor:[37,58,50]}});const safe=staff.replace(/[^a-z0-9]+/gi,'_').replace(/^_|_$/g,'');doc.save(`Goya_Live_Attendance_${safe}_${date||month}.pdf`)}
   function bind(){
     const br=$('liveBreakTaken');
     br?.querySelectorAll('button[data-value]').forEach(b=>{b.onclick=()=>chooseBreak(b.dataset.value==='true')});
-    const sp=$('liveSplitShift');
-    sp?.querySelectorAll('button[data-value]').forEach(b=>{b.onclick=()=>chooseSplit(b.dataset.value==='true')});
     const actions={liveCheckInBtn:'in',liveCheckOutBtn:'out',liveRejoinBtn:'rejoin'};
     Object.entries(actions).forEach(([id,type])=>{
       const b=$(id);
@@ -256,8 +93,8 @@
       b.style.pointerEvents='auto';
       b.onclick=e=>{e.preventDefault();e.stopPropagation();requestAction(type)};
     });
-    if(!document.documentElement.dataset.goyaLivePunchDelegatedV23){
-      document.documentElement.dataset.goyaLivePunchDelegatedV23='1';
+    if(!document.documentElement.dataset.goyaLivePunchDelegated){
+      document.documentElement.dataset.goyaLivePunchDelegated='1';
       document.addEventListener('click',e=>{
         const b=e.target.closest?.('#liveCheckInBtn,#liveCheckOutBtn,#liveRejoinBtn');
         if(!b)return;
