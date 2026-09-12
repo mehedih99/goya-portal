@@ -3,19 +3,10 @@
   "short_name": "Goya Live",
   "start_url": "goya-live.html",
   "display": "standalone",
-  "background_color": "#15191b",
-  "theme_color": "#15191b",
+  "background_color": "#141819",
+  "theme_color": "#141819",
   "description": "Goya management live attendance dashboard",
   "icons": [
-    {
-      "src": "goya-logo.png",
-      "sizes": "192x192",
-      "type": "image/png"
-    },
-    {
-      "src": "goya-logo.png",
-      "sizes": "512x512",
-      "type": "image/png"
-    }
+    {"src":"goya-live-logo.jpeg","sizes":"512x512","type":"image/jpeg","purpose":"any"}
   ]
 }
