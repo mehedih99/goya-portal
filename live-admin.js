@@ -99,6 +99,12 @@
     }catch(e){toast(e.message,true)}
   }
   function openManagement(){window.open('goya-live.html','_blank','noopener')}
+  function openControl(){
+    fillStaffFilter();
+    const dateInput=$('liveControlDate');
+    if(dateInput&&!dateInput.value)dateInput.value=new Date().toISOString().slice(0,10);
+    loadControl();
+  }
   function openDashboard(){fillStaffFilter();if(!$('liveDashDate').value)$('liveDashDate').value=new Date().toISOString().slice(0,10);loadDashboard()}
   function openHistory(){fillStaffFilter();const d=new Date(),end=d.toISOString().slice(0,10),month=end.slice(0,7),start=`${month}-01`;if(!$('liveHistMonth').value)$('liveHistMonth').value=month;if(!$('liveHistFrom').value)$('liveHistFrom').value=start;if(!$('liveHistTo').value)$('liveHistTo').value=end;loadHistory()}
   function openSettings(){loadSettings()}
