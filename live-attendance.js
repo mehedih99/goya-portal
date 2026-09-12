@@ -1,6 +1,6 @@
 (() => {
   const cfg=window.GOYA_CONFIG||{};
-  let sb=null,timer=null,refreshTimer=null,serverOffset=0,current=null,busy=false,historyRows=[],legacyRows=[],pendingAction=null,pendingBreakTaken=true;
+  let sb=null,timer=null,refreshTimer=null,serverOffset=0,current=null,busy=false,historyRows=[],legacyRows=[],pendingAction=null,pendingBreakTaken=true,pendingSplitShift=false;
   const $=id=>document.getElementById(id),pad=n=>String(n).padStart(2,'0');
   const esc=v=>String(v??'').replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#039;'}[m]));
   const ctx=()=>window.GoyaStaff?._liveContext?.()||{};
@@ -16,6 +16,7 @@
   const daySessions=()=>Array.isArray(current?.sessions)?current.sessions:[];
   const dayInfo=()=>current?.day||{break_taken:pendingBreakTaken,late_minutes:0,classification:'Duty'};
   const splitShiftEnabled=()=>current?.rules?.split_shift_enabled!==false;
+  const staffSplitShiftEnabled=()=>current?.day?current.day.split_shift_allowed===true:pendingSplitShift;
   const allowBreakSelection=()=>current?.rules?.allow_break_selection!==false;
   const defaultBreakTaken=()=>current?.rules?.default_break_taken!==false;
   const nowMs=()=>Date.now()+serverOffset;
@@ -27,13 +28,15 @@
   function rowVerification(row){if(row?.legacy)return 'Previous Record';const ss=row.sessions||[];if(!ss.length)return '—';const okIn=ss.every(s=>s.check_in_verified),outs=ss.filter(s=>s.check_out_at),okOut=outs.length===ss.length&&outs.every(s=>s.check_out_verified);return okIn&&okOut?'Verified':'Review'}
   function statusLabel(row){return row.sessions?.length?(row.sessions.some(s=>!s.check_out_at)?'On Duty':(row.classification||'Duty')):(row.classification||'Day Off - Pending Review')}
   function setBreakUI(value){pendingBreakTaken=value!==false;const host=$('liveBreakTaken');if(host)host.querySelectorAll('button[data-value]').forEach(b=>b.classList.toggle('active',(b.dataset.value==='true')===pendingBreakTaken))}
+  function setSplitUI(value){pendingSplitShift=value===true;const host=$('liveSplitShiftToggle');if(host)host.querySelectorAll('button[data-value]').forEach(b=>b.classList.toggle('active',(b.dataset.value==='true')===pendingSplitShift))}
   function render(){if(!current)return;const t=totals(),open=openSession(),hasSessions=daySessions().length>0,work=$('liveWorkingTime'),sub=$('liveTimerSub'),subLabel=$('liveTimerSubLabel'),ring=$('liveTimerRing');if(work)work.textContent=clockLabel(t.sec);if(t.remainingSeconds>0){if(subLabel)subLabel.textContent='Duty Remaining';if(sub)sub.textContent=clockLabel(t.remainingSeconds)}else{if(subLabel)subLabel.textContent='OT';if(sub)sub.textContent=clockLabel(t.liveOtSeconds)}if(ring){ring.classList.toggle('is-ot',t.remaining<=0);ring.classList.toggle('is-live',!!open)}
     if($('liveOperationalDate'))$('liveOperationalDate').textContent=fmtDate(current.operational_date);if($('liveLate'))$('liveLate').textContent=(dayInfo().late_minutes||0)>0?`${dayInfo().late_minutes} min`:'On Time';if($('liveSessionCount'))$('liveSessionCount').textContent=String(daySessions().length||0);if($('liveStatusText')){$('liveStatusText').textContent=open?'ON DUTY':hasSessions?'CHECKED OUT':'READY';$('liveStatusText').className='live-status '+(open?'on':hasSessions?'done':'idle')}if($('liveHeaderBadge'))$('liveHeaderBadge').textContent=open?'Live timer running':hasSessions?'Shift saved':'Ready to check in';
     pendingBreakTaken=current?.day?current.day.break_taken!==false:(current?.rules?defaultBreakTaken():pendingBreakTaken);setBreakUI(pendingBreakTaken);
-    const breakHost=$('liveBreakTaken');if(breakHost){breakHost.classList.toggle('is-locked',!allowBreakSelection());breakHost.querySelectorAll('button[data-value]').forEach(b=>{b.disabled=!allowBreakSelection();b.setAttribute('aria-disabled',String(!allowBreakSelection()))})}
-    if($('liveSplitShiftRuleBadge'))$('liveSplitShiftRuleBadge').textContent=`Split Shift: ${splitShiftEnabled()?'Enabled':'Disabled'}`;
-    if($('liveBreakRuleBadge'))$('liveBreakRuleBadge').textContent=`Break Selection: ${allowBreakSelection()?'Enabled':'Locked by Admin'}`;
-    $('liveCheckInBtn')?.classList.toggle('hidden',hasSessions||!!open);$('liveCheckOutBtn')?.classList.toggle('hidden',!open);$('liveRejoinBtn')?.classList.toggle('hidden',!hasSessions||!!open||!splitShiftEnabled());
+    if(current?.day)pendingSplitShift=current.day.split_shift_allowed===true;setSplitUI(pendingSplitShift);
+    const breakCard=$('liveBreakCard');if(breakCard)breakCard.classList.toggle('hidden',!allowBreakSelection());
+    const splitCard=$('liveSplitShiftCard');if(splitCard)splitCard.classList.toggle('hidden',!splitShiftEnabled());
+    const splitHelp=$('liveSplitShiftHelp');if(splitHelp)splitHelp.classList.toggle('hidden',!splitShiftEnabled());
+    $('liveCheckInBtn')?.classList.toggle('hidden',hasSessions||!!open);$('liveCheckOutBtn')?.classList.toggle('hidden',!open);$('liveRejoinBtn')?.classList.toggle('hidden',!hasSessions||!!open||!splitShiftEnabled()||!staffSplitShiftEnabled());
     const sess=$('liveSessionList');if(sess)sess.innerHTML=daySessions().length?daySessions().map(s=>`<div class="live-session-row"><div><span class="live-session-no">SHIFT ${s.session_no}</span><strong>${fmtTime(s.check_in_at)} <span>→</span> ${fmtTime(s.check_out_at)}</strong></div><div class="live-session-verify">${verificationBadge(!!s.check_in_verified,'In')} ${s.check_out_at?verificationBadge(!!s.check_out_verified,'Out'):''}</div></div>`).join(''):'<div class="live-empty">Your first live shift will appear here after Check In.</div>';
   }
   function tick(){render()}
@@ -42,7 +45,8 @@
   function showActionMessage(title,text,isError=true){const modal=$('liveActionModal');if(!modal)return toast(text,isError);$('liveActionModalTitle').textContent=title;$('liveActionModalText').textContent=text;$('liveActionModalStatus').innerHTML=isError?'<span class="live-verify bad">Verification failed</span>':'<span class="live-verify ok">Ready</span>';$('liveActionConfirmBtn').classList.toggle('hidden',isError);modal.classList.remove('hidden')}
   function requestAction(type){
     if(busy)return;
-    if(type==='rejoin'&&!splitShiftEnabled()){toast('Split Shift / Rejoin is disabled by Admin.',true);return;}
+    if(type==='rejoin'&&!splitShiftEnabled()){toast('Split Shift is disabled by Admin.',true);return;}
+    if(type==='rejoin'&&!staffSplitShiftEnabled()){toast('Turn Split Shift ON before you Rejoin.',true);return;}
     const modal=$('liveActionModal');
     if(!modal){toast('Attendance confirmation panel could not open. Please refresh the page.',true);return;}
     pendingAction=type;
@@ -75,10 +79,22 @@
     return {...gps,ip,verify};
   }
   async function refresh(silent=false){try{const d=await rpc('staff_live_attendance_status',{p_token:ctx().token});current=d;serverOffset=new Date(d.server_now).getTime()-Date.now();if(current?.day)pendingBreakTaken=current.day.break_taken!==false;else if(current?.rules)pendingBreakTaken=defaultBreakTaken();render();if(!silent)await loadHistory()}catch(e){if(!silent)toast(e.message,true)}}
-  async function doAction(type){if(busy)return;busy=true;setButtons(true);try{const v=await verifyWorkplace();let d;if(type==='out')d=await rpc('staff_live_attendance_check_out',{p_token:ctx().token,p_lat:v.lat,p_lon:v.lon,p_public_ip:v.ip,p_break_taken:pendingBreakTaken});else{d=await rpc('staff_live_attendance_check_in',{p_token:ctx().token,p_lat:v.lat,p_lon:v.lon,p_public_ip:v.ip,p_rejoin:type==='rejoin'});await rpc('staff_live_attendance_set_break',{p_token:ctx().token,p_break_taken:pendingBreakTaken})}toast(d?.message||`${type==='out'?'Check Out':type==='rejoin'?'Rejoin':'Check In'} successful.`);$('liveActionModal')?.classList.add('hidden');await refresh()}catch(e){if(!e.verificationShown){showActionMessage('Attendance action failed',e.message,true);toast(e.message,true)}}finally{busy=false;setButtons(false)}}
+  async function doAction(type){if(busy)return;busy=true;setButtons(true);try{const v=await verifyWorkplace();let d;if(type==='out')d=await rpc('staff_live_attendance_check_out',{p_token:ctx().token,p_lat:v.lat,p_lon:v.lon,p_public_ip:v.ip,p_break_taken:pendingBreakTaken});else{d=await rpc('staff_live_attendance_check_in',{p_token:ctx().token,p_lat:v.lat,p_lon:v.lon,p_public_ip:v.ip,p_rejoin:type==='rejoin'});await rpc('staff_live_attendance_set_break',{p_token:ctx().token,p_break_taken:pendingBreakTaken});if(splitShiftEnabled())await rpc('staff_live_attendance_set_split',{p_token:ctx().token,p_enabled:pendingSplitShift})}toast(d?.message||`${type==='out'?'Check Out':type==='rejoin'?'Rejoin':'Check In'} successful.`);$('liveActionModal')?.classList.add('hidden');await refresh()}catch(e){if(!e.verificationShown){showActionMessage('Attendance action failed',e.message,true);toast(e.message,true)}}finally{busy=false;setButtons(false)}}
   function confirmAction(){if(pendingAction)doAction(pendingAction)}
   function setButtons(dis){['liveCheckInBtn','liveCheckOutBtn','liveRejoinBtn','liveActionConfirmBtn'].forEach(id=>{if($(id))$(id).disabled=dis})}
   async function chooseBreak(value){if(!allowBreakSelection()){pendingBreakTaken=defaultBreakTaken();setBreakUI(pendingBreakTaken);toast('Break selection is locked by Admin.',true);return;}pendingBreakTaken=value;setBreakUI(value);render();if(current?.day){try{await rpc('staff_live_attendance_set_break',{p_token:ctx().token,p_break_taken:value});current.day.break_taken=value;render();toast(value?'Break set: 9h presence / 8h net.':'No break: 8h presence target.')}catch(e){toast(e.message,true)}}}
+  async function chooseSplit(value){
+    if(!splitShiftEnabled()){pendingSplitShift=false;setSplitUI(false);toast('Split Shift is disabled by Admin.',true);return;}
+    pendingSplitShift=value===true;setSplitUI(pendingSplitShift);render();
+    if(current?.day){
+      try{
+        await rpc('staff_live_attendance_set_split',{p_token:ctx().token,p_enabled:pendingSplitShift});
+        current.day.split_shift_allowed=pendingSplitShift;
+        render();
+        toast(pendingSplitShift?'Split Shift ON. You can Check Out and Rejoin later today.':'Split Shift OFF. Rejoin is disabled for this day.');
+      }catch(e){toast(e.message,true)}
+    }
+  }
   function durationMinutes(a,b){if(!a||!b)return 0;const x=new Date(a).getTime(),y=new Date(b).getTime();return Number.isFinite(x)&&Number.isFinite(y)&&y>x?(y-x)/60000:0}
   function normalizeLegacyMonth(d){const finals=d?.records||[],subs=d?.submissions||[],finalMap=new Map(finals.map(x=>[x.operational_date,x])),subMap=new Map();for(const x of subs){if(!subMap.has(x.operational_date))subMap.set(x.operational_date,x)}const dates=[...new Set([...finalMap.keys(),...subMap.keys()])];return dates.map(date=>{const f=finalMap.get(date),r=subMap.get(date)||f;if(!r)return null;const off=!!r.day_off;const sessions=[];if(!off&&r.punch_in){sessions.push({session_no:1,check_in_at:r.punch_in,check_out_at:r.punch_out||null,check_in_verified:true,check_out_verified:!!r.punch_out,legacy:true});if(r.split_shift&&r.shift2_in)sessions.push({session_no:2,check_in_at:r.shift2_in,check_out_at:r.shift2_out||null,check_in_verified:true,check_out_verified:!!r.shift2_out,legacy:true})}let worked=sessions.reduce((a,x)=>a+durationMinutes(x.check_in_at,x.check_out_at),0),net=f?.net_work_minutes!=null?Number(f.net_work_minutes):Math.max(0,worked-(r.break_taken===false?0:60)),ot=f?.additional_minutes!=null?Math.floor(Math.max(0,Number(f.additional_minutes))/30)*30:Math.floor(Math.max(0,net-480)/30)*30;return {operational_date:date,break_taken:r.break_taken!==false,classification:off?'Day Off':'Duty',classification_note:r.note||null,late_minutes:Number(f?.late_minutes||r.late_minutes||0),sessions,legacy:true,legacy_precalc:{sec:worked*60,net,ot,target:r.break_taken===false?480:540},legacy_record:r}}).filter(Boolean)}
   function mergeLiveAndLegacy(live,legacy){const lm=new Map(legacy.map(r=>[r.operational_date,r]));const out=[];for(const r of live){const hasLive=(r.sessions||[]).length>0 || (r.classification&&r.classification!=='Day Off - Pending Review');if(hasLive){out.push(r);lm.delete(r.operational_date)}else if(lm.has(r.operational_date)){out.push(lm.get(r.operational_date));lm.delete(r.operational_date)}else out.push(r)}for(const r of lm.values())out.push(r);return out.sort((a,b)=>String(b.operational_date).localeCompare(String(a.operational_date)))}
@@ -92,6 +108,8 @@
   function bind(){
     const br=$('liveBreakTaken');
     br?.querySelectorAll('button[data-value]').forEach(b=>{b.onclick=()=>chooseBreak(b.dataset.value==='true')});
+    const sp=$('liveSplitShiftToggle');
+    sp?.querySelectorAll('button[data-value]').forEach(b=>{b.onclick=()=>chooseSplit(b.dataset.value==='true')});
     const actions={liveCheckInBtn:'in',liveCheckOutBtn:'out',liveRejoinBtn:'rejoin'};
     Object.entries(actions).forEach(([id,type])=>{
       const b=$(id);
@@ -120,5 +138,5 @@
   }
   async function open(){bind();await refresh();clearInterval(timer);timer=setInterval(tick,1000);clearInterval(refreshTimer);refreshTimer=setInterval(()=>refresh(true),60000)}
   function stop(){clearInterval(timer);clearInterval(refreshTimer)}
-  window.GoyaLiveAttendance={open,refresh,checkIn:()=>requestAction('in'),checkOut:()=>requestAction('out'),rejoin:()=>requestAction('rejoin'),chooseBreak,saveBreak:()=>chooseBreak(pendingBreakTaken),loadHistory,renderHistory,clearDateFilter,downloadPDF,requestAction,confirmAction,closeActionModal,stop};
+  window.GoyaLiveAttendance={open,refresh,checkIn:()=>requestAction('in'),checkOut:()=>requestAction('out'),rejoin:()=>requestAction('rejoin'),chooseBreak,chooseSplit,saveBreak:()=>chooseBreak(pendingBreakTaken),loadHistory,renderHistory,clearDateFilter,downloadPDF,requestAction,confirmAction,closeActionModal,stop};
 })();

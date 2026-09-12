@@ -98,3 +98,6 @@
 .live-rule-fields{margin-top:14px}.live-rule-state{display:flex;gap:8px;flex-wrap:wrap;margin-top:12px}.live-rule-state span,.live-shift-rule-banner span{display:inline-flex;align-items:center;padding:7px 10px;border-radius:999px;background:#edf5f0;color:#315f49;font-size:11px;font-weight:800}
 .live-shift-rule-banner{display:flex;gap:8px;flex-wrap:wrap;justify-content:center;margin:10px 0 2px}
 @media(max-width:700px){.live-rule-toggle-row{align-items:flex-start}.live-rules-panel{padding:14px}.live-rule-fields{grid-template-columns:1fr}.live-shift-rule-banner{justify-content:flex-start}}
+
+/* V37 staff-controlled split/break rules */
+.live-split-card{grid-column:1/-1;border:1px solid #dde6e1;border-radius:20px;padding:16px;background:#fff}.live-split-card>span,.live-break-card>span{font-weight:800;color:#697771}.live-split-card small{display:block;margin-top:8px;color:#7a8782;font-size:11px;line-height:1.45}.live-mini-grid .live-break-card.hidden,.live-mini-grid .live-split-card.hidden,.live-note.hidden{display:none!important}@media(max-width:700px){.live-split-card{padding:14px;border-radius:18px}.live-split-card .live-segmented,.live-break-card .live-segmented{min-height:54px}.live-split-card .live-segmented button,.live-break-card .live-segmented button{font-size:16px;padding:12px 10px}}
