@@ -1,6 +1,6 @@
 (() => {
   const cfg=window.GOYA_CONFIG||{};
-  let sb=null,timer=null,refreshTimer=null,serverOffset=0,current=null,busy=false,historyRows=[],pendingAction=null,pendingBreakTaken=true,pendingSplitShift=false;
+  let sb=null,timer=null,refreshTimer=null,serverOffset=0,current=null,busy=false,historyRows=[],pendingAction=null,pendingBreakTaken=true,pendingSplitShift=false,splitSaving=false,splitRequestSeq=0;
   const $=id=>document.getElementById(id),pad=n=>String(n).padStart(2,'0');
   const esc=v=>String(v??'').replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#039;'}[m]));
   const ctx=()=>window.GoyaStaff?._liveContext?.()||{};
@@ -15,6 +15,8 @@
   const clockLabel=sec=>{sec=Math.max(0,Math.floor(sec));return `${pad(Math.floor(sec/3600))}:${pad(Math.floor((sec%3600)/60))}:${pad(sec%60)}`};
   const daySessions=()=>Array.isArray(current?.sessions)?current.sessions:[];
   const dayInfo=()=>current?.day||{break_taken:pendingBreakTaken,late_minutes:0,classification:'Duty'};
+  const breakOptionEnabled=()=>current?.rules?.enable_break_option!==false;
+  const splitOptionEnabled=()=>current?.rules?.enable_split_shift_option!==false;
   const nowMs=()=>Date.now()+serverOffset;
   function activeSessions(row){return (Array.isArray(row?.sessions)?row.sessions:[]).filter(s=>!s.is_deleted).slice().sort((a,b)=>new Date(a.check_in_at)-new Date(b.check_in_at))}
   function minutesAtZone(ts,row){const d=new Date(ts);if(Number.isNaN(d.getTime()))return null;const tz=current?.rules?.timezone||'Asia/Dubai';const parts=new Intl.DateTimeFormat('en-GB',{timeZone:tz,hour:'2-digit',minute:'2-digit',hour12:false}).formatToParts(d);const h=Number(parts.find(x=>x.type==='hour')?.value),m=Number(parts.find(x=>x.type==='minute')?.value);return Number.isFinite(h)&&Number.isFinite(m)?h*60+m:null}
@@ -53,12 +55,17 @@
     if($('liveSessionCount'))$('liveSessionCount').textContent=String(active.length||0);
     if($('liveStatusText')){$('liveStatusText').textContent=open?'ON DUTY':hasSessions?(pendingSplitShift?'CHECKED OUT':'DUTY COMPLETE'):'READY';$('liveStatusText').className='live-status '+(open?'on':hasSessions?'done':'idle')}
     if($('liveHeaderBadge'))$('liveHeaderBadge').textContent=open?'Live timer running':hasSessions?(pendingSplitShift?'Split shift paused':'Duty complete'):'Ready to check in';
-    pendingBreakTaken=current?.day?current.day.break_taken!==false:pendingBreakTaken;setBreakUI(pendingBreakTaken);
-    pendingSplitShift=current?.day?current.day.split_shift_allowed===true:pendingSplitShift;setSplitUI(pendingSplitShift);
+    pendingBreakTaken=current?.day?current.day.break_taken!==false:pendingBreakTaken;
+    const breakHost=$('liveBreakTaken')?.closest('.live-option-card'); if(breakHost)breakHost.classList.toggle('hidden',!breakOptionEnabled());
+    setBreakUI(pendingBreakTaken);
+    if(!splitOptionEnabled())pendingSplitShift=false;
+    else if(!splitSaving)pendingSplitShift=current?.day?current.day.split_shift_allowed===true:pendingSplitShift;
+    const splitHost=$('liveSplitShift')?.closest('.live-option-card'); if(splitHost)splitHost.classList.toggle('hidden',!splitOptionEnabled());
+    setSplitUI(pendingSplitShift);
     $('liveCheckInBtn')?.classList.toggle('hidden',hasSessions||!!open);
     $('liveCheckOutBtn')?.classList.toggle('hidden',!open);
-    $('liveRejoinBtn')?.classList.toggle('hidden',!pendingSplitShift||!hasSessions||!!open);
-    done?.classList.toggle('hidden',!!open||!hasSessions||pendingSplitShift);
+    $('liveRejoinBtn')?.classList.toggle('hidden',!splitOptionEnabled()||!pendingSplitShift||!hasSessions||!!open);
+    done?.classList.toggle('hidden',!!open||!hasSessions||(splitOptionEnabled()&&pendingSplitShift));
     const sess=$('liveSessionList');if(sess){sess.innerHTML=active.length?active.map((x,i)=>`<div class="live-session-row"><div><span class="live-session-no">SHIFT ${i+1}</span><strong>${fmtTime(x.check_in_at)} <span>→</span> ${fmtTime(x.check_out_at)}</strong></div><span class="live-saved-chip">${x.check_out_at?'Saved':'Live'}</span></div>`).join(''):'<div class="live-empty">Your first live shift will appear here after Check In.</div>'}
   }
   function tick(){render()}
@@ -114,7 +121,7 @@
     if(status)status.innerHTML=`${verificationBadge(true,verify.location_name||'Workplace')} ${verificationBadge(true,'Office network')}`;
     return {...gps,ip,verify};
   }
-  async function refresh(silent=false){try{const d=await rpc('staff_live_attendance_status',{p_token:ctx().token});current=d;serverOffset=new Date(d.server_now).getTime()-Date.now();if(current?.day){pendingBreakTaken=current.day.break_taken!==false;pendingSplitShift=current.day.split_shift_allowed===true}render();if(!silent)await loadHistory()}catch(e){if(!silent)toast(e.message,true)}}
+  async function refresh(silent=false){try{const d=await rpc('staff_live_attendance_status',{p_token:ctx().token});current=d;serverOffset=new Date(d.server_now).getTime()-Date.now();if(current?.day){pendingBreakTaken=current.day.break_taken!==false;pendingSplitShift=splitOptionEnabled()&&current.day.split_shift_allowed===true}else if(!splitOptionEnabled())pendingSplitShift=false;render();if(!silent)await loadHistory()}catch(e){if(!silent)toast(e.message,true)}}
   async function doAction(type){
     if(busy)return;
     busy=true;setButtons(true);
@@ -148,8 +155,8 @@
           toast('You are already checked in. Your active session was restored.');
           return;
         }
-        await rpc('staff_live_attendance_set_break',{p_token:ctx().token,p_break_taken:pendingBreakTaken});
-        await rpc('staff_live_attendance_set_split',{p_token:ctx().token,p_split_shift:pendingSplitShift});
+        if(breakOptionEnabled())await rpc('staff_live_attendance_set_break',{p_token:ctx().token,p_break_taken:pendingBreakTaken});
+        await rpc('staff_live_attendance_set_split',{p_token:ctx().token,p_split_shift:splitOptionEnabled()?pendingSplitShift:false});
       }
       toast(d?.message||`${type==='out'?'Check Out':type==='rejoin'?'Rejoin':'Check In'} successful.`);
       $('liveActionModal')?.classList.add('hidden');
@@ -164,8 +171,37 @@
   }
   function confirmAction(){if(pendingAction)doAction(pendingAction)}
   function setButtons(dis){['liveCheckInBtn','liveCheckOutBtn','liveRejoinBtn','liveActionConfirmBtn'].forEach(id=>{if($(id))$(id).disabled=dis})}
-  async function chooseBreak(value){pendingBreakTaken=value;setBreakUI(value);render();if(current?.day){try{await rpc('staff_live_attendance_set_break',{p_token:ctx().token,p_break_taken:value});current.day.break_taken=value;render();toast(value?'Break set: 9h presence / 8h net.':'No break: 8h presence target.')}catch(e){toast(e.message,true)}}}
-  async function chooseSplit(value){pendingSplitShift=value===true;setSplitUI(pendingSplitShift);render();try{await rpc('staff_live_attendance_set_split',{p_token:ctx().token,p_split_shift:pendingSplitShift});if(!current.day)current.day={break_taken:pendingBreakTaken,classification:'Duty'};current.day.split_shift_allowed=pendingSplitShift;render();toast(pendingSplitShift?'Split Shift enabled. Rejoin will be available after Check Out.':'Split Shift disabled. Check Out will finish the duty.')}catch(e){pendingSplitShift=!pendingSplitShift;setSplitUI(pendingSplitShift);render();toast(e.message,true)}}
+  async function chooseBreak(value){
+    if(!breakOptionEnabled())return toast('Break selection is disabled by Admin.',true);
+    pendingBreakTaken=value===true;setBreakUI(pendingBreakTaken);render();
+    try{
+      await rpc('staff_live_attendance_set_break',{p_token:ctx().token,p_break_taken:pendingBreakTaken});
+      if(!current.day)current.day={break_taken:pendingBreakTaken,classification:'Duty'};
+      current.day.break_taken=pendingBreakTaken;
+      render();
+      toast(pendingBreakTaken?'Break set: 9h presence / 8h net.':'No break: 8h presence target.');
+    }catch(e){await refresh(true);render();toast(e.message,true)}
+  }
+  async function chooseSplit(value){
+    if(!splitOptionEnabled())return toast('Split Shift is disabled by Admin.',true);
+    if(splitSaving)return;
+    const desired=value===true,seq=++splitRequestSeq;
+    splitSaving=true;pendingSplitShift=desired;setSplitUI(desired);render();
+    const host=$('liveSplitShift');host?.querySelectorAll('button[data-value]').forEach(b=>b.disabled=true);
+    try{
+      await rpc('staff_live_attendance_set_split',{p_token:ctx().token,p_split_shift:desired});
+      if(seq!==splitRequestSeq)return;
+      if(!current.day)current.day={break_taken:pendingBreakTaken,classification:'Duty'};
+      current.day.split_shift_allowed=desired;
+      pendingSplitShift=desired;
+      setSplitUI(desired);render();
+      toast(desired?'Split Shift enabled. Rejoin will be available after Check Out.':'Split Shift disabled. Check Out will finish the duty.');
+    }catch(e){
+      if(seq===splitRequestSeq){await refresh(true);render();toast(e.message,true)}
+    }finally{
+      if(seq===splitRequestSeq){splitSaving=false;host?.querySelectorAll('button[data-value]').forEach(b=>b.disabled=false);render()}
+    }
+  }
   function renderMonthlyDashboard(rows){const el=$('liveMonthlyDashboard');if(!el)return;let duty=0,offLeave=0,work=0,ot=0,late=0,noBreak=0,split=0,review=0;const offSet=new Set(['Weekly Off','Leave','Sick Leave','Unpaid Leave','Public Holiday','Other Approved']);rows.forEach(r=>{const c=calcRow(r),ss=activeSessions(r),st=statusLabel(r);if(ss.length){duty++;work+=c.sec/60;ot+=c.ot;if(derivedLate(r)>0)late++;if(r.break_taken===false)noBreak++;if(ss.length>1)split++;if(ss.some(x=>!x.check_out_at))review++}else if(offSet.has(st))offLeave++;else if(st==='Day Off - Pending Review'||st==='Absent')review++});el.innerHTML=[['Duty Days',duty],['Off / Leave',offLeave],['Working',minsLabel(work)],['Total OT',otText(ot)],['Late Days',late],['No Break',noBreak],['Split Shift',split],['Review',review]].map(([k,v])=>`<div><span>${k}</span><strong>${v}</strong></div>`).join('')}
   function filteredHistory(){const date=$('liveHistoryDate')?.value||'';return historyRows.filter(r=>!date||r.operational_date===date)}
   function renderHistory(){const rows=filteredHistory();renderMonthlyDashboard(historyRows);const tbody=$('liveHistoryRows'),cards=$('liveHistoryCards');if(tbody)tbody.innerHTML=rows.length?rows.map(r=>{const c=calcRow(r),s=activeSessions(r),first=s[0],last=s[s.length-1],cls=statusLabel(r),lm=derivedLate(r);return `<tr><td>${esc(r.operational_date)}</td><td>${s.length?`${fmtTime(first?.check_in_at)} → ${fmtTime(last?.check_out_at)}`:'—'}</td><td>${s.length}</td><td>${s.length?minsLabel(c.sec/60):'—'}</td><td>${s.length?minsLabel(c.net):'—'}</td><td>${c.ot?otText(c.ot):'—'}</td><td>${lm?`${lm} min`:'—'}</td><td>${s.length?(r.break_taken!==false?'Yes':'No'):'—'}</td><td>${esc(cls)}</td></tr>`}).join(''):'<tr><td colspan="9" class="empty">No attendance record for selected date.</td></tr>';

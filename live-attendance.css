@@ -568,3 +568,18 @@ body.goya-staff-app.goya-soft-glass .live-mini-grid>div{min-height:105px!importa
   #attLiveHistory .live-report-summary>div{min-height:72px!important;padding:12px!important}
   .live-duty-complete{min-width:160px;min-height:50px;font-size:14px}
 }
+
+/* V27: feature switches, stable export popover, staff option visibility */
+.live-feature-switches{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:12px}
+.live-feature-switches .soft-switch{margin:0!important;min-height:46px;display:flex;align-items:center;gap:10px}
+.live-export-menu{display:inline-block!important;position:relative!important}
+.live-export-menu>summary{user-select:none}
+.live-export-menu>div{left:0!important;right:auto!important;top:calc(100% + 8px)!important;bottom:auto!important;width:220px!important;min-width:220px!important;max-width:min(280px,calc(100vw - 32px))!important}
+.live-export-menu>div .btn{min-height:42px!important;text-align:left!important}
+#attLiveHistory .live-report-toolbar{position:relative;z-index:25}
+#attLiveHistory .live-report-summary{position:relative;z-index:1}
+.live-segmented button:disabled{opacity:.58;cursor:wait}
+@media(max-width:900px){
+  .live-feature-switches{grid-template-columns:1fr}
+  .live-export-menu>div{position:fixed!important;left:14px!important;right:14px!important;top:auto!important;bottom:max(18px,env(safe-area-inset-bottom))!important;width:auto!important;max-width:none!important;min-width:0!important;border-radius:22px!important;padding:12px!important}
+}

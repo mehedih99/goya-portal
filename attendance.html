@@ -90,8 +90,12 @@
   </div>
   <div class="card settings-soft-card">
     <div class="section-title"><div><span class="live-eyebrow">LIVE RULES</span><h3>Duty &amp; Break</h3><div class="small muted">Net duty is 8 hours. Break Yes = 9h presence; Break No = 8h presence.</div></div></div>
+    <div class="live-feature-switches">
+      <label class="check soft-switch"><input checked id="liveEnableBreakOption" type="checkbox"/> Enable Break option for staff</label>
+      <label class="check soft-switch"><input checked id="liveEnableSplitOption" type="checkbox"/> Enable Split Shift option for staff</label>
+    </div>
     <div class="form-grid"><label>Duty Presence Hours<input id="liveDutyHours" min="1" step="0.25" type="number" value="9"/></label><label>Break Minutes<input id="liveBreakMinutes" min="0" type="number" value="60"/></label></div>
-    <div class="notice small">Shift starts: hourly from 8:00 AM to 5:00 PM · Late grace: 15 min · Operational cutoff: 2:00 AM · OT after 8h net.</div>
+    <div class="notice small">Break option OFF keeps the saved/default break rule but hides the staff selector. Split Shift option OFF hides Split Shift and Rejoin for staff. Shift starts: hourly from 8:00 AM to 5:00 PM · Late grace: 15 min · Operational cutoff: 2:00 AM · OT after 8h net.</div>
   </div>
   <div class="card settings-soft-card">
     <div class="section-title"><div><span class="live-eyebrow">TEST</span><h3>Verification Test</h3><div class="small muted">Run the same fresh GPS + network check used by staff Check In / Check Out.</div></div></div>
