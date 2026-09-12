@@ -101,3 +101,39 @@
 
 /* V37 staff-controlled split/break rules */
 .live-split-card{grid-column:1/-1;border:1px solid #dde6e1;border-radius:20px;padding:16px;background:#fff}.live-split-card>span,.live-break-card>span{font-weight:800;color:#697771}.live-split-card small{display:block;margin-top:8px;color:#7a8782;font-size:11px;line-height:1.45}.live-mini-grid .live-break-card.hidden,.live-mini-grid .live-split-card.hidden,.live-note.hidden{display:none!important}@media(max-width:700px){.live-split-card{padding:14px;border-radius:18px}.live-split-card .live-segmented,.live-break-card .live-segmented{min-height:54px}.live-split-card .live-segmented button,.live-break-card .live-segmented button{font-size:16px;padding:12px 10px}}
+
+
+/* ===== V37.2 Split/Break control layout hotfix =====
+   Keep Late + Sessions side-by-side, then Break and Split as full-width controls.
+*/
+#staffLiveAttendance .live-mini-grid > .live-break-card,
+#staffLiveAttendance .live-mini-grid > .live-split-card{
+  grid-column:1 / -1 !important;
+  width:100%;
+  box-sizing:border-box;
+}
+#staffLiveAttendance .live-break-card,
+#staffLiveAttendance .live-split-card{
+  padding:16px;
+  border:1px solid #dde6e1;
+  border-radius:20px;
+  background:#fff;
+}
+#staffLiveAttendance .live-break-card .live-segmented,
+#staffLiveAttendance .live-split-card .live-segmented{
+  width:100%;
+  box-sizing:border-box;
+}
+@media(max-width:700px){
+  #staffLiveAttendance .live-mini-grid{
+    grid-template-columns:1fr 1fr !important;
+    gap:12px !important;
+  }
+  #staffLiveAttendance .live-break-card,
+  #staffLiveAttendance .live-split-card{
+    grid-column:1 / -1 !important;
+    width:100%;
+    padding:14px;
+    border-radius:18px;
+  }
+}
