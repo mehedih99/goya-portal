@@ -41,11 +41,70 @@
   async function saveClassification(staffId,date,btn){const sel=btn.closest('tr')?.querySelector('.live-classify');if(!sel)return;const val=sel.value,note=prompt('Optional admin note for this day:','')||null;try{await rpc('attendance_live_admin_classify_day',{p_token:ctx().token,p_staff_id:staffId,p_date:date,p_classification:val,p_note:note});toast('Day classification saved.');await loadHistory()}catch(e){toast(e.message,true)}}
   async function saveClassificationMobile(staffId,date,btn){const sel=btn.parentElement?.querySelector('.live-classify');if(!sel)return;try{await rpc('attendance_live_admin_classify_day',{p_token:ctx().token,p_staff_id:staffId,p_date:date,p_classification:sel.value,p_note:null});toast('Day classification saved.');await loadHistory()}catch(e){toast(e.message,true)}}
   function toLocalInput(v){if(!v)return '';const d=new Date(v),z=n=>String(n).padStart(2,'0');return `${d.getFullYear()}-${z(d.getMonth()+1)}-${z(d.getDate())}T${z(d.getHours())}:${z(d.getMinutes())}`}
+  function legacyOutInput(checkIn,checkOut){
+    if(!checkOut)return '';
+    let i=checkIn?new Date(checkIn):null,o=new Date(checkOut);
+    if(i && !Number.isNaN(i.getTime()) && !Number.isNaN(o.getTime()) && o<=i){
+      let guard=0;
+      while(o<=i && guard<2){o=new Date(o.getTime()+86400000);guard++}
+      const dur=(o-i)/3600000;
+      if(dur>0 && dur<=24)return toLocalInput(o);
+    }
+    return toLocalInput(checkOut);
+  }
   async function ensureDayInHistory(staffId,date){let r=(liveState.history||[]).find(x=>x.staff_id===staffId&&x.operational_date===date);if(r)return r;try{const d=await rpc('attendance_live_admin_history',{p_token:ctx().token,p_start:date,p_end:date,p_staff_id:staffId});r=(d.rows||[])[0];return r}catch{return null}}
-  async function editDay(staffId,date){let r=(liveState.history||[]).find(x=>x.staff_id===staffId&&x.operational_date===date);if(!r)r=await ensureDayInHistory(staffId,date);if(!r)return toast('Attendance record not found.',true);editTarget=r;const modal=$('liveEditModal'),list=$('liveEditSessions');$('liveEditBreak').value=r.break_taken===false?'false':'true';$('liveEditBreakSave').classList.toggle('hidden',!!r.legacy);$('liveEditLegacyActions').classList.toggle('hidden',!r.legacy);const ss=r.sessions||[];if(r.legacy){list.innerHTML=[0,1].map((idx)=>{const s=ss[idx],show=idx===0||s;return show?`<div class="live-edit-session legacy-edit-session"><strong>Session ${idx+1}</strong><label>Check In<input type="datetime-local" data-legacy-field="in${idx+1}" value="${toLocalInput(s?.check_in_at)}"></label><label>Check Out<input type="datetime-local" data-legacy-field="out${idx+1}" value="${toLocalInput(s?.check_out_at)}"></label></div>`:''}).join('')+(!ss[1]?'<button class="btn secondary tiny" onclick="GoyaLiveAdmin.addLegacySecondSession(this)">+ Add Session 2</button>':'')}else{if(!ss.length)return toast('No live session exists for this day.',true);list.innerHTML=ss.map(s=>`<div class="live-edit-session"><strong>Session ${s.session_no}</strong><label>Check In<input type="datetime-local" data-id="${s.id}" data-field="in" value="${toLocalInput(s.check_in_at)}"></label><label>Check Out<input type="datetime-local" data-id="${s.id}" data-field="out" value="${toLocalInput(s.check_out_at)}"></label><button class="btn secondary tiny" onclick="GoyaLiveAdmin.saveSessionEdit('${s.id}',this)">${s.check_out_at?'Save Session':'Set Checkout'}</button></div>`).join('')}$('liveEditTitle').textContent=`${r.staff_name} · ${date}${r.legacy?' · Previous Record':''}`;modal.classList.remove('hidden')}
+  async function editDay(staffId,date){let r=(liveState.history||[]).find(x=>x.staff_id===staffId&&x.operational_date===date);if(!r)r=await ensureDayInHistory(staffId,date);if(!r)return toast('Attendance record not found.',true);editTarget=r;const modal=$('liveEditModal'),list=$('liveEditSessions');$('liveEditBreak').value=r.break_taken===false?'false':'true';$('liveEditBreakSave').classList.toggle('hidden',!!r.legacy);$('liveEditLegacyActions').classList.toggle('hidden',!r.legacy);const ss=r.sessions||[];if(r.legacy){list.innerHTML=[0,1].map((idx)=>{const s=ss[idx],show=idx===0||s;return show?`<div class="live-edit-session legacy-edit-session"><strong>Session ${idx+1}</strong><label>Check In<input type="datetime-local" data-legacy-field="in${idx+1}" value="${toLocalInput(s?.check_in_at)}"></label><label>Check Out<input type="datetime-local" data-legacy-field="out${idx+1}" value="${legacyOutInput(s?.check_in_at,s?.check_out_at)}"></label></div>`:''}).join('')+(!ss[1]?'<button class="btn secondary tiny" onclick="GoyaLiveAdmin.addLegacySecondSession(this)">+ Add Session 2</button>':'')}else{if(!ss.length)return toast('No live session exists for this day.',true);list.innerHTML=ss.map(s=>`<div class="live-edit-session"><strong>Session ${s.session_no}</strong><label>Check In<input type="datetime-local" data-id="${s.id}" data-field="in" value="${toLocalInput(s.check_in_at)}"></label><label>Check Out<input type="datetime-local" data-id="${s.id}" data-field="out" value="${toLocalInput(s.check_out_at)}"></label><button class="btn secondary tiny" onclick="GoyaLiveAdmin.saveSessionEdit('${s.id}',this)">${s.check_out_at?'Save Session':'Set Checkout'}</button></div>`).join('')}$('liveEditTitle').textContent=`${r.staff_name} · ${date}${r.legacy?' · Previous Record':''}`;modal.classList.remove('hidden')}
   function addLegacySecondSession(btn){if(!editTarget?.legacy)return;btn.remove();$('liveEditSessions').insertAdjacentHTML('beforeend',`<div class="live-edit-session legacy-edit-session"><strong>Session 2</strong><label>Check In<input type="datetime-local" data-legacy-field="in2"></label><label>Check Out<input type="datetime-local" data-legacy-field="out2"></label></div>`)}
   async function saveEditBreak(){if(!editTarget)return;const value=$('liveEditBreak').value==='true';try{await rpc('attendance_live_admin_set_break',{p_token:ctx().token,p_staff_id:editTarget.staff_id,p_date:editTarget.operational_date,p_break_taken:value});toast('Break updated and attendance recalculated.');editTarget.break_taken=value;closeEdit();await loadHistory();if(!$('attLiveControl')?.classList.contains('hidden'))await loadControl()}catch(e){toast(e.message,true)}}
-  async function savePreviousRecordEdit(){if(!editTarget?.legacy)return;const val=n=>$(`[data-legacy-field="${n}"]`)?.value||null,local=v=>v?localInputToIso(v):null,pin=val('in1'),pout=val('out1'),s2in=val('in2'),s2out=val('out2'),br=$('liveEditBreak').value==='true';if(!pin)return toast('Session 1 Check In is required.',true);if(pout&&new Date(pout)<=new Date(pin))return toast('Session 1 Check Out must be after Check In.',true);if((s2in&&!s2out)||(!s2in&&s2out))return toast('Session 2 requires both Check In and Check Out.',true);try{await rpc('attendance_live_admin_update_previous_record',{p_token:ctx().token,p_staff_id:editTarget.staff_id,p_date:editTarget.operational_date,p_punch_in:localInputToIso(pin),p_punch_out:pout?localInputToIso(pout):null,p_break_taken:br,p_split_shift:!!s2in,p_shift2_in:s2in?localInputToIso(s2in):null,p_shift2_out:s2out?localInputToIso(s2out):null,p_note:editTarget.classification_note||null});toast('Previous record corrected. Device/raw history remains preserved.');closeEdit();await loadHistory();if(!$('attLiveControl')?.classList.contains('hidden'))await loadControl()}catch(e){toast(e.message,true)}}
+  async function savePreviousRecordEdit(){
+    if(!editTarget?.legacy)return;
+    const val=n=>$(`[data-legacy-field="${n}"]`)?.value||null;
+    let pin=val('in1'),pout=val('out1'),s2in=val('in2'),s2out=val('out2');
+    const br=$('liveEditBreak').value==='true';
+    if(!pin)return toast('Session 1 Check In is required.',true);
+
+    const normalizePair=(inVal,outVal,label)=>{
+      if(!outVal)return {inVal,outVal:null};
+      let i=new Date(inVal),o=new Date(outVal),guard=0;
+      if(Number.isNaN(i.getTime())||Number.isNaN(o.getTime()))throw new Error(`${label}: invalid date/time.`);
+      while(o<=i && guard<2){o=new Date(o.getTime()+86400000);guard++}
+      const hours=(o-i)/3600000;
+      if(o<=i || hours<=0 || hours>24)throw new Error(`${label}: Check Out must be after Check In and within 24 hours.`);
+      const z=n=>String(n).padStart(2,'0');
+      const local=`${o.getFullYear()}-${z(o.getMonth()+1)}-${z(o.getDate())}T${z(o.getHours())}:${z(o.getMinutes())}`;
+      return {inVal,outVal:local};
+    };
+
+    try{
+      ({inVal:pin,outVal:pout}=normalizePair(pin,pout,'Session 1'));
+      if((s2in&&!s2out)||(!s2in&&s2out))throw new Error('Session 2 requires both Check In and Check Out.');
+      if(s2in)({inVal:s2in,outVal:s2out}=normalizePair(s2in,s2out,'Session 2'));
+
+      const btn=document.querySelector('#liveEditLegacyActions .btn.primary');
+      if(btn){btn.disabled=true;btn.textContent='Saving...'}
+      await rpc('attendance_live_admin_update_previous_record',{
+        p_token:ctx().token,
+        p_staff_id:editTarget.staff_id,
+        p_date:editTarget.operational_date,
+        p_punch_in:localInputToIso(pin),
+        p_punch_out:pout?localInputToIso(pout):null,
+        p_break_taken:br,
+        p_split_shift:!!s2in,
+        p_shift2_in:s2in?localInputToIso(s2in):null,
+        p_shift2_out:s2out?localInputToIso(s2out):null,
+        p_note:editTarget.classification_note||null
+      });
+      toast('Previous record saved and recalculated.');
+      closeEdit();
+      await loadHistory();
+      if(!$('attLiveControl')?.classList.contains('hidden'))await loadControl();
+    }catch(e){
+      toast(e.message||'Could not save previous record.',true);
+    }finally{
+      const btn=document.querySelector('#liveEditLegacyActions .btn.primary');
+      if(btn){btn.disabled=false;btn.textContent='Save Previous Record'}
+    }
+  }
   function localInputToIso(v){if(!v)return null;const d=new Date(v);return d.toISOString()}
   async function saveSessionEdit(id,btn){const box=btn.closest('.live-edit-session'),pin=box.querySelector('[data-field="in"]').value,pout=box.querySelector('[data-field="out"]').value;if(!pout&&!confirm('Check Out is blank. Save this session as incomplete?'))return;try{await rpc('attendance_live_admin_update_session',{p_token:ctx().token,p_session_id:id,p_check_in:localInputToIso(pin),p_check_out:localInputToIso(pout)});toast('Session corrected. Original values remain in audit history.');closeEdit();if(!$('attLiveHistory')?.classList.contains('hidden'))await loadHistory();if(!$('attLiveDashboard')?.classList.contains('hidden'))await loadDashboard();if(!$('attLiveControl')?.classList.contains('hidden'))await loadControl()}catch(e){toast(e.message,true)}}
   function closeEdit(){$('liveEditModal')?.classList.add('hidden');editTarget=null}
