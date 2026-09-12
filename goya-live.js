@@ -31,14 +31,14 @@
     const regular=Math.max(1,Number(rules.regular_net_minutes)||480),breakMinutes=Math.max(0,Number(rules.break_minutes)||60),breakTaken=r.break_taken!==false,target=breakTaken?regular+breakMinutes:regular,net=Math.max(0,sec/60-(breakTaken?breakMinutes:0)),ot=Math.floor(Math.max(0,net-regular)/30)*30,remainingSeconds=Math.max(0,target*60-sec),liveOtSeconds=Math.max(0,sec-target*60);
     return {sec,net,ot,remainingSeconds,liveOtSeconds};
   }
-  function matches(r){if(!state.filter)return true;if(state.filter==='On Duty')return status(r)==='On Duty';if(state.filter==='Shift Done')return status(r)==='Shift Done';if(state.filter==='Late')return Number(r.late_minutes||0)>0;if(state.filter==='Review')return review(r);return true}
+  function matches(r){if(!state.filter)return true;if(state.filter==='On Duty')return status(r)==='On Duty';if(state.filter==='Shift Done')return status(r)==='Shift Done';if(state.filter==='Late')return Number(r.late_minutes||0)>0;if(state.filter==='Overtime'){const c=calc(r);return status(r)==='On Duty'&&c.remainingSeconds<=0;}return true}
 
   function render(){
-    const rows=state.rows||[];let on=0,done=0,rev=0,late=0;
-    rows.forEach(r=>{if(status(r)==='On Duty')on++;if(status(r)==='Shift Done')done++;if(review(r))rev++;if(Number(r.late_minutes||0)>0)late++});
-    $('mgmtOn').textContent=on;$('mgmtDone').textContent=done;$('mgmtReview').textContent=rev;$('mgmtLate').textContent=late;
+    const rows=state.rows||[];let on=0,done=0,otRunning=0,late=0;
+    rows.forEach(r=>{if(status(r)==='On Duty'){on++;const c=calc(r);if(c.remainingSeconds<=0)otRunning++;}if(status(r)==='Shift Done')done++;if(Number(r.late_minutes||0)>0)late++});
+    $('mgmtOn').textContent=on;$('mgmtDone').textContent=done;$('mgmtOvertime').textContent=otRunning;$('mgmtLate').textContent=late;
     document.querySelectorAll('.summary-card').forEach(b=>b.classList.toggle('active',b.dataset.filter===state.filter));
-    const picked=rows.filter(matches).filter(r=>status(r)!=='Day Off - Pending Review'||state.filter==='Review');
+    const picked=rows.filter(matches).filter(r=>status(r)!=='Day Off - Pending Review');
     $('mgmtPanelTitle').textContent=state.filter||'Attendance';
     $('mgmtList').innerHTML=picked.length?picked.map(r=>{const c=calc(r),ss=r.sessions||[],open=status(r)==='On Duty',st=status(r);return `<div class="staff-row ${open?'row-live':''}"><div class="staff-name"><strong>${open?'<i class="pulse"></i>':''}${escapeHtml(r.staff_name)}</strong><span>${escapeHtml(st)}${r.late_minutes?` · Late ${Number(r.late_minutes)}m`:''}</span></div><div class="metric"><small>Check In</small><b>${fmtTime(ss[0]?.check_in_at)}</b></div><div class="metric"><small>Working</small><b>${mins(c.sec/60)}</b></div><div class="metric"><small>${open?(c.remainingSeconds>0?'Remaining':'OT'):'Net'}</small><b class="${open&&c.remainingSeconds<=0?'ot':'remaining'}">${open?(c.remainingSeconds>0?clock(c.remainingSeconds):clock(c.liveOtSeconds)):mins(c.net)}</b></div><div class="metric"><small>Sessions</small><b>${ss.length}</b></div><span class="status-pill ${open?'on':review(r)?'review':''}">${escapeHtml(st)}</span></div>`}).join(''):'<div class="empty-state">No attendance records in this view.</div>';
     const d=new Date(Date.now()+state.serverOffset);$('mgmtUpdated').textContent=`Updated ${d.toLocaleTimeString('en-AE',{hour:'numeric',minute:'2-digit',second:'2-digit'})}`;

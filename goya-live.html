@@ -6,12 +6,12 @@
 <meta name="theme-color" content="#171b1d">
 <title>Goya Live</title>
 <link rel="manifest" href="goya-live-manifest.json">
-<link rel="stylesheet" href="goya-live.css">
+<link rel="stylesheet" href="goya-live.css?v=38.0">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="https://cdn.jsdelivr.net/npm/jspdf@2.5.1/dist/jspdf.umd.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/jspdf-autotable@3.8.4/dist/jspdf.plugin.autotable.min.js"></script>
 <script src="config.js"></script>
-<script defer src="goya-live.js"></script>
+<script defer src="goya-live.js?v=38.0"></script>
 </head>
 <body>
 <div id="mgmtApp" class="mgmt-shell">
@@ -29,7 +29,7 @@
     <section class="summary-grid" aria-label="Attendance summary">
       <button data-filter="On Duty" class="summary-card green"><span class="card-icon">●</span><div><small>On Duty</small><strong id="mgmtOn">0</strong></div></button>
       <button data-filter="Shift Done" class="summary-card"><span class="card-icon">✓</span><div><small>Shift Done</small><strong id="mgmtDone">0</strong></div></button>
-      <button data-filter="Review" class="summary-card amber"><span class="card-icon">!</span><div><small>Review</small><strong id="mgmtReview">0</strong></div></button>
+      <button data-filter="Overtime" class="summary-card amber"><span class="card-icon">⏱</span><div><small>Overtime Running</small><strong id="mgmtOvertime">0</strong></div></button>
       <button data-filter="Late" class="summary-card red"><span class="card-icon">⌚</span><div><small>Late</small><strong id="mgmtLate">0</strong></div></button>
     </section>
 
