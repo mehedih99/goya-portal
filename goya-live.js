@@ -28,7 +28,7 @@
   function calc(r,serverNow){
     const rules=state.rules||{},ss=r.sessions||[];let sec=0;const now=serverNow?new Date(serverNow).getTime():Date.now()+state.serverOffset;
     ss.forEach((x,i)=>{if(!x?.check_in_at)return;let st=new Date(x.check_in_at).getTime();if(i===0&&r.scheduled_start){const sch=new Date(`${r.operational_date}T${String(r.scheduled_start).slice(0,5)}:00+04:00`).getTime();if(Number.isFinite(sch)&&st<sch)st=sch}const en=x.check_out_at?new Date(x.check_out_at).getTime():now;if(Number.isFinite(st)&&Number.isFinite(en)&&en>st)sec+=(en-st)/1000});
-    const regular=Math.max(1,Number(rules.regular_net_minutes)||480),breakMinutes=Math.max(0,Number(rules.break_minutes)||60),breakTaken=r.break_taken!==false,target=breakTaken?regular+breakMinutes:regular,net=Math.max(0,sec/60-(breakTaken?breakMinutes:0)),ot=Math.floor(Math.max(0,net-regular)/30)*30,remainingSeconds=Math.max(0,target*60-sec),liveOtSeconds=Math.max(0,sec-target*60);
+    const regular=Math.max(1,Number(rules.regular_net_minutes)||480),breakMinutes=Math.max(0,Number(rules.break_minutes)||60),breakTaken=r.break_taken!==false,target=breakTaken?regular+breakMinutes:regular,net=Math.max(0,sec/60-(breakTaken?breakMinutes:0)),ot=Math.floor(Math.max(0,net-regular)),remainingSeconds=Math.max(0,target*60-sec),liveOtSeconds=Math.max(0,sec-target*60);
     return {sec,net,ot,remainingSeconds,liveOtSeconds};
   }
   function matches(r){if(!state.filter)return true;if(state.filter==='On Duty')return status(r)==='On Duty';if(state.filter==='Shift Done')return status(r)==='Shift Done';if(state.filter==='Late')return Number(r.late_minutes||0)>0;if(state.filter==='Overtime'){const c=calc(r);return status(r)==='On Duty'&&c.remainingSeconds<=0;}return true}
