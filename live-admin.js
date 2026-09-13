@@ -1,6 +1,6 @@
 (() => {
   const cfg=window.GOYA_CONFIG||{};
-  let sb=null,liveState={dashboard:null,history:[],legacyHistory:[],controlReviews:[],rules:{},settingsLocations:[],serverOffset:0,timer:null},dashboardFilter='',controlFilter='',controlTarget=null,editTarget=null,historyMarks=new Set();
+  let sb=null,liveState={dashboard:null,history:[],legacyHistory:[],controlReviews:[],rules:{},settingsLocations:[],serverOffset:0,timer:null},dashboardFilter='',controlFilter='',controlTarget=null,editTarget=null,historyMarks=new Set(),previousSaveBusy=false,bulkBreakBusy=false;
   const $=id=>document.getElementById(id),pad=n=>String(n).padStart(2,'0'),esc=v=>String(v??'').replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#039;'}[m]));
   const ctx=()=>window.GoyaAttendance?._liveContext?.()||{};
   async function client(){if(!cfg.SUPABASE_URL||!cfg.SUPABASE_ANON_KEY)throw new Error('Supabase config missing');if(!sb)sb=window.supabase.createClient(cfg.SUPABASE_URL,cfg.SUPABASE_ANON_KEY,{auth:{persistSession:false,autoRefreshToken:false}});return sb}
@@ -34,7 +34,69 @@
   function toggleAllHistory(checked){for(const r of filteredRows()){const k=rowKey(r);checked?historyMarks.add(k):historyMarks.delete(k)}renderHistory()}
   function clearHistoryMarks(){historyMarks.clear();if($('liveHistoryMarkAll'))$('liveHistoryMarkAll').checked=false;renderHistory()}
   function markedRows(){const map=new Map((liveState.history||[]).map(r=>[rowKey(r),r]));return [...historyMarks].map(k=>map.get(k)).filter(Boolean)}
-  async function bulkSetBreak(value){const rows=markedRows();if(!rows.length)return toast('Mark one or more records first.',true);if(!confirm(`Set Break ${value?'Yes':'No'} for ${rows.length} marked record(s)?`))return;let ok=0;for(const r of rows){try{await rpc('attendance_live_admin_set_break',{p_token:ctx().token,p_staff_id:r.staff_id,p_date:r.operational_date,p_break_taken:value});ok++}catch(e){toast(`${r.staff_name} ${r.operational_date}: ${e.message}`,true)}}toast(`Break updated for ${ok} record(s).`);historyMarks.clear();await loadHistory()}
+  async function bulkSetBreak(value){
+    const rows=markedRows();
+    if(!rows.length)return toast('Mark one or more records first.',true);
+    if(bulkBreakBusy)return;
+    if(!confirm(`Set Break ${value?'Yes':'No'} for ${rows.length} marked record(s)?`))return;
+
+    bulkBreakBusy=true;
+    let ok=0,failed=0;
+
+    const normalizedIsoPair=(a,b)=>{
+      if(!a)return {inIso:null,outIso:null};
+      const i=new Date(a);
+      if(Number.isNaN(i.getTime()))return {inIso:null,outIso:null};
+      if(!b)return {inIso:i.toISOString(),outIso:null};
+      let o=new Date(b),guard=0;
+      if(Number.isNaN(o.getTime()))return {inIso:i.toISOString(),outIso:null};
+      while(o<=i && guard<2){o=new Date(o.getTime()+86400000);guard++}
+      if(o<=i || (o-i)>86400000)return {inIso:i.toISOString(),outIso:null};
+      return {inIso:i.toISOString(),outIso:o.toISOString()};
+    };
+
+    for(const r of rows){
+      try{
+        if(r.legacy){
+          const ss=Array.isArray(r.sessions)?r.sessions:[];
+          const p1=normalizedIsoPair(ss[0]?.check_in_at,ss[0]?.check_out_at);
+          if(!p1.inIso)throw new Error('Session 1 Check In is missing');
+          const p2=ss[1]?normalizedIsoPair(ss[1]?.check_in_at,ss[1]?.check_out_at):{inIso:null,outIso:null};
+
+          await rpc('attendance_live_admin_update_previous_record',{
+            p_token:ctx().token,
+            p_staff_id:r.staff_id,
+            p_date:r.operational_date,
+            p_punch_in:p1.inIso,
+            p_punch_out:p1.outIso,
+            p_break_taken:value,
+            p_split_shift:!!p2.inIso,
+            p_shift2_in:p2.inIso,
+            p_shift2_out:p2.outIso,
+            p_note:r.classification_note||null
+          });
+        }else{
+          await rpc('attendance_live_admin_set_break',{
+            p_token:ctx().token,
+            p_staff_id:r.staff_id,
+            p_date:r.operational_date,
+            p_break_taken:value
+          });
+        }
+        ok++;
+      }catch(e){
+        failed++;
+        toast(`${r.staff_name} ${r.operational_date}: ${e.message}`,true);
+      }
+    }
+
+    bulkBreakBusy=false;
+    historyMarks.clear();
+    if($('liveHistoryMarkAll'))$('liveHistoryMarkAll').checked=false;
+    await loadHistory();
+    toast(failed?`Break updated for ${ok}; ${failed} failed.`:`Break updated for ${ok} record(s).`);
+  }
+
   async function bulkEditSelected(){const rows=markedRows();if(rows.length!==1)return toast('Mark exactly one record to edit.',true);await editDay(rows[0].staff_id,rows[0].operational_date)}
   function renderHistory(){const rows=filteredRows();renderSummary(rows);const table=$('liveHistoryAdminRows');if(table)table.innerHTML=rows.length?rows.map(r=>{const c=calc(r),ss=r.sessions||[],st=status(r),isNo=!ss.length&&!r.legacy,checked=historyMarks.has(rowKey(r))?'checked':'',primary=isNo?`<button class="btn secondary tiny" onclick="GoyaLiveAdmin.saveClassification('${r.staff_id}','${r.operational_date}',this)">Save</button>`:`<button class="btn secondary tiny" onclick="GoyaLiveAdmin.editDay('${r.staff_id}','${r.operational_date}')">Edit</button>`,del=r.legacy?'':`<button class="btn danger tiny" onclick="GoyaLiveAdmin.deleteHistoryDay('${r.staff_id}','${r.operational_date}','${esc(r.staff_name)}')">Delete</button>`;return `<tr><td><input type="checkbox" ${checked} onchange="GoyaLiveAdmin.toggleHistoryMark('${r.staff_id}','${r.operational_date}',this.checked)"></td><td>${esc(r.operational_date)}</td><td><strong>${esc(r.staff_name)}</strong>${r.legacy?'<span class="previous-inline">Previous</span>':''}</td><td>${ss.length?ss.map(s=>`${fmtTime(s.check_in_at)} → ${fmtTime(s.check_out_at)}`).join('<br>'):'—'}</td><td>${ss.length}</td><td>${ss.length?mins(c.sec/60):'—'}</td><td>${ss.length?mins(c.net):'—'}</td><td>${c.ot?otText(c.ot):'—'}</td><td>${r.late_minutes?`${r.late_minutes} min`:'—'}</td><td>${ss.length?(r.break_taken!==false?'Yes':'No'):'—'}</td><td>${isNo?`<select class="live-classify" data-staff="${r.staff_id}" data-date="${r.operational_date}">${classificationOptions(r.classification||'Day Off - Pending Review')}</select>`:esc(st)}</td><td>${ss.length?verificationBadge(r):'—'}</td><td><div class="live-row-actions">${primary}${del}</div></td></tr>`}).join(''):'<tr><td colspan="13" class="empty">No records for selected filters.</td></tr>';const cards=$('liveHistoryMobileCards');if(cards)cards.innerHTML=rows.length?rows.map(r=>{const c=calc(r),ss=r.sessions||[],st=status(r),isNo=!ss.length&&!r.legacy,checked=historyMarks.has(rowKey(r))?'checked':'';return `<article class="live-history-admin-card"><header><div><label class="mobile-mark"><input type="checkbox" ${checked} onchange="GoyaLiveAdmin.toggleHistoryMark('${r.staff_id}','${r.operational_date}',this.checked)"> Mark</label><b>${esc(r.staff_name)}</b><span>${fmtDate(r.operational_date)}${r.legacy?' · Previous':''}</span></div><em>${esc(st)}</em></header>${ss.length?`<div class="mobile-session-line">${ss.map(x=>`<span>S${x.session_no}: ${fmtTime(x.check_in_at)} → ${fmtTime(x.check_out_at)}</span>`).join('')}</div>`:''}<div class="mobile-metric-grid"><span>Worked<b>${ss.length?mins(c.sec/60):'—'}</b></span><span>Net<b>${ss.length?mins(c.net):'—'}</b></span><span>OT<b>${c.ot?otText(c.ot):'—'}</b></span><span>Late<b>${r.late_minutes?`${r.late_minutes}m`:'—'}</b></span></div><div class="mobile-history-actions">${isNo?`<select class="live-classify" data-staff="${r.staff_id}" data-date="${r.operational_date}">${classificationOptions(r.classification||'Day Off - Pending Review')}</select><button class="btn secondary tiny" onclick="GoyaLiveAdmin.saveClassificationMobile('${r.staff_id}','${r.operational_date}',this)">Save</button>`:`<button class="btn secondary tiny" onclick="GoyaLiveAdmin.editDay('${r.staff_id}','${r.operational_date}')">Edit</button>${r.legacy?'':`<button class="btn danger tiny" onclick="GoyaLiveAdmin.deleteHistoryDay('${r.staff_id}','${r.operational_date}','${esc(r.staff_name)}')">Delete</button>`}`}</div></article>`}).join(''):'<div class="live-empty">No records for selected filters.</div>';updateMarkedCount()}
   async function deleteHistoryDay(staffId,date,staffName){if(!confirm(`Delete ${staffName} attendance for ${date} from active history/reports?\n\nThe record will be archived in Supabase audit history and can be restored later.`))return;try{await rpc('attendance_live_admin_delete_day',{p_token:ctx().token,p_staff_id:staffId,p_date:date,p_reason:null});toast('Attendance archived and removed from active reports.');await loadHistory();if(!$('attLiveDashboard')?.classList.contains('hidden'))await loadDashboard()}catch(e){toast(e.message,true)}}
@@ -57,16 +119,30 @@
   function addLegacySecondSession(btn){if(!editTarget?.legacy)return;btn.remove();$('liveEditSessions').insertAdjacentHTML('beforeend',`<div class="live-edit-session legacy-edit-session"><strong>Session 2</strong><label>Check In<input type="datetime-local" data-legacy-field="in2"></label><label>Check Out<input type="datetime-local" data-legacy-field="out2"></label></div>`)}
   async function saveEditBreak(){if(!editTarget)return;const value=$('liveEditBreak').value==='true';try{await rpc('attendance_live_admin_set_break',{p_token:ctx().token,p_staff_id:editTarget.staff_id,p_date:editTarget.operational_date,p_break_taken:value});toast('Break updated and attendance recalculated.');editTarget.break_taken=value;closeEdit();await loadHistory();if(!$('attLiveControl')?.classList.contains('hidden'))await loadControl()}catch(e){toast(e.message,true)}}
   async function savePreviousRecordEdit(){
-    if(!editTarget?.legacy)return;
-    const val=n=>$(`[data-legacy-field="${n}"]`)?.value||null;
-    let pin=val('in1'),pout=val('out1'),s2in=val('in2'),s2out=val('out2');
+    if(!editTarget?.legacy || previousSaveBusy)return;
+
+    const root=$('liveEditModal')||document;
+    const readField=(name)=>{
+      const el=root.querySelector(`[data-legacy-field="${name}"]`);
+      return el?.value||null;
+    };
+    const toLocalSafe=(v)=>v?toLocalInput(v):null;
+    const ss=Array.isArray(editTarget.sessions)?editTarget.sessions:[];
+
+    let pin=readField('in1')||toLocalSafe(ss[0]?.check_in_at);
+    let pout=readField('out1')||legacyOutInput(ss[0]?.check_in_at,ss[0]?.check_out_at)||null;
+    let s2in=readField('in2')||toLocalSafe(ss[1]?.check_in_at);
+    let s2out=readField('out2')||legacyOutInput(ss[1]?.check_in_at,ss[1]?.check_out_at)||null;
     const br=$('liveEditBreak').value==='true';
+
     if(!pin)return toast('Session 1 Check In is required.',true);
 
     const normalizePair=(inVal,outVal,label)=>{
       if(!outVal)return {inVal,outVal:null};
-      let i=new Date(inVal),o=new Date(outVal),guard=0;
+      const i=new Date(inVal);
+      let o=new Date(outVal);
       if(Number.isNaN(i.getTime())||Number.isNaN(o.getTime()))throw new Error(`${label}: invalid date/time.`);
+      let guard=0;
       while(o<=i && guard<2){o=new Date(o.getTime()+86400000);guard++}
       const hours=(o-i)/3600000;
       if(o<=i || hours<=0 || hours>24)throw new Error(`${label}: Check Out must be after Check In and within 24 hours.`);
@@ -75,13 +151,15 @@
       return {inVal,outVal:local};
     };
 
+    const btn=document.querySelector('#liveEditLegacyActions .btn.success');
     try{
+      previousSaveBusy=true;
+      if(btn){btn.disabled=true;btn.textContent='Saving...';}
+
       ({inVal:pin,outVal:pout}=normalizePair(pin,pout,'Session 1'));
       if((s2in&&!s2out)||(!s2in&&s2out))throw new Error('Session 2 requires both Check In and Check Out.');
       if(s2in)({inVal:s2in,outVal:s2out}=normalizePair(s2in,s2out,'Session 2'));
 
-      const btn=document.querySelector('#liveEditLegacyActions .btn.primary');
-      if(btn){btn.disabled=true;btn.textContent='Saving...'}
       await rpc('attendance_live_admin_update_previous_record',{
         p_token:ctx().token,
         p_staff_id:editTarget.staff_id,
@@ -94,6 +172,7 @@
         p_shift2_out:s2out?localInputToIso(s2out):null,
         p_note:editTarget.classification_note||null
       });
+
       toast('Previous record saved and recalculated.');
       closeEdit();
       await loadHistory();
@@ -101,11 +180,10 @@
     }catch(e){
       toast(e.message||'Could not save previous record.',true);
     }finally{
-      const btn=document.querySelector('#liveEditLegacyActions .btn.primary');
-      if(btn){btn.disabled=false;btn.textContent='Save Previous Record'}
+      previousSaveBusy=false;
+      if(btn){btn.disabled=false;btn.textContent='Save Previous Record';}
     }
   }
-  function localInputToIso(v){if(!v)return null;const d=new Date(v);return d.toISOString()}
   async function saveSessionEdit(id,btn){const box=btn.closest('.live-edit-session'),pin=box.querySelector('[data-field="in"]').value,pout=box.querySelector('[data-field="out"]').value;if(!pout&&!confirm('Check Out is blank. Save this session as incomplete?'))return;try{await rpc('attendance_live_admin_update_session',{p_token:ctx().token,p_session_id:id,p_check_in:localInputToIso(pin),p_check_out:localInputToIso(pout)});toast('Session corrected. Original values remain in audit history.');closeEdit();if(!$('attLiveHistory')?.classList.contains('hidden'))await loadHistory();if(!$('attLiveDashboard')?.classList.contains('hidden'))await loadDashboard();if(!$('attLiveControl')?.classList.contains('hidden'))await loadControl()}catch(e){toast(e.message,true)}}
   function closeEdit(){$('liveEditModal')?.classList.add('hidden');editTarget=null}
   function detailRows(rows=filteredRows()){return rows.map(r=>{const c=calc(r),ss=r.sessions||[];return {'Date':r.operational_date,'Staff':r.staff_name,'Shift Sessions':ss.length,'Session Details':ss.map(s=>`Shift ${s.session_no}: ${fmtTime(s.check_in_at)} - ${fmtTime(s.check_out_at)}`).join(' | '),'Worked':ss.length?mins(c.sec/60):'','Net':ss.length?mins(c.net):'','OT':c.ot?otText(c.ot):'','Late Minutes':r.late_minutes||0,'Break Taken':ss.length?(r.break_taken!==false?'Yes':'No'):'','Status':status(r),'Verification':verification(r),'Note':r.classification_note||''}})}
