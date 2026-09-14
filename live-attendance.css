@@ -105,3 +105,41 @@
 /* V38 Admin control/history refinements */
 .live-control-filters{grid-template-columns:minmax(180px,1fr) minmax(180px,1fr) auto!important}.control-date{display:inline-block;margin-right:8px;font-size:11px;font-weight:800;color:#527267;background:#edf5f1;padding:3px 7px;border-radius:999px}.live-edit-day-tools{display:flex;align-items:end;gap:10px;margin:10px 0 16px;padding:12px;border:1px solid #dfe7e3;border-radius:14px;background:#f7faf8}.live-edit-day-tools label{display:grid;gap:6px;font-size:12px;color:#64736d}.live-edit-day-tools select{min-width:130px}.previous-inline{display:inline-block;margin-left:7px;padding:2px 6px;border-radius:999px;background:#eef1ef;color:#6c7772;font-size:10px;font-weight:800}.live-history-bulkbar{display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin:10px 0;padding:10px 12px;border:1px solid #dfe7e3;border-radius:14px;background:#f8faf9}.live-history-bulkbar #liveHistoryMarkedCount{font-weight:800;color:#35594d}.mobile-mark{display:inline-flex;align-items:center;gap:5px;font-size:11px;color:#68766f;margin-bottom:4px}.legacy-edit-session{background:#fbfcfb}.hidden{display:none!important}
 @media(max-width:760px){.live-control-filters{grid-template-columns:1fr!important}.live-history-bulkbar{position:sticky;top:64px;z-index:5;background:#f8faf9}.live-history-bulkbar .btn{flex:1 1 auto}.live-edit-day-tools{align-items:stretch;flex-direction:column}.live-edit-day-tools select,.live-edit-day-tools .btn{width:100%}.live-control-row .control-staff span{display:flex;align-items:center;gap:4px;flex-wrap:wrap}}
+
+
+/* V39.2 MOBILE-ONLY LAYOUT PATCH
+   Break Taken and Split Shift sit side-by-side on mobile.
+   No JS, calculation, database, or desktop behavior changes. */
+@media (max-width:700px){
+  #staffLiveAttendance .live-mini-grid{
+    grid-template-columns:minmax(0,1fr) minmax(0,1fr) !important;
+  }
+
+  #staffLiveAttendance .live-mini-grid > .live-break-card,
+  #staffLiveAttendance .live-mini-grid > .live-split-card,
+  #staffLiveAttendance .live-mini-grid > div:last-child.live-split-card{
+    grid-column:auto !important;
+    width:100% !important;
+    min-width:0 !important;
+    padding:12px !important;
+    border-radius:18px !important;
+  }
+
+  #staffLiveAttendance .live-break-card .live-segmented,
+  #staffLiveAttendance .live-split-card .live-segmented{
+    min-height:50px !important;
+    width:100% !important;
+  }
+
+  #staffLiveAttendance .live-break-card .live-segmented button,
+  #staffLiveAttendance .live-split-card .live-segmented button{
+    padding:10px 6px !important;
+    font-size:15px !important;
+  }
+
+  #staffLiveAttendance .live-break-card small,
+  #staffLiveAttendance .live-split-card small{
+    font-size:10px !important;
+    line-height:1.35 !important;
+  }
+}
