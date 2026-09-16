@@ -103,6 +103,12 @@
   async function saveClassification(staffId,date,btn){const sel=btn.closest('tr')?.querySelector('.live-classify');if(!sel)return;const val=sel.value,note=prompt('Optional admin note for this day:','')||null;try{await rpc('attendance_live_admin_classify_day',{p_token:ctx().token,p_staff_id:staffId,p_date:date,p_classification:val,p_note:note});toast('Day classification saved.');await loadHistory()}catch(e){toast(e.message,true)}}
   async function saveClassificationMobile(staffId,date,btn){const sel=btn.parentElement?.querySelector('.live-classify');if(!sel)return;try{await rpc('attendance_live_admin_classify_day',{p_token:ctx().token,p_staff_id:staffId,p_date:date,p_classification:sel.value,p_note:null});toast('Day classification saved.');await loadHistory()}catch(e){toast(e.message,true)}}
   function toLocalInput(v){if(!v)return '';const d=new Date(v),z=n=>String(n).padStart(2,'0');return `${d.getFullYear()}-${z(d.getMonth()+1)}-${z(d.getDate())}T${z(d.getHours())}:${z(d.getMinutes())}`}
+  function localInputToIso(v){
+    if(!v)return null;
+    const d=new Date(v);
+    if(Number.isNaN(d.getTime()))throw new Error('Invalid date/time.');
+    return d.toISOString();
+  }
   function legacyOutInput(checkIn,checkOut){
     if(!checkOut)return '';
     let i=checkIn?new Date(checkIn):null,o=new Date(checkOut);
