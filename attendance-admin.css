@@ -1,0 +1,19 @@
+/* Attendance Admin only: this stylesheet is not loaded by the Staff Portal. */
+#attLiveControl .live-control-filters {grid-template-columns:minmax(140px,1fr) minmax(140px,1fr) minmax(160px,1fr) auto!important;align-items:end}
+#attLiveControl .control-batch-card {margin-bottom:16px}
+#attLiveControl .control-batch-fields {display:flex;flex-wrap:wrap;gap:12px;align-items:end;margin-top:0}
+#attLiveControl .control-batch-fields label {display:flex;flex-direction:column;gap:6px;font-size:13px;min-width:160px}
+#attLiveControl .control-batch-fields label:first-child {flex-direction:row;align-items:center;min-width:125px;align-self:center}
+#attLiveControl .control-batch-fields input[type=checkbox],#attLiveControl .control-staff input[type=checkbox] {width:16px;height:16px;flex:none;margin:0}
+#attLiveControl .control-staff label {display:flex;align-items:center;gap:8px}
+#attLiveControl #controlMarkedCount {align-self:center;font-size:13px;white-space:nowrap}
+#attLiveHistory .history-filters {grid-template-columns:repeat(3,minmax(160px,1fr))!important}
+#attLiveHistory details {min-width:110px;max-width:320px;white-space:normal}
+#attLiveHistory summary {cursor:pointer;color:#315c4c;font-weight:600}
+#batchModal .live-modal-card {max-height:90vh;overflow:auto}
+#batchModal th,#batchModal td {padding:10px;text-align:left;border-bottom:1px solid #e4e9e6}
+@media(max-width:700px){
+ #attLiveControl .live-control-filters,#attLiveHistory .history-filters {grid-template-columns:1fr!important}
+ #attLiveControl .control-batch-fields label {width:100%}
+ #attLiveControl .control-batch-fields .btn {flex:1 1 130px}
+}
