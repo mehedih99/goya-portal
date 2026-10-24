@@ -19,3 +19,9 @@
 }
 
 @media(min-width:901px){#attLiveControl .live-control-row{grid-template-columns:minmax(150px,1.4fr) repeat(4,minmax(80px,.8fr)) minmax(90px,.8fr) minmax(160px,auto)}}
+
+#attLiveControl .attendance-review-reasons {grid-column:1/-1;width:100%}
+.attendance-review-reasons {background:#fff6e8;border:1px solid #ead2aa;border-radius:10px;padding:10px 14px;color:#714919;font-size:13px}
+.attendance-review-reasons ul {margin:6px 0 0;padding-left:18px}
+.attendance-review-reasons li {margin:4px 0}
+#liveEditReviewResult {white-space:pre-wrap;font-weight:600}

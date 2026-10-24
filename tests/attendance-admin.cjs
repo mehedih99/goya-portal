@@ -22,6 +22,7 @@ window.supabase={createClient:()=>({rpc:async(name,args)=>{
  calls.push({name,args});if(delay)await new Promise(r=>setTimeout(r,delay));
  if(name==='attendance_legacy_admin_history')return failLegacy?{error:{message:'Legacy unavailable'}}:{data:{rows:[]}};
  if(name==='attendance_live_admin_history')return {data:{rules:{regular_net_minutes:480,break_minutes:60},server_now:'2026-10-23T08:00:00Z',rows:structuredClone(rows.filter(r=>r.operational_date>=args.p_start&&r.operational_date<=args.p_end&&(!args.p_staff_id||args.p_staff_id===r.staff_id)))}};
+ if(name==='attendance_live_admin_update_session'&&window.resolveVerification){const row=rows.find(r=>r.sessions.some(x=>x.id===args.p_session_id));row.sessions.forEach(x=>{x.check_in_verified=true;x.check_out_verified=true;});}
  writes.push({name,args});if(args.p_staff_id===failStaff)return {error:{message:'Simulated save failure'}};
  if(name==='attendance_live_admin_classify_day')rows.find(r=>r.staff_id===args.p_staff_id).classification=args.p_classification;
  if(name==='attendance_live_admin_set_break')rows.find(r=>r.staff_id===args.p_staff_id).break_taken=args.p_break_taken;
@@ -71,6 +72,18 @@ assert.deepEqual(errors,[]);assert.equal(await run(()=>writes.some(x=>/delete|ar
 await run(async()=>{GoyaLiveAdmin.openManualControl('a',"A O'Brien",'CHECK_IN','2026-10-01');document.getElementById('liveControlTime').value='2026-10-01T08:30';await Promise.all([GoyaLiveAdmin.saveManualControl(),GoyaLiveAdmin.saveManualControl()])});
 const manual=await run(()=>writes.filter(x=>x.name==='attendance_live_admin_manual_action'));assert.equal(manual.length,1);assert.equal(manual[0].args.p_at,'2026-10-01T04:30:00.000Z');
 await run(()=>{GoyaLiveAdmin.toggleControlMark('c|2026-10-01',true);GoyaLiveAdmin.previewBatch('breakNo')});await run(()=>GoyaLiveAdmin.submitBatch());assert.match(await page.locator('#batchResult').innerText(),/Saved: 1. Failed: 0/);assert.equal(await run(()=>rows.find(x=>x.staff_id==='c').break_taken),false);await run(()=>GoyaLiveAdmin.closeBatch());
+await run(async()=>{rows.find(r=>r.staff_id==='c').sessions[0].check_out_verified=false;await GoyaLiveAdmin.loadControl();GoyaLiveAdmin.setControlFilter('Review')});
+assert.match(await page.locator('#liveControlList').innerText(),/Check Out is marked unverified/);
+assert.ok(await page.locator('#liveControlList button').filter({hasText:'Review / Correct'}).count()>0);
+await run(()=>GoyaLiveAdmin.editDay('c','2026-10-01'));
+assert.match(await page.locator('#liveEditReviewReasons').innerText(),/Check Out is marked unverified/);
+await page.locator('#liveEditSessions button').click();
+await page.waitForFunction(()=>document.getElementById('liveEditReviewResult').textContent.includes('Review is still required'));
+assert.match(await page.locator('#liveEditReviewReasons').innerText(),/unverified/);
+await run(()=>window.resolveVerification=true);await page.locator('#liveEditSessions button').click();
+await page.waitForFunction(()=>document.getElementById('liveEditReviewResult').textContent.includes('No outstanding review reasons'));
+await run(()=>GoyaLiveAdmin.closeEdit());
+console.log('PASS: completed unverified reasons, direct correction action, saved-but-unresolved and server-confirmed resolved feedback.');
 console.log('PASS: read-only reports, filters, 4 exports, UAE times, leap month, stale/failed reports, batch preview, partial failure, duplicate submit, concurrent record change, invalid session times, desktop/mobile rendering; no live network requests.');
 if(process.env.TEST_EXPORT_MODULES){
  const modules=process.env.TEST_EXPORT_MODULES;
