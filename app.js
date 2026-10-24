@@ -26,12 +26,44 @@
   function setSectionsChecked(cls,values=[]){ document.querySelectorAll('.'+cls).forEach(x=>x.checked=values.includes(x.value)); }
 
   // ---------- STAFF ----------
+  let staffLoginBusy=false;
   async function staffLogin(){
-    const pin=$('staffPin').value.trim(); if(!/^\d{4}$/.test(pin)){toast('Enter a 4-digit PIN.',true);return;}
-    try{ const d=await rpc('staff_login',{p_pin:pin}); state.token=d.token; state.user=d; await staffLoad(); $('staffLogin').classList.add('hidden'); $('staffApp').classList.remove('hidden'); $('welcome').textContent=`Welcome, ${d.name}`; $('staffPin').value=''; toast(`Welcome, ${d.name}`); }
-    catch(e){toast(e.message,true)}
+    if(staffLoginBusy)return;
+    const input=$('staffPin'),button=$('staffLoginButton'),status=$('staffLoginStatus'),error=$('staffLoginError');
+    const pin=input.value.trim();
+    if(!/^\d{4}$/.test(pin)){if(error)error.textContent='Enter your 4-digit Staff PIN.';input.focus();return;}
+    staffLoginBusy=true;
+    if(error)error.textContent='';
+    input.disabled=true;
+    if(button){button.disabled=true;button.classList.add('is-loading');button.setAttribute('aria-busy','true');$('staffLoginLabel').textContent='Signing in…';}
+    $('staffLogin')?.setAttribute('aria-busy','true');
+    if(status)status.textContent='Checking your PIN…';
+    const slowHint=setTimeout(()=>{if(status)status.textContent='Still connecting. Please keep this page open…';},8000);
+    let loginToken=null;
+    try{
+      const d=await rpc('staff_login',{p_pin:pin});
+      if(!d?.token)throw new Error('Sign in could not be completed. Please try again.');
+      loginToken=d.token;state.token=d.token;state.user=d;
+      if(status)status.textContent='Loading your portal…';
+      if(button)$('staffLoginLabel').textContent='Opening portal…';
+      await staffLoad();
+      $('staffLogin').classList.add('hidden');$('staffApp').classList.remove('hidden');
+      $('welcome').textContent=`Welcome, ${d.name}`;input.value='';toast(`Welcome, ${d.name}`);
+    }catch(e){
+      state.token=null;state.user=null;
+      if(loginToken)rpc('logout',{p_token:loginToken}).catch(()=>{});
+      const message=e.message||'Unable to connect. Please try again.';
+      if(error)error.textContent=message;else toast(message,true);
+      input.focus();
+    }finally{
+      clearTimeout(slowHint);staffLoginBusy=false;input.disabled=false;
+      $('staffLogin')?.setAttribute('aria-busy','false');
+      if(button){button.disabled=false;button.classList.remove('is-loading');button.setAttribute('aria-busy','false');$('staffLoginLabel').textContent='Enter Portal';}
+      if(status)status.textContent='';
+      if(!$('staffLogin').classList.contains('hidden'))input.focus();
+    }
   }
-  async function staffLoad(){ state.data=await rpc('staff_bootstrap',{p_token:state.token}); const a=state.user.access||{}; $('navOrder').classList.toggle('hidden',!a.order); $('navProduction').classList.toggle('hidden',!a.production); $('navWastage').classList.toggle('hidden',!a.wastage); $('navInventory').classList.toggle('hidden',!a.inventory && !(state.data.inventory_sessions||[]).length); renderInfo(); renderInventorySessions(); await loadOperationalDrafts(); $('historyMonth').value=isoMonth(); await staffHistory(); if($('myAttDate'))$('myAttDate').value=new Date().toISOString().slice(0,10);if($('myAttMonth'))$('myAttMonth').value=isoMonth(); }
+  async function staffLoad(){ state.data=await rpc('staff_bootstrap',{p_token:state.token}); const a=state.user.access||{}; $('navOrder').classList.toggle('hidden',!a.order); $('navProduction').classList.toggle('hidden',!a.production); $('navWastage').classList.toggle('hidden',!a.wastage); $('navInventory').classList.toggle('hidden',!a.inventory && !(state.data.inventory_sessions||[]).length); renderInfo(); renderInventorySessions(); $('historyMonth').value=isoMonth(); await Promise.all([loadOperationalDrafts(),staffHistory()]); if($('myAttDate'))$('myAttDate').value=new Date().toISOString().slice(0,10);if($('myAttMonth'))$('myAttMonth').value=isoMonth(); }
   function staffNav(btn,id){setNav(btn);showView(id);$('sidebar').classList.remove('open');$('staffSidebarBackdrop')?.classList.remove('open');document.body.classList.remove('portal-nav-open'); if(id==='staffInventory')renderInventorySessions();if(id==='staffMyAttendance')loadMyAttendance();}
   function mobileMenu(force){const side=$('sidebar');if(!side)return;const open=typeof force==='boolean'?force:!side.classList.contains('open');side.classList.toggle('open',open);$('staffSidebarBackdrop')?.classList.toggle('open',open);document.body.classList.toggle('portal-nav-open',open);}
   function searchMaster(){ const q=normalize($('orderSearch').value); const list=(state.data.master_items||[]).filter(x=>!q||normalize(x.name).includes(q)||normalize(x.sku).includes(q)).slice(0,40); $('orderResults').innerHTML=list.length?list.map(x=>`<div class="result" onclick="GoyaStaff.pickOrderItem('${esc(x.id)}')"><div><div class="name">${esc(x.name)}</div><div class="small muted">${esc(x.sku)} · ${esc(x.supplier||'No supplier')}</div></div><span class="tag">${esc(x.storage_unit)} / ${esc(x.ingredient_unit)}</span></div>`).join(''):'<div class="empty">No matching item.</div>'; }
@@ -177,5 +209,5 @@
 
   window.GoyaAdmin={adminLogin,nav:adminNav,mobileMenu:adminMobile,renderMaster,renderInternal,renderComplaints,loadComplaints,exportComplaintsExcel,deleteSelectedComplaints,editMaster,resetMasterForm,saveMasterItem,editInternal,resetInternalForm,saveInternalItem,deleteItem,editSupplier,resetSupplierForm,saveSupplier,deleteSupplier,editStaff,resetStaffForm,saveStaff,deleteStaff,loadAdminOrders,clearOrderFilters,bulkOrderStatus,deleteSelectedOrders,updateOrderQuantity,exportOrdersFoodics,whatsappSupplier,toggleChecks,updateSelectionCount,loadPW,bulkPWStatus,deleteSelectedPW,exportPWFoodics,editInventory,resetInventoryForm,saveInventorySession,deleteInventory,loadInventoryCounts,deleteSelectedInventoryCounts,exportInventoryFoodics,refreshInventoryResetOptions,resetInventorySubmission,editInfo,resetInfoForm,saveInfo,deleteInfo,saveSettings,changeAdminPin,handleUpload,downloadTemplate,toggleExportMonth,exportManagementData,adminLogout};
 
-  document.addEventListener('DOMContentLoaded',()=>{ if(document.body.dataset.page==='staff'){state.cart=[];state.prodCart=[];state.wasteCart=[];renderOrderCart();renderStaffCart('production');renderStaffCart('wastage');} if(document.body.dataset.page==='admin'){const m=isoMonth();$('pwFrom').value=m+'-01';$('pwTo').value=new Date().toISOString().slice(0,10);$('invSessionMonth').value=m;$('invCountMonth').value=m;$('complaintMonth').value=m;$('exportMonth').value=m;$('staffPinNew').addEventListener('input',e=>e.target.value=e.target.value.replace(/\D/g,'').slice(0,4));} });
+  document.addEventListener('DOMContentLoaded',()=>{ if(document.body.dataset.page==='staff')$('staffPin')?.addEventListener('keydown',e=>{if(e.key==='Enter'){e.preventDefault();staffLogin();}}); if(document.body.dataset.page==='staff'){state.cart=[];state.prodCart=[];state.wasteCart=[];renderOrderCart();renderStaffCart('production');renderStaffCart('wastage');} if(document.body.dataset.page==='admin'){const m=isoMonth();$('pwFrom').value=m+'-01';$('pwTo').value=new Date().toISOString().slice(0,10);$('invSessionMonth').value=m;$('invCountMonth').value=m;$('complaintMonth').value=m;$('exportMonth').value=m;$('staffPinNew').addEventListener('input',e=>e.target.value=e.target.value.replace(/\D/g,'').slice(0,4));} });
 })();

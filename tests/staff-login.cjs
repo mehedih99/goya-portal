@@ -1,0 +1,15 @@
+const fs=require('fs'),path=require('path'),assert=require('assert/strict');
+const {chromium}=require(require.resolve('playwright',{paths:[process.env.CODEX_PRIMARY_RUNTIME_NODE_MODULES||process.cwd()]}));
+(async()=>{const browser=await chromium.launch({headless:true,executablePath:process.env.CHROMIUM_EXECUTABLE_PATH||undefined,args:['--no-sandbox']});const root=path.resolve(__dirname,'..');
+for(const width of [360,390,768,1440]){
+const page=await browser.newPage({viewport:{width,height:900}});const errors=[];page.on('pageerror',e=>errors.push(e.message));await page.route('**/*',r=>r.abort());
+await page.setContent(fs.readFileSync(path.join(root,'staff.html'),'utf8').replace(/<script\b[^>]*>[\s\S]*?<\/script>/g,'').replace(/<link\b[^>]*>/g,''));
+await page.addStyleTag({path:path.join(root,'styles.css')});
+await page.evaluate(()=>{window.calls=[];window.fail=true;window.bootFail=false;window.GOYA_CONFIG={SUPABASE_URL:'https://test.invalid',SUPABASE_ANON_KEY:'test'};window.supabase={createClient:()=>({rpc:async(name)=>{calls.push(name);await new Promise(r=>setTimeout(r,120));if(name==='staff_login')return fail?{error:{message:'Invalid PIN'}}:{data:{token:'test-token',name:'Test Staff',access:{order:true}}};if(name==='staff_bootstrap')return bootFail?{error:{message:'Connection lost'}}:{data:{}};return {data:{}};}})};});
+await page.addScriptTag({path:path.join(root,'app.js')});await page.evaluate(()=>document.dispatchEvent(new Event('DOMContentLoaded')));
+await page.fill('#staffPin','123');await page.click('#staffLoginButton');assert.equal(await page.evaluate(()=>calls.length),0);
+await page.fill('#staffPin','1234');const first=page.evaluate(()=>Promise.all([GoyaStaff.staffLogin(),GoyaStaff.staffLogin()]));await page.waitForFunction(()=>document.getElementById('staffLoginButton').disabled);assert.equal(await page.locator('.staff-login-spinner').isVisible(),true);await first;assert.equal(await page.evaluate(()=>calls.filter(x=>x==='staff_login').length),1);assert.equal(await page.locator('#staffLoginButton').isEnabled(),true);assert.match(await page.locator('#staffLoginError').innerText(),/Invalid PIN/);
+await page.evaluate(()=>{fail=false;bootFail=true});await page.press('#staffPin','Enter');await page.waitForFunction(()=>document.getElementById('staffLoginError').textContent.includes('Connection lost'));assert.equal(await page.evaluate(()=>GoyaStaff._liveContext().token),null);
+await page.evaluate(()=>bootFail=false);await page.press('#staffPin','Enter');await page.waitForFunction(()=>!document.getElementById('staffApp').classList.contains('hidden'));assert.equal(await page.inputValue('#staffPin'),'');assert.equal(await page.locator('#staffLoginButton').isEnabled(),true);assert.deepEqual(errors,[]);
+assert.equal(await page.evaluate(()=>document.documentElement.scrollWidth<=window.innerWidth),true);await page.close();}
+await browser.close();console.log('PASS: staff login loader, duplicate prevention, invalid PIN, Enter key, bootstrap failure cleanup, retry, success, and mobile/tablet/desktop overflow checks. No live requests.');})().catch(e=>{console.error(e);process.exit(1)});
