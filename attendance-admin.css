@@ -17,3 +17,5 @@
  #attLiveControl .control-batch-fields label {width:100%}
  #attLiveControl .control-batch-fields .btn {flex:1 1 130px}
 }
+
+@media(min-width:901px){#attLiveControl .live-control-row{grid-template-columns:minmax(150px,1.4fr) repeat(4,minmax(80px,.8fr)) minmax(90px,.8fr) minmax(160px,auto)}}

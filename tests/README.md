@@ -1,12 +1,13 @@
 # Attendance Admin regression checks
 
-Production changes are limited to `attendance.html`, `live-admin.js`, and the new admin-only stylesheet. Staff Portal scripts, shared styles, configuration, and database schema are unchanged.
+Production changes cover the Attendance Admin page and its dedicated stylesheet/script, plus the Goya Live display page and its dedicated stylesheet/script. Staff Portal scripts, shared styles, configuration, and database schema are unchanged.
 
 Install Playwright in your development environment and its Chromium browser, then run:
 
 ```sh
 node --check live-admin.js
 node tests/attendance-admin.cjs
+node tests/checkout-display.cjs
 ```
 
 Optional environment variables:
@@ -24,3 +25,5 @@ No production writes or database migrations were performed. The existing live an
 Batch operations commit each record separately, show failures individually, and never automatically retry. Each record is re-read before saving. This is not an atomic database transaction: server-side authorization and protection against simultaneous changes still depend on the existing Supabase functions. Verify the flow in a staging database (or a designated disposable test record) before merging into the live branch.
 
 Device Attendance is removed from navigation only. Its old records, database functions, and dormant import markup remain preserved. No delete/archive action is exposed by the redesigned live report/control UI.
+
+Checkout display tests cover no checkout, completed duty, unsorted split sessions, and rejoined duty on both pages at desktop/mobile sizes. The displayed value is the latest recorded checkout, including an earlier completed session after rejoining; no recorded checkout displays a dash. Times use Asia/Dubai.
