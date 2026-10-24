@@ -48,3 +48,24 @@ Push service acceptance is not proof that the phone displayed or the staff read 
 Delivery requires opt-in and is subject to OS/network settings. No real device push
 was sent during validation. Mock worker tests and SQL transaction/rollback checks
 cover auth, scheduling, cancellation and deduplication.
+
+Portal history and notice lifecycle (v44): apply
+`paged-history-and-notice-delete.sql`. Existing `admin_orders` and `staff_history`
+APIs remain intact for compatibility. New browser list requests use authenticated
+30-row server pages, stable `(created_at, id)` ordering, counts, and clamped page
+numbers. Staff history requests only the active kind; monthly and all-date open
+orders retain existing team visibility. Date filters use UAE calendar boundaries.
+Admin dashboard uses a counts + eight recent orders summary; no order history is
+loaded during login. CSV and Supplier WhatsApp load all applied-filter matches
+only on explicit request. Selection and row edits operate on the visible page.
+
+Notice Delete is a retained-record deletion (`deleted_at`, `active=false`), hidden
+from admin lists and staff dashboards, with pending push cancellation. A stale
+editor cannot restore a deleted notice. No existing notices are removed by the
+migration. The dashboard carousel frame is fixed per breakpoint, rotates every
+three seconds when playing, scrolls internally, and pauses on touch/hover/focus.
+
+Validation: `tests/pagination.cjs`, `tests/notice-frame-delete.cjs`, existing login,
+dashboard, theme and notice tests. SQL transaction/rollback checks verify bounded
+pages, totals, last-page clamping, authorization, retained deletion, and push
+cancellation without deleting real user data.
