@@ -1,0 +1,10 @@
+const fs=require('node:fs'),vm=require('node:vm'),assert=require('node:assert/strict'),path=require('node:path');
+let code=fs.readFileSync(path.join(__dirname,'../live-admin.js'),'utf8').replace('window.GoyaLiveAdmin={','window.__audit={calc,summaryFor,isReviewRow,verification,rules:r=>liveState.rules=r};window.GoyaLiveAdmin={');
+const context={window:{},document:{},Date,Set,Map};vm.runInNewContext(code,context);const a=context.window.__audit;
+const completed={operational_date:'2026-10-01',sessions:[{check_in_at:'2026-10-01T04:00:00Z',check_out_at:'2026-10-01T12:00:00Z',check_in_verified:true,check_out_verified:true}]};
+a.rules({break_minutes:0,regular_net_minutes:480});assert.equal(a.calc(completed).net,480,'Configured zero-minute break must remain zero');
+assert.equal(a.summaryFor([{...completed,legacy:true}]).review,0,'Completed previous record is not pending review');
+const missing={...completed,sessions:[{check_in_at:'2026-10-01T04:00:00Z'}]};assert.equal(a.isReviewRow(missing),true);assert.equal(a.verification(missing),'Review');assert.equal(a.summaryFor([missing]).review,1);
+const unverified={...completed,sessions:[{...completed.sessions[0],check_out_verified:false}]};assert.equal(a.isReviewRow(unverified),true);assert.equal(a.summaryFor([unverified]).review,1);
+assert.equal(a.isReviewRow(completed),false);assert.equal(a.summaryFor([completed]).review,0);
+console.log('PASS: zero-minute breaks, previous completed records, missing checkout, unverified checkout, review count consistency.');
