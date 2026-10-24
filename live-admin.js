@@ -4,7 +4,7 @@
   const $=id=>document.getElementById(id),pad=n=>String(n).padStart(2,'0'),esc=v=>String(v??'').replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#039;'}[m]));
   const ctx=()=>window.GoyaAttendance?._liveContext?.()||{};
   async function client(){if(!cfg.SUPABASE_URL||!cfg.SUPABASE_ANON_KEY)throw new Error('Supabase config missing');if(!sb)sb=window.supabase.createClient(cfg.SUPABASE_URL,cfg.SUPABASE_ANON_KEY,{auth:{persistSession:false,autoRefreshToken:false}});return sb}
-  async function rpc(name,args={}){const c=ctx();if(!c.token)throw new Error('Admin session expired. Please login again.');await client();const {data,error}=await sb.rpc(name,args);if(error)throw new Error(error.message);return data}
+  async function rpc(name,args={}){const c=ctx();if(!c.token)throw new Error('Admin session expired. Please login again.');await client();const {data,error}=await (window.GoyaUI?.task?window.GoyaUI.task(()=>sb.rpc(name,args)):sb.rpc(name,args));if(error)throw new Error(error.message);return data}
   function toast(msg,err=false){const host=$('toastHost')||document.body,d=document.createElement('div');d.className='toast'+(err?' err':'');d.textContent=msg;host.appendChild(d);setTimeout(()=>d.remove(),3800)}
   const lastCheckout=ss=>(ss||[]).reduce((last,s)=>{const t=Date.parse(s.check_out_at);return Number.isFinite(t)&&(!last||t>Date.parse(last))?s.check_out_at:last;},null);
   const fmtTime=v=>{if(!v)return '—';const d=new Date(v);return Number.isNaN(d.getTime())?'—':d.toLocaleTimeString('en-AE',{hour:'numeric',minute:'2-digit',timeZone:'Asia/Dubai'})};
