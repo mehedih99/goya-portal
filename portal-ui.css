@@ -18,3 +18,20 @@ input:not([type=checkbox]):not([type=radio]),select,textarea,.field input,.field
 [data-theme=dark] :is(.live-eyebrow,.live-ring-label,.live-ring-sub-label,.live-ring-inner>strong,.live-ring-inner>b,.live-timer-ring.is-ot .live-ring-inner>b,.live-mini-grid span,.live-session-row strong span,.live-session-row>div:first-child>span,.live-location-row span,.live-history-filters label,.live-admin-filterbar label,.live-month-dashboard span,.live-report-summary span,.live-history-day header span,.live-history-day footer span,.live-history-day footer b,.live-person-summary article header span,.live-person-summary article>div span,.live-person-summary article>div b,.live-duty-card header span,.live-duty-grid span,.live-duty-grid b,.live-break-card small,.app-filter-panel label>span,.live-dashboard-filter-note,.live-control-card header span,.live-control-card footer span,.live-control-live b,.live-dot-label,.live-control-stat span,.live-control-clear,.live-control-row small,.control-staff span,.compact-person-summary article>span,.live-history-admin-card header span,.mobile-metric-grid b,.live-dashboard-mobile-row>div b,.live-rule-toggle-row span,.live-split-card>span,.live-break-card>span,.live-split-card small,.live-edit-day-tools label,.live-history-bulkbar #liveHistoryMarkedCount,.mobile-mark){color:var(--muted)}
 [data-theme=dark] :is(.live-ring-inner>strong,.live-ring-inner>b,.live-history-day footer b,.live-person-summary article>div b,.live-duty-grid b,.live-control-live b,.mobile-metric-grid b,.live-dashboard-mobile-row>div b){color:var(--ink)}
 @media(max-width:600px){input:not([type=checkbox]):not([type=radio]),select,textarea{font-size:16px}.portal-theme{font-size:12px}.btn,.portal-install,.portal-theme,.nav button{min-height:44px}}
+/* Explicit surface/text pairs: translucent white mini-cards broke dark contrast. */
+[data-theme=dark] #staffLiveAttendance .live-mini-grid>div{background:#1b3044;color:#eff6fc;border-color:#3a5369}
+[data-theme=dark] #staffLiveAttendance .live-mini-grid>div>span,[data-theme=dark] #staffLiveAttendance .live-mini-grid small{color:#bacbd9}
+[data-theme=dark] #staffLiveAttendance .live-mini-grid strong{color:#f1f7fc}
+[data-theme=dark] .live-segmented{background:#0e1d2d;border-color:#3a5369}
+[data-theme=dark] .live-segmented button{background:transparent;color:#b7cbdc}
+[data-theme=dark] .live-segmented button.active{background:#256f65;color:#fff;box-shadow:0 3px 12px #0003}
+[data-theme=dark] #staffLiveAttendance #liveTimerRing{background:conic-gradient(#46c7ad 0 78%,#294254 78% 100%);box-shadow:0 12px 42px #0003}
+[data-theme=dark] #staffLiveAttendance #liveTimerRing.is-ot{background:conic-gradient(#e3b66c 0 88%,#3d3540 88% 100%)}
+[data-theme=dark] #staffLiveAttendance .live-ring-inner{background:#142335;box-shadow:inset 0 0 0 1px #304a60}
+[data-theme=dark] #staffLiveAttendance #liveWorkingTime{color:#f1f7fc}
+[data-theme=dark] #staffLiveAttendance #liveTimerSub{color:#6be1c6}
+[data-theme=dark] #staffLiveAttendance #liveTimerRing.is-ot #liveTimerSub{color:#f1c67e}
+[data-theme=dark] .app-input-shell input{color:var(--ink)}
+[data-theme=dark] .app-clear-btn,[data-theme=dark] .live-modal-close{background:var(--soft);color:var(--ink);border-color:var(--line)}
+[data-theme=dark] .live-stat-btn.active-filter{background:#1a3c3e;color:var(--ink)}
+.notice-push-option{padding:14px;border:1px solid var(--line);border-radius:14px;background:var(--soft)}.notice-push-option small{display:block;margin-top:8px;color:var(--muted);line-height:1.5}.notice-push-summary{margin:10px 0;color:var(--muted);font-size:12px}

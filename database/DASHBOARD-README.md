@@ -30,3 +30,21 @@ Cron job `goya-duty-reminders` calls `goya_private.run_duty_reminders()` every m
 - Worker endpoint: invalid token rejected with 401; valid token returned 200 with zero jobs. A real device permission/subscription is still needed for a physical notification delivery test.
 
 Advisors flag the existing custom PIN-session SECURITY DEFINER architecture; new browser RPCs explicitly call require_session before accessing private data, pin their search_path, revoke PUBLIC execution and use explicit anon/authenticated grants. Private tables intentionally have no direct client RLS policies. Worker RPCs are service-role-only. No existing table policies or authentication functions were altered.
+
+Important notice mobile push (v43.1): apply `notice-mobile-push.sql` after
+`notice-publication-date.sql`, then deploy `supabase/functions/duty-reminders`
+with `deno.json` as its import map. The existing random worker-header check and
+service-role-only worker RPCs remain required. No VAPID rotation is needed.
+The existing cron handles both duty and notice queues. No old notice is enrolled.
+
+Admin must explicitly check Send mobile notification with Important and Published.
+Scheduled notices wait for publication. Editing does not resend an existing notice;
+unpublishing or removing Important cancels its remaining queue. Create a new notice
+for a new broadcast. Recipients are snapshotted once at publication, and both the
+staff account and subscription must still be active and matched before dispatch.
+Retries are bounded to three attempts; provider expiry deactivates the endpoint.
+One notice/device delivery record plus a stable notification tag limits duplicates.
+Push service acceptance is not proof that the phone displayed or the staff read it.
+Delivery requires opt-in and is subject to OS/network settings. No real device push
+was sent during validation. Mock worker tests and SQL transaction/rollback checks
+cover auth, scheduling, cancellation and deduplication.
