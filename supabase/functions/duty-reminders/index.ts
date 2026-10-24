@@ -21,6 +21,20 @@ Deno.serve(async req=>{
     await db.rpc('goya_push_result',{p_id:j.subscription_id,p_date:j.operational_date,p_ok:true});sent++;
    }catch(e){await db.rpc('goya_push_result',{p_id:j.subscription_id,p_date:j.operational_date,p_ok:false,p_expired:[404,410].includes(e.statusCode)});failed++;}
   }));}
-  return Response.json({ok:true,sent,failed});
+  // Notice queue is independent of attendance rules and never auto-enrols a device.
+  let noticeSent=0,noticeFailed=0,noticeQueueError=false;
+  const {data:notices,error:noticeError}=await db.rpc('goya_notice_push_claim');
+  if(noticeError){noticeQueueError=true;}else{
+   const batch=notices||[];
+   for(let i=0;i<batch.length;i+=5){await Promise.all(batch.slice(i,i+5).map(async j=>{
+    const {data:allowed,error:checkError}=await db.rpc('goya_notice_push_check',{p_notice:j.notice_id,p_subscription:j.subscription_id});
+    if(checkError||!allowed)return;
+    try{
+     await webpush.sendNotification(j.subscription,JSON.stringify({title:`GOYA · ${j.title}`,body:String(j.body).slice(0,240),tag:`goya-notice-${j.notice_id}`,url:'./staff.html'}),{TTL:300,urgency:'high',timeout:10000});
+     await db.rpc('goya_notice_push_result',{p_notice:j.notice_id,p_subscription:j.subscription_id,p_ok:true});noticeSent++;
+    }catch(e){await db.rpc('goya_notice_push_result',{p_notice:j.notice_id,p_subscription:j.subscription_id,p_ok:false,p_expired:[404,410].includes(e.statusCode)});noticeFailed++;}
+   }));}
+  }
+  return Response.json({ok:true,sent,failed,noticeSent,noticeFailed,noticeQueueError});
  }catch{return Response.json({ok:false,error:'Reminder processing failed'},{status:500});}
 });
