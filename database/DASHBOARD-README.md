@@ -82,7 +82,7 @@ Admin changes to active or pin_code revoke that staff member's remembered sessio
 The existing app_sessions cleanup handles expiry. No existing staff session is
 extended or revoked merely by deploying this migration.
 
-Network/bootstrap failures retain the saved token for Retry instead of treating
+Auth/bootstrap requests have bounded waits and use their own loading state, so a timed-out background request cannot leave the global loading indicator stuck. Network/bootstrap failures retain the saved token for Retry instead of treating
 an outage as invalid credentials. Invalid, expired or revoked sessions return to
 PIN. Use PIN instead cancels a pending restore, clears the saved credential and
 attempts logout of the old session. Cross-tab storage changes reset the old identity.
