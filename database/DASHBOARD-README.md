@@ -69,3 +69,39 @@ Validation: `tests/pagination.cjs`, `tests/notice-frame-delete.cjs`, existing lo
 dashboard, theme and notice tests. SQL transaction/rollback checks verify bounded
 pages, totals, last-page clamping, authorization, retained deletion, and push
 cancellation without deleting real user data.
+
+Staff remembered login and attendance presentation (v45): apply
+`staff-remembered-login.sql`. Remember this device is checked by default, can be
+unchecked for shared devices, and stores only the existing random session token
+under `goya-staff-session-v1`. No PIN or cached staff identity is stored. A private,
+RLS-protected opt-in marker extends only staff sessions to 30 days. Resume checks
+both session validity and current staff activity, returns current permissions,
+and renews expiry. A ten-minute visible-page heartbeat also renews active usage.
+Admin sessions are unchanged. Logout deletes the session and its remembered marker;
+Admin changes to active or pin_code revoke that staff member's remembered sessions.
+The existing app_sessions cleanup handles expiry. No existing staff session is
+extended or revoked merely by deploying this migration.
+
+Network/bootstrap failures retain the saved token for Retry instead of treating
+an outage as invalid credentials. Invalid, expired or revoked sessions return to
+PIN. Use PIN instead cancels a pending restore, clears the saved credential and
+attempts logout of the old session. Cross-tab storage changes reset the old identity.
+Read responses carry session-generation guards so an old restore/draft/status reply
+cannot overwrite a newer staff session. Explicit sign out clears local persistence
+before network cleanup; server revocation is best effort when offline and cannot
+complete until connectivity is available. Browser site-data deletion, private-mode
+closure or storage eviction removes remembered login. Clearing only HTTP cache does
+not remove localStorage. Installed web apps remain subject to these browser rules.
+
+Attendance cards initially hide details, use a plain accessible summary button
+without a chevron, toggle on any card click, and keep expanded dates during refresh.
+Desktop table and PDF export stay complete. The timer ring consumes existing totals:
+remaining duty shrinks the teal arc; after duty, a warm overlay grows in one-hour
+visual cycles over the completed ring. This visual cycle does not change paid OT,
+break, split gaps or any attendance formula. `calcRow` is unchanged. Reduced-motion
+settings disable transitions. Goya Live files and database attendance APIs are unchanged.
+
+Validation: `tests/remembered-login.cjs`, `tests/attendance-design.cjs`, existing
+login/dashboard/pagination/theme suites, plus transaction/rollback checks for expiry,
+PIN/activity revocation, current permissions, staff-only access and logout cascade.
+No real staff PIN or physical phone login was used in these tests.
