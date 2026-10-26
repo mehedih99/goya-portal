@@ -105,3 +105,21 @@ Validation: `tests/remembered-login.cjs`, `tests/attendance-design.cjs`, existin
 login/dashboard/pagination/theme suites, plus transaction/rollback checks for expiry,
 PIN/activity revocation, current permissions, staff-only access and logout cascade.
 No real staff PIN or physical phone login was used in these tests.
+
+## Shared section inventory (47.0)
+
+Apply `shared-inventory.sql`, then `shared-inventory-guards.sql` (already applied to the connected GOYA project). Existing sessions keep their personal draft/submission behavior. New sessions default to shared, with one sheet per session and section. Do not merge old personal submissions automatically.
+
+Admin creates a session, chooses reporting month, counting date, sections and assigned staff, and activates it. The first authorized open snapshots the section item catalog and sheet name (title, section and date). New/deactivated master items cannot silently alter an in-progress sheet. Start a new session for a new count/catalog/date; changing reporting month or count date after a sheet starts is rejected. Deactivate a completed session to archive it; started shared sheets cannot be deleted through the old cascading delete path.
+
+Staff Auto Draft saves changed item pairs two seconds after typing stops. Only dirty items are patched; item versions and a sheet-generation guard prevent stale writes. Blank draft fields and zero quantities are supported. Counters and search combine without removing hidden inputs from the saved payload. A focused remaining item stays visible until blur. Shared changes are polled every 15 seconds only while Inventory is visible; Sync now can refresh immediately. Inactive staff, expired sessions and unassigned sections are rejected on every read/write.
+
+Saved means acknowledged by the server. Unsynced changes are stored under the staff and sheet IDs in the current browser, with an in-page memory fallback when browser storage is blocked. Reconnect/reopen resumes syncing and stale values require explicit conflict resolution. Browser site-data clearing, private-mode closure or blocked storage can remove unsynced local recovery; these are not server backups. Check Saved before leaving or switching devices. No session token or PIN is stored in the recovery record.
+
+Conflicts show shared and local quantities with Use shared values or Save my values. No automatic last-writer-wins replacement. Saving is serialized per view, supports idempotent lost-response retries, and preserves new edits made while an older save is in flight. Pending/conflicted local work blocks that device's final review. Final review warns that teammates should finish syncing: a device cannot know another offline device's unsynced values. If someone else submits first, any unsynced local values remain available for review rather than being discarded.
+
+Final submit locks the sheet, validates completeness and the reviewed sheet version, and produces one set of `inventory_counts` rows. Duplicate submits return the same Done state. Reopen preserves values and immutable prior final snapshots, increments the generation, and requires old unsynced edits to be reviewed. Re-submission updates the same report rows; prior versions remain in Shared Sheet History. Shared report rows cannot be partially deleted. Legacy personal reset behavior is unchanged.
+
+Security: private RLS-enabled tables have no client grants/policies (intentional deny-by-default). The public SECURITY DEFINER RPCs intentionally follow this portal's custom PIN-token architecture, with explicit session/staff/assignment validation and fixed search paths; they do not use Supabase Auth `auth.uid()`. Supabase's anonymous-function advisor flags these like existing custom-token APIs. Do not grant raw table access to silence the advisor.
+
+Tests: `shared-inventory-db.cjs` and `shared-inventory-ui.cjs` use PostgreSQL WASM (`@electric-sql/pglite@0.3.14`, set `GOYA_PGLITE_PATH` if external), plus Playwright for browser tests. `shared-inventory-live.sql` verifies the actual project inside a transaction ending in ROLLBACK. Never replace that rollback with commit. Existing login, remembered-session, pagination and personal-inventory tests also passed. No real staff PIN was used.
