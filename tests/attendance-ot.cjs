@@ -1,0 +1,11 @@
+const fs=require('fs'),vm=require('vm'),path=require('path'),assert=require('assert/strict');const scope={window:{}};vm.runInNewContext(fs.readFileSync(path.resolve(__dirname,'../attendance-ot.js'),'utf8'),scope);const calc=scope.window.GoyaOT.totals;
+const policy={version:1,enabled:true,grace_minutes:30,early_grace_minutes:30,regular_minutes:480,break_minutes:60},rules={regular_net_minutes:480,break_minutes:60};const at=t=>'2026-10-30T'+t+':00+04:00';
+function row(out,options={}){return{operational_date:'2026-10-30',scheduled_start:'08:00',ot_policy:{...policy},break_taken:false,sessions:[{check_in_at:at('08:00'),check_out_at:at(out)}],...options};}
+for(const [out,ot]of [['16:00',0],['16:29',0],['16:30',0],['16:31',31],['16:45',45],['17:00',60],['17:30',90]])assert.equal(calc(row(out),rules).ot,ot,out);
+let r=row('16:31');r.sessions[0].check_in_at=at('07:50');let c=calc(r,rules);assert.equal(c.ot,31);assert.equal(c.sec/60,521);assert.equal(c.creditedSeconds/60,511);r.sessions[0].check_out_at=at('16:30');assert.equal(calc(r,rules).ot,0);
+r=row('17:31',{break_taken:true});assert.equal(calc(r,rules).ot,31);r.ot_policy.enabled=false;c=calc(r,rules);assert.equal(c.ot,0);assert.equal(c.sec/60,571);assert.equal(c.remainingSeconds,0);assert.equal(c.liveOtSeconds,0);assert.equal(c.otDisabled,true);
+r=row('16:30',{ot_policy:null});assert.equal(calc(r,rules).ot,30,'past records retain original calculation');
+r=row('17:31',{break_taken:true});assert.equal(calc(r,{...rules,force_no_break:true}).ot,31,'completed break choice preserved');r.sessions[0].check_out_at=null;assert.equal(calc(r,{...rules,force_no_break:true},Date.parse(at('16:31'))).ot,31);
+r=row('16:00');r.sessions[0].check_in_at=at('07:50');r.scheduled_start=null;assert.equal(calc(r,rules).ot,0,'hourly fallback excludes early minutes');
+r=row('21:31',{sessions:[{check_in_at:at('07:50'),check_out_at:at('12:00')},{check_in_at:at('17:00'),check_out_at:at('21:31')}]});c=calc(r,rules);assert.equal(c.ot,31);assert.equal(c.sec/60,521,'split gaps excluded');
+r=row('16:31');r.sessions[0].check_out_at='2026-10-30T16:30:59+04:00';assert.equal(calc(r,rules).ot,0);console.log('PASS OT boundaries: 0/30/31/45/60/90 minutes, early joins/raw punches, hourly fallback, 8h/9h/force-break, split gaps, OT Off and historical preservation.');

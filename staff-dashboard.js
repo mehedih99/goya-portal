@@ -7,7 +7,7 @@
  async function rpc(name,args={}){const token=ctx().token;if(!token)throw Error('Please sign in again.');if(!db)db=window.supabase.createClient(GOYA_CONFIG.SUPABASE_URL,GOYA_CONFIG.SUPABASE_ANON_KEY,{auth:{persistSession:false,autoRefreshToken:false}});const {data,error}=await db.rpc(name,{p_token:token,...args});if(error)throw Error(error.message);return data;}
  function visible(){return !$('staffDashboard')?.classList.contains('hidden')&&!document.hidden;}
  function totals(row,rules={},live=false){
-  if(row.legacy_precalc)return row.legacy_precalc;
+  if(row.legacy_precalc)return row.legacy_precalc;if(window.GoyaOT)return GoyaOT.totals(row,rules,live?Date.now()+offset:0);
   let work=0;const now=Date.now()+offset;
   for(const s of row.sessions||[]){const a=Date.parse(s.check_in_at),b=s.check_out_at?Date.parse(s.check_out_at):(live?now:a);if(Number.isFinite(a)&&Number.isFinite(b)&&b>a)work+=(b-a)/60000;}
   const regular=Number(rules.regular_net_minutes??480),breakMinutes=Number(rules.break_minutes??60),breakTaken=live&&rules.force_no_break?false:row.break_taken!==false;
@@ -36,10 +36,10 @@
   $('dashOperations').textContent=`Team activity this month: ${Number(data.operations?.production)||0} production entries · ${Number(data.operations?.wastage)||0} wastage entries`;
   renderNotice();renderClock();
  }
- function renderClock(){if(!data)return;const d=data.today,ss=d.sessions||[],open=ss.find(s=>!s.check_out_at),row={...(d.day||{}),sessions:ss},c=totals(row,d.rules,true),status=open?'On Duty':ss.length?'Completed':d.day?.classification&&d.day.classification!=='Day Off - Pending Review'?d.day.classification:'Not checked in yet';
+ function renderClock(){if(!data)return;const d=data.today,ss=d.sessions||[],open=ss.find(s=>!s.check_out_at),row={...(d.day||{}),operational_date:d.operational_date,sessions:ss},c=totals(row,d.rules,true),status=open?'On Duty':ss.length?'Completed':d.day?.classification&&d.day.classification!=='Day Off - Pending Review'?d.day.classification:'Not checked in yet';
   $('dashTodayStatus').textContent=status;$('dashTodayStatus').classList.toggle('on',!!open);$('dashCheckIn').textContent=uae(ss[0]?.check_in_at);const outs=ss.filter(s=>s.check_out_at).sort((a,b)=>Date.parse(b.check_out_at)-Date.parse(a.check_out_at));$('dashCheckOut').textContent=uae(outs[0]?.check_out_at);
-  $('dashWorked').textContent=mins(c.work);$('dashTarget').textContent=mins(c.target);$('dashBreak').textContent=d.rules?.force_no_break?'No break · set by Admin':c.breakTaken?'Break included':'No break';$('dashRemaining').textContent=mins(Math.ceil(Math.max(0,c.target-c.work)));$('dashProgress').value=Math.min(100,c.work/c.target*100);
-  $('dashReminderTime').textContent=open?(c.work>=c.target?'Duty target reached':`Reminder ${c.work>=c.target-15?'is due now':`in ${mins(Math.ceil(c.target-15-c.work))}`} · ${c.target/60}h target`):'Reminder runs only while checked in';
+  $('dashWorked').textContent=mins(c.work);$('dashTarget').textContent=mins(c.target);$('dashBreak').textContent=d.rules?.force_no_break?'No break · set by Admin':c.breakTaken?'Break included':'No break';$('dashRemaining').textContent=mins(Math.ceil(Math.max(0,c.target-(c.otPolicy?c.creditedSeconds/60:c.work))));$('dashProgress').value=Math.min(100,(c.otPolicy?c.creditedSeconds/60:c.work)/c.target*100);
+  $('dashReminderTime').textContent=c.otDisabled&&c.remainingSeconds<=0?'Overtime is currently disabled by management. Check Out when finished.':open?(c.work>=c.target?'Duty target reached':`Reminder ${c.work>=c.target-15?'is due now':`in ${mins(Math.ceil(c.target-15-c.work))}`} · ${c.target/60}h target`):'Reminder runs only while checked in';
  }
  function renderNotice(){const ns=data?.notices||[];if(!ns.length){$('dashNoticeContent').innerHTML='<span class="dash-eyebrow">NOTICE BOARD</span><h2>No new notices</h2><p>Management updates will appear here.</p>';$('dashNoticeControls').hidden=true;return;}
  noticeIndex=((noticeIndex%ns.length)+ns.length)%ns.length;const n=ns[noticeIndex];$('dashNoticeContent').innerHTML=`<span class="dash-eyebrow">NOTICE BOARD ${n.important?'<b class="dash-important">IMPORTANT</b>':''}</span><h2>${esc(n.title)}</h2><p>${esc(n.body)}</p><small>Management · ${esc(new Date(n.published_at||n.created_at||n.updated_at).toLocaleDateString('en-AE',{day:'numeric',month:'short',timeZone:'Asia/Dubai'}))}</small>`;
