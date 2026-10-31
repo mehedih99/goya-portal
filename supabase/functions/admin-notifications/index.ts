@@ -14,7 +14,7 @@ Deno.serve(async req=>{
   const batch=jobs||[];
   for(let i=0;i<batch.length;i+=5)await Promise.all(batch.slice(i,i+5).map(async j=>{
    const args={p_notification:j.notification_id,p_device:j.device_id};const {data:allowed,error:checkError}=await db.rpc('goya_admin_push_check',args);if(checkError||!allowed)return;
-   try{await webpush.sendNotification(j.subscription,JSON.stringify({title:`GOYA Admin · ${labels[j.kind]||'Submission'}`,body:`${String(j.staff_name||'Staff').slice(0,100)} submitted a new record. Open Admin to review.`,tag:`goya-admin-${j.notification_id}`,url:'../admin.html#notifications'}),{TTL:3600,urgency:'high',timeout:10000});await db.rpc('goya_admin_push_result',{...args,p_ok:true});sent++;}
+   try{await webpush.sendNotification(j.subscription,JSON.stringify({title:`GOYA Admin · ${labels[j.kind]||'Submission'}`,body:`${String(j.staff_name||'Staff').slice(0,100)} submitted a new record. Open Admin to review.`,tag:`goya-admin-${j.notification_id}`,url:'https://mehedih99.github.io/goya-portal/admin.html#notifications'}),{TTL:3600,urgency:'high',timeout:10000});await db.rpc('goya_admin_push_result',{...args,p_ok:true});sent++;}
    catch(e){await db.rpc('goya_admin_push_result',{...args,p_ok:false,p_expired:[404,410].includes(e.statusCode)});failed++;}
   }));return Response.json({ok:true,sent,failed});
  }catch{return Response.json({ok:false,error:'Admin notification processing failed'},{status:500});}
