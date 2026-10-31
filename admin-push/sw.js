@@ -1,0 +1,5 @@
+/* Separate registration: staff reminders and notices are unchanged. */
+self.addEventListener('install',()=>self.skipWaiting());
+self.addEventListener('activate',e=>e.waitUntil(self.clients.claim()));
+self.addEventListener('push',event=>{let data={};try{data=event.data?.json()||{};}catch{}event.waitUntil(self.registration.showNotification(String(data.title||'GOYA Admin'),{body:String(data.body||'A new staff submission is available.'),icon:'../goya-icon-192.png',badge:'../goya-icon-192.png',tag:String(data.tag||'goya-admin'),data:{url:new URL('../admin.html#notifications',self.registration.scope).href}}));});
+self.addEventListener('notificationclick',event=>{event.notification.close();event.waitUntil((async()=>{const url=new URL('../admin.html#notifications',self.registration.scope).href;for(const c of await self.clients.matchAll({type:'window',includeUncontrolled:true})){if(c.url.split('#')[0]===url.split('#')[0]){await c.navigate(url);return c.focus();}}return self.clients.openWindow(url);})());});

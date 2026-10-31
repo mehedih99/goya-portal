@@ -1,7 +1,7 @@
 /* Shared presentation only. Never loaded by Goya Live. */
 (() => {
 'use strict';
-const root=document.documentElement,key='goya-theme',installedKey='goya-app-installed';
+const root=document.documentElement,key='goya-theme',installedKey=/\/admin\.html$/.test(location.pathname)?'goya-admin-app-installed':'goya-app-installed';
 const read=k=>{try{return localStorage.getItem(k)}catch{return null}},write=(k,v)=>{try{localStorage.setItem(k,v)}catch{}};
 const system=matchMedia('(prefers-color-scheme: dark)');let choice=read(key)||'auto',promptEvent=null,pending=0,installed=read(installedKey)==='yes';
 const standalone=()=>matchMedia('(display-mode: standalone)').matches||matchMedia('(display-mode: minimal-ui)').matches||navigator.standalone===true;
