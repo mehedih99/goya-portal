@@ -1,0 +1,33 @@
+begin;
+do $$
+declare ad text:='qa-admin-'||gen_random_uuid();st text:='qa-staff-'||gen_random_uuid();skuval text:='QA-'||gen_random_uuid();gid uuid:=gen_random_uuid();oldv jsonb;r jsonb;newv jsonb;rid bigint;req uuid:=gen_random_uuid();device uuid;notification bigint;denied boolean:=false;sub jsonb;
+begin
+ insert into public.app_sessions(token,is_admin,expires_at) values(ad,true,now()+interval '5 minutes'),(st,false,now()+interval '5 minutes');
+ perform public.goya_admin_remember(ad);r:=public.goya_admin_resume(ad);assert r->>'token'=ad;
+ begin perform public.goya_admin_remember(st);exception when others then denied:=true;end;assert denied;
+ sub:=jsonb_build_object('endpoint','https://example.invalid/'||gid,'keys',jsonb_build_object('p256dh',repeat('a',87),'auth',repeat('b',22)));
+ perform public.goya_admin_push_save(ad,sub,true);
+ insert into public.internal_items(name,sku,storage_unit,ingredient_unit,items_type) values('QA test item',skuval,'L','ML','Bar');
+ insert into public.production_batches(batch_group_id,name,sku,quantity,unit,storage_quantity,ingredients_quantity,logged_by,admin_status) values(gid,'QA rollback item',skuval,3150,'L',3150,null,'QA rollback','Done') returning to_jsonb(production_batches.*) into oldv;rid:=(oldv->>'id')::bigint;
+ perform public.goya_admin_correct_pw(ad,'production',rid,oldv,3150,'ingredients','QA unit correction',req);
+ perform public.goya_admin_correct_pw(ad,'production',rid,oldv,3150,'ingredients','QA retry',req);
+ select to_jsonb(x) into newv from public.production_batches x where id=rid;
+ assert newv->>'unit'='ML' and newv->'storage_quantity'='null'::jsonb and (newv->>'ingredients_quantity')::numeric=3150;
+ assert newv->>'created_at'=oldv->>'created_at' and newv->>'admin_status'='Done' and newv->>'logged_by'='QA rollback';
+ r:=public.goya_admin_pw_corrections(ad,'production',rid);assert jsonb_array_length(r)=1;
+ denied:=false;begin perform public.goya_admin_correct_pw(ad,'production',rid,oldv,1,'storage','QA stale',gen_random_uuid());exception when others then denied:=true;end;assert denied;
+ denied:=false;begin perform public.goya_admin_correct_pw(st,'production',rid,newv,1,'storage','QA forbidden',gen_random_uuid());exception when others then denied:=true;end;assert denied;
+ select id into notification from goya_private.admin_notifications where kind='production' and event_key=gid::text;
+ select id into device from goya_private.admin_push_devices where session_token=ad;
+ assert exists(select 1 from goya_private.admin_push_deliveries where notification_id=notification and device_id=device);
+ assert public.goya_admin_push_check(notification,device);
+ perform public.goya_admin_push_save(ad,sub,false);assert not public.goya_admin_push_check(notification,device);
+ perform public.goya_admin_push_save(ad,sub,true);
+ insert into public.wastage_entries(wastage_group_id,name,sku,quantity,unit,storage_quantity,logged_by,reason) values(gen_random_uuid(),'QA rollback waste',skuval,10,'L',10,'QA rollback','QA spill') returning to_jsonb(wastage_entries.*) into oldv;rid:=(oldv->>'id')::bigint;
+ perform public.goya_admin_correct_pw(ad,'wastage',rid,oldv,2.5,'storage','QA correct count',gen_random_uuid());
+ select to_jsonb(x) into newv from public.wastage_entries x where id=rid;assert newv->>'reason'='QA spill' and (newv->>'quantity')::numeric=2.5;
+ assert not has_table_privilege('anon','goya_private.pw_quantity_audit','select');assert not has_function_privilege('anon','public.goya_admin_push_claim()','execute');assert has_function_privilege('service_role','public.goya_admin_push_claim()','execute');
+ perform public.logout(ad);assert not exists(select 1 from goya_private.admin_push_devices where session_token=ad);
+end $$;
+rollback;
+select 'PASS: live Admin remember/resume/staff denial, quantity/unit correction, audit/idempotency/conflict/status/time retention, push opt-in/disable and logout cascade; all fixtures rolled back, no real device or record modified.' result;
