@@ -45,3 +45,12 @@
 .pnl-trend-plot span.loss{background:var(--rust)}
 .pnl-trend-plot small{position:relative;top:30%;color:#505a4b}
 @media print{.pnl-trend-plot{height:5.3rem} body:has(#preview:not([hidden])){background:#fff!important}}
+
+#workspace [hidden],#pnl-login[hidden],.pnl-signature[hidden]{display:none!important}
+#pnl-settings{margin-bottom:1rem}
+#pnl-settings summary{cursor:pointer;font-weight:700}
+#report-settings{margin-top:1rem}
+#pnl-login{margin:1rem auto}
+.pnl-signature{display:block;max-width:145px;height:auto;max-height:44px;object-fit:contain;object-position:left bottom;margin:.4rem 0}
+.pnl-period{text-align:right}
+.pnl-period small{display:block}
