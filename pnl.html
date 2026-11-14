@@ -12,7 +12,7 @@
   <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
   <script src="config.js"></script>
   <script src="portal-ui.js?v=51.0"></script>
-  <script defer src="pnl.js?v=2"></script>
+  <script defer src="pnl.js?v=3"></script>
 </head>
 <body data-page="admin">
   <header class="topbar"><h2>GOYA · P&amp;L</h2><a class="btn secondary right" href="admin.html">Back to Admin</a></header>
@@ -52,8 +52,8 @@
           <div id="uploads" class="form-grid"></div>
           <p class="muted small">Export all five reports for the same branch and date range. Check that every file covers the period above before saving.</p>
         </section>
-        <section class="card"><h2>Delivery partners</h2><div class="pnl-scroll"><table id="partners"></table></div><p class="muted small">Partner sales are shown separately. Fees apply to sales after discounts and refunds.</p></section>
-        <section class="card"><h2>Payment processing fees</h2><div class="pnl-scroll"><table id="fees"></table></div><p class="muted small">Enter only the fee percentage. The fee base comes from the gross Amount column in the Payments CSV.</p></section>
+        <section class="card"><h2>Delivery partners</h2><div class="pnl-scroll"><table id="partners"></table></div><p class="muted small">Enter either Fee % or Charge Amount. Rates use sales after discounts and refunds.</p></section>
+        <section class="card"><h2>Payment processing fees</h2><div class="pnl-scroll"><table id="fees"></table></div><p class="muted small">Enter either Fee % or Charge Amount. Rates use gross amounts from the Payments CSV.</p></section>
         <section class="card">
           <h2>Operating expenses</h2><div id="expenses" class="form-grid"></div>
           <label class="field">Manager suggestions<textarea name="suggestions" maxlength="550" rows="3"></textarea></label>
