@@ -24,6 +24,75 @@
   let token = sessionStorage.getItem('goya-pnl-handoff') || localStorage.getItem('goya-admin-session-v1');
   sessionStorage.removeItem('goya-pnl-handoff');
   let db;
+  const settings=$('report-settings');
+  const settingsKey='goya-pnl-settings-v1';
+  const clean=v=>({branch:String(v?.branch||'GOYA').trim().slice(0,60)||'GOYA',
+    location:String(v?.location||'Jarir Bookstore').trim().slice(0,60)||'Jarir Bookstore',
+    signature:typeof v?.signature==='string'&&v.signature.length<=48000&&/^data:image\/png;base64,[A-Za-z0-9+/]+=*$/.test(v.signature)?v.signature:''});
+  let defaults=clean(), reportLabels, signatureDraft='';
+  try {defaults=clean(JSON.parse(localStorage.getItem(settingsKey)));} catch {}
+  function showSignature(){
+    const img=$('signature-preview');
+    img.hidden=!signatureDraft;
+    if(signatureDraft) img.src=signatureDraft;
+    else img.removeAttribute('src');
+  }
+  function useLabels(value){
+    reportLabels=clean(value);
+    settings.elements.branch.value=reportLabels.branch;
+    settings.elements.location.value=reportLabels.location;
+    $('report-location').textContent=reportLabels.branch+' / '+reportLabels.location+' · AED';
+    signatureDraft=reportLabels.signature;
+    $('signature-file').value='';
+    showSignature();
+  }
+  useLabels(defaults);
+  $('remove-signature').onclick=()=>{$('signature-file').value='';signatureDraft='';showSignature();};
+  $('signature-file').onchange=async e=>{
+    const input=e.currentTarget,file=input.files[0];
+    if(!file) return;
+    try {
+      if(!['image/png','image/jpeg','image/webp'].includes(file.type)||file.size>5000000) throw Error('Choose a PNG, JPEG or WebP up to 5 MB.');
+      const image=await createImageBitmap(file);
+      try {
+        if(input.files[0]!==file) return;
+        const canvas=document.createElement('canvas');
+        const scale=Math.min(1,240/image.width,72/image.height);
+        canvas.width=Math.max(1,Math.round(image.width*scale));
+        canvas.height=Math.max(1,Math.round(image.height*scale));
+        canvas.getContext('2d').drawImage(image,0,0,canvas.width,canvas.height);
+        const signature=clean({signature:canvas.toDataURL('image/png')}).signature;
+        if(!signature) throw Error('Choose a smaller signature image.');
+        signatureDraft=signature;showSignature();
+        status('Signature ready. Select Save settings.');
+      } finally {image.close();}
+    } catch(error){if(input.files[0]===file)status(error.message);}
+  };
+  settings.onsubmit=e=>{
+    e.preventDefault();
+    if(busy) return;
+    const next=clean({branch:settings.elements.branch.value,location:settings.elements.location.value,signature:signatureDraft});
+    try {
+      localStorage.setItem(settingsKey,JSON.stringify(next));
+      defaults=next;
+      useLabels(next);
+      if(current){current={...current,labels:next};render(current);}
+      status('Settings saved.');
+    } catch(error){status('Could not save settings. '+error.message);}
+  };
+  function periodFields(){
+    const monthly=val('period')==='month';
+    for(const [id,visible] of [['month',monthly],['start',!monthly],['end',!monthly]]) {
+      $(id+'-field').hidden=!visible;field(id).required=visible;
+    }
+  }
+  function initPeriod(){
+    const parts=new Intl.DateTimeFormat('en-CA',{timeZone:'Asia/Dubai',year:'numeric',month:'2-digit'}).formatToParts(new Date());
+    field('month').value=parts.find(p=>p.type==='year').value+'-'+parts.find(p=>p.type==='month').value;
+    periodFields();
+  }
+  field('period').onchange=periodFields;
+  initPeriod();
 
   function status(message) { $('status').textContent = message; }
   async function rpc(name,args={}) {
@@ -33,6 +102,7 @@
         token = null;
         $('workspace').hidden = true;
         $('preview').hidden = true;
+        $('pnl-login').hidden=false;
       }
       throw Error(error.message);
     }
@@ -60,7 +130,16 @@
     '<div class="field"><label for="csv-'+key+'">'+label+' CSV</label><input type="file" id="csv-'+key+'" accept=".csv,text/csv">'+
     '<small id="file-'+key+'">No file selected</small><a href="'+url+'" target="_blank" rel="noopener noreferrer">Open Foodics report ↗</a></div>').join('');
   inputTable('partners',partners,['Gross sales','Discount','Refund','Fee %'],'partner');
-  inputTable('fees',processors,['Payment amount override','Fee %','Actual fee'],'processor');
+  $('fees').innerHTML='<thead><tr><th>Provider</th><th>Gross payments (AED)</th><th>Fee %</th></tr></thead><tbody>'+
+    processors.map((name,i)=>'<tr><th scope="row">'+name+'</th><td id="fee-base-'+i+'">Awaiting CSV</td><td>'+
+      numberField('processor'+i,name+' fee %','100')+'</td></tr>').join('')+'</tbody>';
+  function feeBases(p){
+    return [p.visa==null&&p.mastercard==null?null:(p.visa??0)+(p.mastercard??0),p.qlub??null,p.beanz??null];
+  }
+  function showFeeBases(){
+    const gross=imports.payments?.data.gross;
+    feeBases(gross||{}).forEach((v,i)=>{$('fee-base-'+i).textContent=v==null?(gross?'Not in CSV':'Awaiting CSV'):amount(v);});
+  }
   $('expenses').innerHTML = costs.map((label,i)=>'<label class="field">'+label+numberField('cost'+i,label)+'</label>').join('');
   function num(value, label) {
     const text = String(value ?? '').trim().replaceAll(',','');
@@ -112,12 +191,13 @@
     }
     const label=key==='types'?'Order Type':'Payment Method';
     const metric=key==='types'?'Net Sales':'Net Amount';
-    const grouped=new Map();
+    const grouped=new Map(), gross=new Map();
     for(const row of selected) {
       const name=normalized(cell(row,label));
       grouped.set(name,(grouped.get(name)||0)+read(row,metric));
+      if(key==='payments') gross.set(name,(gross.get(name)||0)+read(row,'Amount'));
     }
-    return Object.fromEntries(grouped);
+    return key==='payments'?{net:Object.fromEntries(grouped),gross:Object.fromEntries(gross)}:Object.fromEntries(grouped);
   }
   function invalidate() {
     current=null;
@@ -132,6 +212,7 @@
       if (!file) return;
       invalidate();
       delete imports[key];
+      showFeeBases();
       $('file-'+key).textContent='Reading…';
       try {
         if (file.size>15_000_000) throw Error('Export exceeds 15 MB.');
@@ -139,6 +220,7 @@
         if (input.files[0]!==file) return;
         invalidate();
         imports[key]={name:file.name,data};
+        showFeeBases();
         $('file-'+key).textContent=file.name;
         status(sources[key][0]+' imported.');
       } catch (error) {
@@ -155,16 +237,21 @@
     const sales=getImport(data,'sales');
     const stock=getImport(data,'stock');
     const payment=getImport(data,'payments') || {};
-    const paymentOf=name=>payment[name] ?? 0;
+    const paymentOf=name=>(payment.net||payment)[name] ?? 0;
+    const bases=feeBases(payment.gross||{});
     const defaults=[paymentOf('visa')+paymentOf('mastercard'),paymentOf('qlub'),paymentOf('beanz')];
     const delivery = data.delivery.map(([gross,discount,refund,rate],i)=>{
       const net=rounded(gross-discount-refund);
       if(net<0) throw Error(partners[i]+' discounts and refunds exceed gross sales.');
       return {name:partners[i],gross,discount,refund,net,rate,fee:rounded(net*rate/100)};
     });
-    const fees = data.processing.map(([base,rate,actual],i)=>{
-      const effectiveBase=base ?? defaults[i];
-      return {name:processors[i],base:effectiveBase,rate,actual,fee:actual ?? rounded(effectiveBase*rate/100)};
+    const fees=data.processing.map((entry,i)=>{
+      if(data.version===1){
+        const [base,rate,actual]=entry;
+        return {name:processors[i],rate,fee:actual??rounded((base??defaults[i])*rate/100)};
+      }
+      if(entry&&bases[i]==null) throw Error('Upload a Payments CSV with '+processors[i]+' gross payments, or clear its fee rate.');
+      return {name:processors[i],rate:entry,fee:rounded((bases[i]??0)*entry/100)};
     });
     const cogs=rounded(stock.opening+stock.purchase-stock.returns+stock.transferIn+stock.returnTransfer-stock.transferOut-stock.closing);
     const deliveryFees=rounded(sum(delivery.map(row=>row.fee)));
@@ -174,12 +261,19 @@
     return {sales,stock,delivery,fees,cogs,deliveryFees,payFees,expenses,profit};
   }
   function collect() {
-    const start=val('start'),end=val('end');
+    const period=val('period'), month=val('month');
+    const start=period==='month'?(month?month+'-01':''):val('start');
+    const d=start?dateOf(start):null;
+    const end=period==='month'&&d?new Date(Date.UTC(d.getUTCFullYear(),d.getUTCMonth()+1,0)).toISOString().slice(0,10):val('end');
+    const rates=processors.map((_,i)=>getValue('processor'+i));
+    const previous=editing?.payload;
+    const legacy=previous?.version===1&&!imports.payments?.data.gross;
+    if(legacy&&rates.some((rate,i)=>rate!==previous.processing[i][1])) throw Error('Re-upload the Payments CSV to change fee rates on this saved report.');
     if (!start || !end || end<start || start.slice(0,7)!==end.slice(0,7)) throw Error('Choose a date range within one month.');
     if (!imports.sales || !imports.stock) throw Error('Sales by Branch and Inventory Control CSVs are required.');
-    return {version:1,start,end,imports:structuredClone(imports),
+    return {version:legacy?1:2,start,end,period,labels:reportLabels,imports:structuredClone(imports),
       delivery:partners.map((_,i)=>[0,1,2,3].map(j=>getValue('partner'+i+'_'+j))),
-      processing:processors.map((_,i)=>[getValue('processor'+i+'_0',null),getValue('processor'+i+'_1'),getValue('processor'+i+'_2',null)]),
+      processing:legacy?previous.processing:rates,
       costs:costs.map((_,i)=>getValue('cost'+i)),manager:val('manager').trim(),suggestions:val('suggestions').trim()};
   }
   function chart(rows) {
@@ -221,13 +315,21 @@
     const m=metrics(data), {sales,stock,delivery,fees,cogs,deliveryFees,payFees,expenses,profit}=m;
     const previous=matching(data,-1);
     const prev=previous?metrics(previous):null;
-    const payment=getImport(data,'payments') || {};
+    const paymentSource=getImport(data,'payments')||{};
+    const payment=paymentSource.net||paymentSource;
     const order=getImport(data,'types') || {};
     const supplier=getImport(data,'suppliers');
     const netPartner=rounded(sum(delivery.map(r=>r.net)));
     const difference=Object.keys(order).length?rounded(sum(Object.values(order))-sales.net):null;
-    const footer='<p class="pnl-caption">GOYA / JARIR BOOKSTORE · '+esc(data.start)+' to '+esc(data.end)+' · AED</p>';
-    const head=title=>'<header><div class="pnl-heading"><strong>GOYA / JARIR BOOKSTORE</strong><span>'+esc(data.start)+' to '+esc(data.end)+'</span></div><h1>'+title+'</h1><div class="pnl-caption">AED · Net sales excluding VAT</div></header>';
+    const report=clean(data.labels);
+    const place=esc(report.branch.toUpperCase()+' / '+report.location.toUpperCase());
+    const monthName=dateOf(data.start).toLocaleDateString('en-GB',{month:'long',year:'numeric',timeZone:'UTC'});
+    const custom=data.period==='custom'||!data.start.endsWith('-01')||!isMonthEnd(data.end);
+    const range=custom?'<small>'+Number(data.start.slice(-2))+'–'+Number(data.end.slice(-2))+' '+
+      dateOf(data.start).toLocaleDateString('en-GB',{month:'long',timeZone:'UTC'})+'</small>':'';
+    const footer='<p class="pnl-caption">'+place+' · '+esc(data.start)+' to '+esc(data.end)+' · AED</p>';
+    const head=title=>'<header><div class="pnl-heading"><strong>'+place+'</strong><span class="pnl-period">'+monthName+range+
+      '</span></div><h1>'+title+'</h1><div class="pnl-caption">AED · Net sales excluding VAT</div></header>';
     const trend=Array.from({length:6},(_,i)=>{
       const offset=i-5, prior=offset?matching(data,offset):data;
       return [month(shift(data.start,offset)),prior?metrics(prior).profit:null];
@@ -256,10 +358,9 @@
       'Partner revenue is shown for reference. Foodics Sales by Branch supplies P&L revenue.',
     ];
     if (difference) sourceNotes.push('Order Type total differs from branch sales by AED '+amount(difference)+'.');
-    if(data.processing[0][0]==null && data.processing[0][2]==null && data.processing[0][1]) sourceNotes.push('Estimated Network POS fees assume all Visa and Mastercard payments use Network POS.');
-    if(!getImport(data,'payments')) sourceNotes.push('Payments CSV unavailable. Fee calculation uses manual overrides or actual charges.');
-    if(fees.some(row=>row.actual==null && row.rate)) sourceNotes.push('Estimated processing fees use net payment amounts and exclude tips.');
-
+    if(data.version===2&&fees[0].rate) sourceNotes.push('Network POS fee uses gross Visa and Mastercard payments.');
+    if(data.version===2&&fees.some(row=>row.rate)) sourceNotes.push('Processing fees use gross payments from Foodics.');
+    if(data.version===1) sourceNotes.push('Payment fees reflect the inputs saved with this report.');
     const lines = [['Net sales',sales.net],['Inventory COGS estimate',cogs],['Gross profit',rounded(sales.net-cogs)],
       ...costs.map((label,i)=>[label,data.costs[i]]),['Delivery partner fees',deliveryFees],['Payment processing fees',payFees],
       ['Total operating expenses',expenses],['Operating profit',profit]];
@@ -289,6 +390,7 @@
       table(['Provider','AED'],fees.map(r=>[r.name,amount(r.fee)]).concat([['Total',amount(payFees)]]))+'</section></div>'+
       '<p class="pnl-caption">'+sourceNotes.map(esc).join('\n')+'</p>'+
       (data.suggestions?'<h2>Manager suggestions</h2><p>'+esc(data.suggestions)+'</p>':'')+
+      (report.signature?'<img class="pnl-signature" src="'+report.signature+'" alt="Manager signature">':'')+
       '<p><strong>Prepared by '+esc(data.manager)+'</strong></p>'+footer+'</section>';
     $('preview').hidden=false;
     $('save').disabled=false;
@@ -297,10 +399,20 @@
   function reset() {
     form.reset();
     imports={};
+    showFeeBases();
+    useLabels(defaults);
     editing=null;
+    field('period').disabled=false;
+    field('month').readOnly=false;
+    initPeriod();
     for(const key of Object.keys(sources)) $('file-'+key).textContent='No file selected';
     field('start').readOnly=field('end').readOnly=false;
     invalidate();
+  }
+  function lockPeriod(){
+    field('period').disabled=true;
+    field('month').readOnly=field('start').readOnly=field('end').readOnly=true;
+    periodFields();
   }
   function edit(row) {
     reset();
@@ -309,14 +421,18 @@
     imports=structuredClone(data.imports);
     field('start').value=row.start_date;
     field('end').value=row.end_date;
-    field('start').readOnly=field('end').readOnly=true;
+    field('period').value=data.period||(row.start_date.endsWith('-01')&&isMonthEnd(row.end_date)?'month':'custom');
+    field('month').value=row.start_date.slice(0,7);
+    lockPeriod();
+    useLabels(data.labels);
+    showFeeBases();
     for(const [key,file] of Object.entries(imports)) $('file-'+key).textContent=file.name+' (saved)';
     data.delivery.forEach((values,i)=>values.forEach((v,j)=>{field('partner'+i+'_'+j).value=v;}));
-    data.processing.forEach((values,i)=>values.forEach((v,j)=>{field('processor'+i+'_'+j).value=v??'';}));
+    data.processing.forEach((value,i)=>{field('processor'+i).value=(data.version===1?value[1]:value)??'';});
     data.costs.forEach((v,i)=>{field('cost'+i).value=v;});
     field('suggestions').value=data.suggestions;
     field('manager').value=data.manager;
-    current=collect();
+    current=data;
     render(current);
     form.scrollIntoView();
   }
@@ -372,18 +488,38 @@
     await refresh();
     editing=history.find(row=>row.start_date===data.start&&row.end_date===data.end);
     if(current===data) {
-      field('start').readOnly=field('end').readOnly=true;
+      lockPeriod();
       $('save').disabled=false;
     }
     status('Report saved to history.');
   });
   $('print').onclick=()=>{if(current) window.print();};
   $('new-report').onclick=()=>{if(!busy){reset();status('New report.');}};
-  run(async ()=>{
-    if (!token) throw Error('Open P&L from the unlocked Admin Panel.');
-    db=window.supabase.createClient(GOYA_CONFIG.SUPABASE_URL,GOYA_CONFIG.SUPABASE_ANON_KEY,{auth:{persistSession:false,autoRefreshToken:false}});
+  function client(){
+    db ||= window.supabase.createClient(GOYA_CONFIG.SUPABASE_URL,GOYA_CONFIG.SUPABASE_ANON_KEY,{auth:{persistSession:false,autoRefreshToken:false}});
+    return db;
+  }
+  async function unlock(){
     await refresh();
+    $('pnl-login').hidden=true;
     $('workspace').hidden=false;
     status('');
+  }
+  $('pnl-login').onsubmit=e=>{
+    e.preventDefault();
+    const pin=e.currentTarget.elements.pin;
+    run(async ()=>{
+      try {
+        const {data,error}=await client().rpc('admin_login',{p_pin:pin.value.trim()}).abortSignal(AbortSignal.timeout(20000));
+        if(error) throw Error(error.message);
+        token=data.token;
+        await unlock();
+      } finally {pin.value='';}
+    });
+  };
+  run(async ()=>{
+    if(!token){$('pnl-login').hidden=false;status('');return;}
+    client();
+    await unlock();
   });
 })();
