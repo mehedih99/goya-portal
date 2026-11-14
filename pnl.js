@@ -499,11 +499,25 @@
     render(current);
     form.scrollIntoView();
   }
+  const historyMonth=$('history-month');
+  historyMonth.addEventListener('change',renderHistory);
   async function refresh() {
     history=await rpc('history');
+    const selectedMonth=historyMonth.value;
+    const months=[...new Set(history.map(row=>row.start_date.slice(0,7)))].sort().reverse();
+    historyMonth.replaceChildren(new Option('All months',''),
+      ...months.map(key=>new Option(dateOf(key+'-01').toLocaleDateString('en-GB',{
+        month:'long',year:'numeric',timeZone:'UTC'
+      }),key)));
+    historyMonth.value=months.includes(selectedMonth)?selectedMonth:'';
+    renderHistory();
+  }
+  function renderHistory() {
+    const selectedMonth=historyMonth.value;
+    const rows=selectedMonth ? history.filter(row=>row.start_date.slice(0,7)===selectedMonth) : history;
     $('reports').replaceChildren();
-    if(!history.length) $('reports').textContent='No saved reports.';
-    for(const row of history) {
+    if(!rows.length) $('reports').textContent='No saved reports.';
+    for(const row of rows) {
       const div=document.createElement('div');
       div.className='pnl-history-row';
       const title=document.createElement('strong');
