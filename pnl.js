@@ -129,10 +129,10 @@
   $('uploads').innerHTML = Object.entries(sources).map(([key,[label,url]])=>
     '<div class="field"><label for="csv-'+key+'">'+label+' CSV</label><input type="file" id="csv-'+key+'" accept=".csv,text/csv">'+
     '<small id="file-'+key+'">No file selected</small><a href="'+url+'" target="_blank" rel="noopener noreferrer">Open Foodics report ↗</a></div>').join('');
-  inputTable('partners',partners,['Gross sales','Discount','Refund','Fee %'],'partner');
-  $('fees').innerHTML='<thead><tr><th>Provider</th><th>Gross payments (AED)</th><th>Fee %</th></tr></thead><tbody>'+
+  inputTable('partners',partners,['Gross sales','Discount','Refund','Fee %','Charge Amount (AED)'],'partner');
+  $('fees').innerHTML='<thead><tr><th>Provider</th><th>Gross payments (AED)</th><th>Fee %</th><th>Charge Amount (AED)</th></tr></thead><tbody>'+
     processors.map((name,i)=>'<tr><th scope="row">'+name+'</th><td id="fee-base-'+i+'">Awaiting CSV</td><td>'+
-      numberField('processor'+i,name+' fee %','100')+'</td></tr>').join('')+'</tbody>';
+      numberField('processor'+i,name+' fee %','100')+'</td><td>'+numberField('processorCharge'+i,name+' charge amount')+'</td></tr>').join('')+'</tbody>';
   function feeBases(p){
     return [p.visa==null&&p.mastercard==null?null:(p.visa??0)+(p.mastercard??0),p.qlub??null,p.beanz??null];
   }
@@ -213,6 +213,7 @@
       invalidate();
       delete imports[key];
       showFeeBases();
+      syncFees();
       $('file-'+key).textContent='Reading…';
       try {
         if (file.size>15_000_000) throw Error('Export exceeds 15 MB.');
@@ -221,6 +222,7 @@
         invalidate();
         imports[key]={name:file.name,data};
         showFeeBases();
+        syncFees();
         $('file-'+key).textContent=file.name;
         status(sources[key][0]+' imported.');
       } catch (error) {
@@ -230,7 +232,51 @@
       }
     });
   }
-  form.addEventListener('input',invalidate);
+  const feeRows=[
+    ...partners.map((_,i)=>({
+      rate:'partner'+i+'_3',charge:'partner'+i+'_4',basis:()=>rounded([0,1,2].reduce((n,k)=>n+(k===0?1:-1)*getValue('partner'+i+'_'+k),0))
+    })),
+    ...processors.map((_,i)=>({
+      rate:'processor'+i,charge:'processorCharge'+i,basis:()=>feeBases(imports.payments?.data.gross||{})[i]
+    })),
+  ];
+  const feeMode=new Map();
+  function calculatedFee(base,entry){
+    if(entry.charge!=null) return {fee:entry.charge,rate:base>0?rounded(entry.charge/base*100):null};
+    return {rate:entry.rate,fee:rounded((base??0)*entry.rate/100)};
+  }
+  function syncFee(row){
+    const rate=field(row.rate), charge=field(row.charge);
+    const mode=feeMode.get(row.rate);
+    if(Array.isArray(mode)) return;
+    const fromCharge=mode==='charge', input=fromCharge?charge:rate, output=fromCharge?rate:charge;
+    if(!fromCharge) rate.max='100';
+    else rate.removeAttribute('max');
+    const base=row.basis();
+    output.placeholder=base==null||(fromCharge&&base<=0)?'N/A':'0';
+    if(!input.value || input.validity.badInput || base==null || base<0 || (fromCharge&&base===0)) {
+      output.value='';
+      return;
+    }
+    const n=Number(input.value);
+    output.value=fromCharge?rounded(n/base*100):rounded(base*n/100);
+  }
+  function syncFees(){feeRows.forEach(syncFee);}
+  function readFee(row){
+    const mode=feeMode.get(row.rate);
+    if(Array.isArray(mode)) return mode;
+    if(mode==='charge')return {charge:getValue(row.charge)};
+    const rate=getValue(row.rate);
+    if(rate>100)throw Error('Enter a fee percentage between 0 and 100, or enter the charge amount.');
+    return {rate};
+  }
+  form.addEventListener('input',event=>{
+    invalidate();
+    const name=event.target.name;
+    const row=feeRows.find(r=>r.rate===name||r.charge===name);
+    if(row)feeMode.set(row.rate,row.charge===name?'charge':'rate');
+    syncFees();
+  });
   const getValue = (name,fallback=0) => val(name)==='' ? fallback : num(val(name),name);
   const getImport = (data,key) => data.imports[key]?.data;
   function metrics(data) {
@@ -240,18 +286,19 @@
     const paymentOf=name=>(payment.net||payment)[name] ?? 0;
     const bases=feeBases(payment.gross||{});
     const defaults=[paymentOf('visa')+paymentOf('mastercard'),paymentOf('qlub'),paymentOf('beanz')];
-    const delivery = data.delivery.map(([gross,discount,refund,rate],i)=>{
+    const delivery = data.delivery.map(([gross,discount,refund,entry],i)=>{
       const net=rounded(gross-discount-refund);
       if(net<0) throw Error(partners[i]+' discounts and refunds exceed gross sales.');
-      return {name:partners[i],gross,discount,refund,net,rate,fee:rounded(net*rate/100)};
+      return {name:partners[i],gross,discount,refund,net,...calculatedFee(net,data.version===3?entry:{rate:entry})};
     });
     const fees=data.processing.map((entry,i)=>{
-      if(data.version===1){
+      if(data.version===1 || Array.isArray(entry)){
         const [base,rate,actual]=entry;
         return {name:processors[i],rate,fee:actual??rounded((base??defaults[i])*rate/100)};
       }
-      if(entry&&bases[i]==null) throw Error('Upload a Payments CSV with '+processors[i]+' gross payments, or clear its fee rate.');
-      return {name:processors[i],rate:entry,fee:rounded((bases[i]??0)*entry/100)};
+      const input=data.version===3?entry:{rate:entry};
+      if(input.rate&&bases[i]==null) throw Error('Upload a Payments CSV with '+processors[i]+' gross payments, or enter its charge amount.');
+      return {name:processors[i],...calculatedFee(bases[i],input)};
     });
     const cogs=rounded(stock.opening+stock.purchase-stock.returns+stock.transferIn+stock.returnTransfer-stock.transferOut-stock.closing);
     const deliveryFees=rounded(sum(delivery.map(row=>row.fee)));
@@ -265,15 +312,11 @@
     const start=period==='month'?(month?month+'-01':''):val('start');
     const d=start?dateOf(start):null;
     const end=period==='month'&&d?new Date(Date.UTC(d.getUTCFullYear(),d.getUTCMonth()+1,0)).toISOString().slice(0,10):val('end');
-    const rates=processors.map((_,i)=>getValue('processor'+i));
-    const previous=editing?.payload;
-    const legacy=previous?.version===1&&!imports.payments?.data.gross;
-    if(legacy&&rates.some((rate,i)=>rate!==previous.processing[i][1])) throw Error('Re-upload the Payments CSV to change fee rates on this saved report.');
     if (!start || !end || end<start || start.slice(0,7)!==end.slice(0,7)) throw Error('Choose a date range within one month.');
     if (!imports.sales || !imports.stock) throw Error('Sales by Branch and Inventory Control CSVs are required.');
-    return {version:legacy?1:2,start,end,period,labels:reportLabels,imports:structuredClone(imports),
-      delivery:partners.map((_,i)=>[0,1,2,3].map(j=>getValue('partner'+i+'_'+j))),
-      processing:legacy?previous.processing:rates,
+    return {version:3,start,end,period,labels:reportLabels,imports:structuredClone(imports),
+      delivery:partners.map((_,i)=>[...[0,1,2].map(j=>getValue('partner'+i+'_'+j)),readFee(feeRows[i])]),
+      processing:processors.map((_,i)=>readFee(feeRows[partners.length+i])),
       costs:costs.map((_,i)=>getValue('cost'+i)),manager:val('manager').trim(),suggestions:val('suggestions').trim()};
   }
   function chart(rows) {
@@ -358,9 +401,9 @@
       'Partner revenue is shown for reference. Foodics Sales by Branch supplies P&L revenue.',
     ];
     if (difference) sourceNotes.push('Order Type total differs from branch sales by AED '+amount(difference)+'.');
-    if(data.version===2&&fees[0].rate) sourceNotes.push('Network POS fee uses gross Visa and Mastercard payments.');
-    if(data.version===2&&fees.some(row=>row.rate)) sourceNotes.push('Processing fees use gross payments from Foodics.');
-    if(data.version===1) sourceNotes.push('Payment fees reflect the inputs saved with this report.');
+    if(!Array.isArray(data.processing[0])&&fees[0].rate) sourceNotes.push('Network POS fee uses gross Visa and Mastercard payments.');
+    if(data.version>=2) sourceNotes.push('Processing fee percentages use gross Foodics payments. Entered charges are included at their stated amount.');
+    if(data.processing.some(Array.isArray)) sourceNotes.push('Payment fees reflect the inputs saved with this report.');
     const lines = [['Net sales',sales.net],['Inventory COGS estimate',cogs],['Gross profit',rounded(sales.net-cogs)],
       ...costs.map((label,i)=>[label,data.costs[i]]),['Delivery partner fees',deliveryFees],['Payment processing fees',payFees],
       ['Total operating expenses',expenses],['Operating profit',profit]];
@@ -376,7 +419,7 @@
       '</section><section><h2>Order type</h2>'+chart([['Dine In',order['dine in']??null],['Pickup',order['pick up']??order.pickup??null],['Drive Thru',order['drive thru']??null],['All Aggregators',netPartner]])+
       '<p class="pnl-caption">Aggregator figures may overlap with Foodics order types.</p></section></div>'+footer+'</section>'+
       '<section class="pnl-sheet">'+head('Sales and purchasing')+'<h2>Delivery partner charges</h2>'+
-      table(['Partner','Gross','Discount','Refund','Rate','Fee'],delivery.map(r=>[r.name,amount(r.gross),amount(r.discount),amount(r.refund),r.rate+'%',amount(r.fee)]).concat([['Total',amount(sum(delivery.map(r=>r.gross))),amount(sum(delivery.map(r=>r.discount))),amount(sum(delivery.map(r=>r.refund))),'',amount(deliveryFees)]]))+
+      table(['Partner','Gross','Discount','Refund','Rate','Fee'],delivery.map(r=>[r.name,amount(r.gross),amount(r.discount),amount(r.refund),r.rate==null?'N/A':r.rate+'%',amount(r.fee)]).concat([['Total',amount(sum(delivery.map(r=>r.gross))),amount(sum(delivery.map(r=>r.discount))),amount(sum(delivery.map(r=>r.refund))),'',amount(deliveryFees)]]))+
       '<h2>Period comparison</h2>'+table(['Metric','Current','Previous','Change'],comparison)+
       '<h2>Purchases by supplier</h2>'+supplierSection+footer+'</section>'+
       '<section class="pnl-sheet">'+head('Operating statement')+table(['Line item','AED','% of net sales'],lines.map(([label,n])=>[label,amount(n),margin(n,sales.net)]))+
@@ -398,7 +441,9 @@
   }
   function reset() {
     form.reset();
+    feeMode.clear();
     imports={};
+    syncFees();
     showFeeBases();
     useLabels(defaults);
     editing=null;
@@ -427,8 +472,26 @@
     useLabels(data.labels);
     showFeeBases();
     for(const [key,file] of Object.entries(imports)) $('file-'+key).textContent=file.name+' (saved)';
-    data.delivery.forEach((values,i)=>values.forEach((v,j)=>{field('partner'+i+'_'+j).value=v;}));
-    data.processing.forEach((value,i)=>{field('processor'+i).value=(data.version===1?value[1]:value)??'';});
+    function restore(row,entry,fee){
+      if(Array.isArray(entry)){
+        feeMode.set(row.rate,entry);
+        field(row.rate).removeAttribute('max');
+        field(row.rate).value=fee.rate??'';
+        field(row.charge).value=fee.fee;
+      } else if(entry.charge!=null){
+        feeMode.set(row.rate,'charge');
+        field(row.charge).value=entry.charge;
+      } else field(row.rate).value=entry.rate;
+    }
+    const saved=metrics(data);
+    data.delivery.forEach(([gross,discount,refund,entry],i)=>{
+      [gross,discount,refund].forEach((value,j)=>{field('partner'+i+'_'+j).value=value;});
+      restore(feeRows[i],data.version===3?entry:{rate:entry},saved.delivery[i]);
+    });
+    data.processing.forEach((entry,i)=>{
+      restore(feeRows[partners.length+i],data.version===2?{rate:entry}:entry,saved.fees[i]);
+    });
+    syncFees();
     data.costs.forEach((v,i)=>{field('cost'+i).value=v;});
     field('suggestions').value=data.suggestions;
     field('manager').value=data.manager;
