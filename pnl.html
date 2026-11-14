@@ -12,7 +12,7 @@
   <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
   <script src="config.js"></script>
   <script src="portal-ui.js?v=51.0"></script>
-  <script defer src="pnl.js?v=4"></script>
+  <script defer src="pnl.js?v=5"></script>
 </head>
 <body data-page="admin">
   <header class="topbar"><h2>GOYA · P&amp;L</h2><a class="btn secondary right" href="admin.html">Back to Admin</a></header>
@@ -32,6 +32,7 @@
           <div class="form-grid">
             <label class="field">Branch name<input name="branch" maxlength="60" required></label>
             <label class="field">Location<input name="location" maxlength="60" required></label>
+            <label class="field">Prepared by<input name="manager" value="Md mehedi hasan, Cafe Manager" maxlength="100" required></label>
             <label class="field">Signature image<input id="signature-file" type="file" accept="image/png,image/jpeg,image/webp"></label>
           </div>
           <img id="signature-preview" class="pnl-signature" alt="Manager signature preview" hidden>
@@ -57,7 +58,6 @@
         <section class="card">
           <h2>Operating expenses</h2><div id="expenses" class="form-grid"></div>
           <label class="field">Manager suggestions<textarea name="suggestions" maxlength="550" rows="3"></textarea></label>
-          <label class="field">Prepared by<input name="manager" value="Md mehedi hasan, Cafe Manager" maxlength="100" required></label>
         </section>
         <div class="pnl-actions">
           <button type="submit" class="btn accent">Generate preview</button>
