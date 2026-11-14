@@ -12,7 +12,7 @@
   <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
   <script src="config.js"></script>
   <script src="portal-ui.js?v=51.0"></script>
-  <script defer src="pnl.js?v=3"></script>
+  <script defer src="pnl.js?v=4"></script>
 </head>
 <body data-page="admin">
   <header class="topbar"><h2>GOYA · P&amp;L</h2><a class="btn secondary right" href="admin.html">Back to Admin</a></header>
@@ -66,7 +66,13 @@
           <button type="button" id="new-report" class="btn secondary">New report</button>
         </div>
       </form>
-      <section id="history" class="card"><h2>Report history</h2><div id="reports"></div></section>
+      <section id="history" class="card">
+        <h2>Report history</h2>
+        <div class="form-grid">
+          <label class="field">Report month<select id="history-month"><option value="">All months</option></select></label>
+        </div>
+        <div id="reports" aria-live="polite"></div>
+      </section>
     </div>
     <article id="preview" hidden></article>
   </main>
