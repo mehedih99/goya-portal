@@ -28,6 +28,7 @@
   const settingsKey='goya-pnl-settings-v1';
   const clean=v=>({branch:String(v?.branch||'GOYA').trim().slice(0,60)||'GOYA',
     location:String(v?.location||'Jarir Bookstore').trim().slice(0,60)||'Jarir Bookstore',
+    manager:String(v?.manager??'Md mehedi hasan, Cafe Manager').trim().slice(0,100)||'Md mehedi hasan, Cafe Manager',
     signature:typeof v?.signature==='string'&&v.signature.length<=48000&&/^data:image\/png;base64,[A-Za-z0-9+/]+=*$/.test(v.signature)?v.signature:''});
   let defaults=clean(), reportLabels, signatureDraft='';
   try {defaults=clean(JSON.parse(localStorage.getItem(settingsKey)));} catch {}
@@ -41,6 +42,7 @@
     reportLabels=clean(value);
     settings.elements.branch.value=reportLabels.branch;
     settings.elements.location.value=reportLabels.location;
+    settings.elements.manager.value=reportLabels.manager;
     $('report-location').textContent=reportLabels.branch+' / '+reportLabels.location+' · AED';
     signatureDraft=reportLabels.signature;
     $('signature-file').value='';
@@ -71,12 +73,12 @@
   settings.onsubmit=e=>{
     e.preventDefault();
     if(busy) return;
-    const next=clean({branch:settings.elements.branch.value,location:settings.elements.location.value,signature:signatureDraft});
+    const next=clean({branch:settings.elements.branch.value,location:settings.elements.location.value,signature:signatureDraft,manager:settings.elements.manager.value});
     try {
       localStorage.setItem(settingsKey,JSON.stringify(next));
       defaults=next;
       useLabels(next);
-      if(current){current={...current,labels:next};render(current);}
+      if(current){current={...current,labels:next,manager:next.manager};render(current);}
       status('Settings saved.');
     } catch(error){status('Could not save settings. '+error.message);}
   };
@@ -317,7 +319,7 @@
     return {version:3,start,end,period,labels:reportLabels,imports:structuredClone(imports),
       delivery:partners.map((_,i)=>[...[0,1,2].map(j=>getValue('partner'+i+'_'+j)),readFee(feeRows[i])]),
       processing:processors.map((_,i)=>readFee(feeRows[partners.length+i])),
-      costs:costs.map((_,i)=>getValue('cost'+i)),manager:val('manager').trim(),suggestions:val('suggestions').trim()};
+      costs:costs.map((_,i)=>getValue('cost'+i)),manager:reportLabels.manager,suggestions:val('suggestions').trim()};
   }
   function chart(rows) {
     const max=Math.max(1,...rows.map(([,v])=>Math.abs(v??0)));
@@ -469,7 +471,7 @@
     field('period').value=data.period||(row.start_date.endsWith('-01')&&isMonthEnd(row.end_date)?'month':'custom');
     field('month').value=row.start_date.slice(0,7);
     lockPeriod();
-    useLabels(data.labels);
+    useLabels({...data.labels,manager:data.manager});
     showFeeBases();
     for(const [key,file] of Object.entries(imports)) $('file-'+key).textContent=file.name+' (saved)';
     function restore(row,entry,fee){
@@ -494,7 +496,6 @@
     syncFees();
     data.costs.forEach((v,i)=>{field('cost'+i).value=v;});
     field('suggestions').value=data.suggestions;
-    field('manager').value=data.manager;
     current=data;
     render(current);
     form.scrollIntoView();
