@@ -4,7 +4,7 @@ const env = (name: string) => Deno.env.get(name) ?? "";
 const db = createClient(env("SUPABASE_URL"), env("SUPABASE_SERVICE_ROLE_KEY"), {
   auth: { persistSession: false },
 });
-const origin = env("GOYA_PORTAL_ORIGIN");
+const origin = env("GOYA_PORTAL_ORIGIN") || "https://mehedih99.github.io";
 const maxFile = 5_000_000;
 const driveApi = "https://www.googleapis.com/drive/v3";
 const folderType = "application/vnd.google-apps.folder";
@@ -127,7 +127,8 @@ async function notify(record: Record<string, string>, staffName: string) {
   const to = annual ? [recipients.owner_email, recipients.hr_email] : [manager];
   const dateRange = record.requested_from + " to " + record.requested_to;
   const message = staffName + " submitted " + record.kind + " for " + dateRange +
-    ".\nReview the request in GOYA Attendance Admin: " + env("GOYA_LEAVE_ADMIN_URL") +
+    ".\nReview the request in GOYA Attendance Admin: " +
+    (env("GOYA_LEAVE_ADMIN_URL") || "https://mehedih99.github.io/goya-portal/attendance.html") +
     "\nRequest ID: " + record.id;
   const result = await fetch("https://api.resend.com/emails", {
     method: "POST",
