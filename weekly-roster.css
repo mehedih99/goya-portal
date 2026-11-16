@@ -10,4 +10,31 @@
 .roster-days{display:grid;grid-template-columns:repeat(auto-fit,minmax(145px,1fr));gap:.7rem}
 .roster-days .card{margin:0}
 .roster-note{white-space:pre-wrap}
-#roster-tomorrow{margin-bottom:1rem}
+.roster-attendance-updates:has(.roster-attendance-update:not([hidden])) {
+  display:grid;gap:.45rem;margin-top:.9rem;
+}
+.roster-attendance-update {
+  display:flex;align-items:center;gap:.65rem;margin:0;padding:.55rem .7rem;
+  border:1px solid var(--line);border-radius:.7rem;background:var(--accent2);color:var(--ink);
+  font-size:.83rem;line-height:1.4;overflow-wrap:anywhere;
+}
+.roster-attendance-update[hidden] {display:none}
+.roster-attendance-update small {display:block;color:var(--muted);font-size:.75rem}
+.roster-update-icon {
+  display:grid;place-items:center;flex:0 0 1.8rem;height:1.8rem;
+  border-radius:.45rem;background:var(--card);font-size:.9rem;
+}
+.roster-filters {
+  display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:.85rem;
+  padding:.85rem;background:var(--bg);border:1px solid var(--line);border-radius:.9rem;
+}
+.roster-filters label {display:grid;gap:.4rem;min-width:0;color:var(--muted);font-size:.83rem;font-weight:600}
+.roster-filters label > span > span {margin-right:.2rem}
+.roster-filters :is(input,select) {
+  box-sizing:border-box;width:100%;min-width:0;min-height:2.8rem;
+  border:1px solid var(--line);border-radius:.65rem;padding:.55rem .65rem;
+  background:var(--card);color:var(--ink);font:inherit;font-size:.92rem;
+}
+.roster-filters :is(input,select):focus-visible {outline:2px solid var(--accent);outline-offset:2px}
+[data-theme="dark"] .roster-filters {color-scheme:dark}
+@media(max-width:600px) {.roster-filters {grid-template-columns:1fr}}

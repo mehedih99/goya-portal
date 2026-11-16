@@ -210,6 +210,12 @@
       setTimeout(()=>URL.revokeObjectURL(url),1000);
     });
   }
+  function setAttendanceUpdate(id, message = '') {
+    const row = $(id);
+    if (!row) return;
+    row.querySelector('.roster-update-message').textContent = message;
+    row.hidden = !message;
+  }
   async function loadStaff(week, reminderOnly=false) {
     if(!reminderOnly) {
       $('roster-days').replaceChildren();
@@ -226,12 +232,13 @@
         const tomorrow=add(dubaiDate(),1);
         if(monday(tomorrow)!==week) return;
         const day=result.week?.days?.[(new Date(tomorrow+'T00:00:00Z').getUTCDay()+6)%7];
-        $('roster-tomorrow').textContent=day?'Hi '+(context()?.user?.name || 'there')+', tomorrow: '+describe(day):'';
-        $('roster-tomorrow').hidden=!day;
-        const latest=result.latest_publication, alert=$('roster-publication-alert');
-        if(alert && latest && Date.now()-Date.parse(latest.published_at)<7*86400000) {
-          alert.textContent='New schedule published · '+weekLabel(latest.week);
-          alert.hidden=false;
+        const name=context()?.user?.name;
+        const message=day?.kind==='Weekly Off' ? (name ? name+', your weekly off is tomorrow.' : 'Your weekly off is tomorrow.')
+          : day ? 'Tomorrow · '+describe(day) : '';
+        setAttendanceUpdate('roster-tomorrow',message);
+        const latest=result.latest_publication;
+        if(latest && Date.now()-Date.parse(latest.published_at)<7*86400000) {
+          setAttendanceUpdate('roster-publication-alert',weekLabel(latest.week));
         }
         return;
       }
@@ -285,16 +292,16 @@
     clearReminder:()=>{
       if(!admin){
         request++;reminderRequest++;staffWeeks=[];
-        $('roster-tomorrow').hidden=true;$('roster-tomorrow').textContent='';
-        if($('roster-publication-alert')) $('roster-publication-alert').hidden=true;
+        setAttendanceUpdate('roster-tomorrow');
+        setAttendanceUpdate('roster-publication-alert');
         $('roster-days').replaceChildren();$('roster-staff-week').replaceChildren();
         $('roster-week-note').textContent='';$('roster-next').textContent='';
       }
     },
     reminder:()=>{
       if(admin) return;
-      $('roster-tomorrow').hidden=true;
-      if($('roster-publication-alert')) $('roster-publication-alert').hidden=true;
+      setAttendanceUpdate('roster-tomorrow');
+      setAttendanceUpdate('roster-publication-alert');
       return loadStaff(monday(add(dubaiDate(),1)),true);
     }
   };

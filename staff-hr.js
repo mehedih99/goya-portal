@@ -389,34 +389,58 @@
     const parts = units.filter(([count])=>count).map(([count,unit])=>count+' '+unit+(count===1?'':'s'));
     return parts.length ? new Intl.ListFormat('en',{type:'conjunction'}).format(parts) : '0 days';
   }
+  const journeyDateFormat = new Intl.DateTimeFormat('en-GB',{day:'numeric',month:'short',year:'numeric',timeZone:'UTC'});
+  const journeyDate = value => new Date(value + 'T00:00:00Z');
+  const journeyIcon = icon => '<span class="hr-journey-icon" aria-hidden="true">' + icon + '</span>';
+  const journeyRange = (from,to) => journeyDateFormat.formatRange(journeyDate(from),journeyDate(to));
+  const leaveBadge = status => '<span class="hr-leave-badge" data-status="' + escaped(status) + '">' + escaped(status) + '</span>';
+  function leaveCard(request, today, action = '') {
+    const from = request.approved_from || request.requested_from;
+    const to = request.approved_to || request.requested_to;
+    const monthOnly = request.state === 'Recorded' && ['Cancelled Off','Attendance Note'].includes(request.kind);
+    const when = monthOnly ? period(request) : journeyRange(from,to);
+    return '<article class="hr-leave-card">' + journeyIcon(request.kind === 'Annual Leave' ? '🌴' : '📋') +
+      '<div class="hr-leave-card-body"><strong>' + escaped(request.kind) + '</strong><p class="hr-leave-dates">' +
+      escaped(when) + '</p>' +
+      (request.payroll ? '<p class="hr-leave-dates">' + escaped(request.payroll) + '</p>' : '') +
+      (request.review_note ? '<p class="hr-leave-note">' + escaped(request.review_note) + '</p>' : '') + action +
+      '</div>' + leaveBadge(leaveStatus(request,today)) + '</article>';
+  }
   function journeyMarkup(data) {
     const profile = data.profile || {};
     const today = date(), joined = profile.joining_date;
     const name = context()?.user?.name;
-    const details = [['Joining date',joined || 'N/A'],['Employee ID',profile.employee_code],
-      ['Position',profile.position],['Branch',profile.branch]];
-    let markup = '<div class="hr-service">';
+    const details = [
+      ['📅','Joining date',joined && journeyDateFormat.format(journeyDate(joined))],
+      ['🪪','Employee ID',profile.employee_code],
+      ['💼','Position',profile.position],
+      ['📍','Branch',profile.branch],
+    ];
+    let markup = '<div class="hr-service">' + journeyIcon('✦') + '<div>';
     if (joined && joined <= today) {
       markup += '<p>Congratulations' + (name ? ', ' + escaped(name) : '') +
         '! You’ve been part of GOYA for <strong>' + serviceLength(joined,today) + '</strong></p>';
     } else {
       markup += '<span class="small">Time at GOYA</span><strong>' + (joined ? 'Upcoming' : 'N/A') + '</strong>';
     }
-    markup += '</div><dl class="hr-journey-details">' + details.map(([label,value]) =>
-      '<div><dt>' + label + '</dt><dd>' + escaped(value || 'N/A') + '</dd></div>').join('') + '</dl>';
-    if (data.archived_pending_off) markup += '<p>Pending PH/PO in the Excel archive · ' +
-      escaped(data.archived_pending_off.value) + ' (week of ' + escaped(data.archived_pending_off.week) + ')</p>';
+    markup += '</div></div><dl class="hr-journey-details">' + details.map(([icon,label,value]) =>
+      '<div><dt>' + journeyIcon(icon) + label + '</dt><dd>' + escaped(value || 'N/A') + '</dd></div>').join('') + '</dl>';
+    const pending = data.archived_pending_off;
+    markup += '<div class="hr-pending-off">' + journeyIcon('🗓️') +
+      '<div><h3>Pending Day Off</h3><p>PH/PO' +
+      (pending?.week ? ' · As of ' + escaped(journeyDateFormat.format(journeyDate(pending.week))) : '') +
+      '</p></div><strong>' + escaped(pending?.value ?? 'N/A') + '</strong></div>';
     const annual = data.requests.filter(item => item.kind === 'Annual Leave' && item.state === 'Approved');
     if (annual.length) {
-      markup += '<h3>Annual leave history</h3>' + annual.map(item => '<p><strong>' +
-        escaped(period(item) + ' · ' + leaveStatus(item,today)) + '</strong>' +
-        (item.review_note ? '<br>' + escaped(item.review_note) : '') + '</p>').join('');
+      markup += '<h3 class="hr-journey-heading">Annual leave history</h3><div class="hr-leave-list">' +
+        annual.map(item => leaveCard(item,today)).join('') + '</div>';
     }
     if (!profile.joining_date) return markup;
     const thisYear = Number(today.slice(0,4));
     const current = anniversary(profile.joining_date,thisYear);
     const startYear = current > today ? thisYear - 1 : thisYear;
-    markup += '<h3>Annual leave</h3><p>Annual entitlement · 1 month per completed service year</p>';
+    markup += '<h3 class="hr-journey-heading">Annual leave entitlement</h3>' +
+      '<p class="hr-entitlement-rule">1 month per completed service year</p><ul class="hr-entitlement-list">';
     for (let year = startYear; year >= Math.max(Number(profile.joining_date.slice(0,4)),startYear - 30); year--) {
       const start = anniversary(profile.joining_date,year), next = anniversary(profile.joining_date,year + 1);
       const used = annual.filter(item => item.approved_from < next && item.approved_to >= start);
@@ -425,16 +449,15 @@
         used.some(item => leaveStatus(item,today) === 'Done') ? 'Done' : used.length ? 'Approved' :
         archived.length ? 'Recorded in Excel (' + archived.length + ' dates)' :
         year === Number(profile.joining_date.slice(0,4)) ? 'First service year' : 'No approved leave recorded';
-      markup += '<p>' + start + ' to ' + next + ' (next anniversary) · ' + status + '</p>';
+      markup += '<li><span>' + escaped(journeyRange(start,next)) + '</span>' + leaveBadge(status) + '</li>';
     }
-    return markup;
+    return markup + '</ul>';
   }
   function showMyRequests(pane, items) {
-    content(pane).innerHTML = items.map((request,i) =>
-      '<article class="hr-entry"><strong>' + escaped(request.kind) + ' · ' + escaped(leaveStatus(request)) +
-      '</strong><p>' + escaped([period(request),request.payroll,request.review_note].filter(Boolean).join(' · ')) +
-      '</p>' + (request.state === 'Pending' ? '<button type="button" class="btn secondary" data-withdraw="' + i +
-        '">Withdraw</button>' : '') + '</article>').join('') || 'No requests yet.';
+    const today = date();
+    content(pane).innerHTML = items.length ? '<div class="hr-leave-list">' + items.map((request,i) =>
+      leaveCard(request,today,request.state === 'Pending' ? '<button type="button" class="btn secondary" data-withdraw="' + i +
+        '">Withdraw</button>' : '')).join('') + '</div>' : 'No requests yet.';
     content(pane).querySelectorAll('[data-withdraw]').forEach(button => {
       button.onclick = async () => {
         if (!confirm('Withdraw this leave request?')) return;
