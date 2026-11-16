@@ -1,7 +1,9 @@
 (() => {
   'use strict';
   const $ = id => document.getElementById(id);
-  const context = () => window.GoyaAdmin?._context() ?? window.GoyaAttendance?._liveContext() ?? window.GoyaStaff?._liveContext();
+  const context = () => document.body?.dataset.page === 'staff'
+    ? window.GoyaStaff?._liveContext()
+    : window.GoyaAttendance?._liveContext() ?? window.GoyaAdmin?._context();
   const config = () => window.GOYA_CONFIG;
   const escaped = value => String(value ?? '').replace(/[&<>"']/g, ch => ({
     '&':'&amp;', '<':'&lt;', '>':'&gt;', '"':'&quot;', "'":'&#39;'
@@ -12,6 +14,7 @@
   let requests = [];
   let requestGeneration = 0;
   let staffGeneration = 0;
+  let documentGeneration = 0;
   let submissionId;
   let archiveRows = [];
 
@@ -29,6 +32,14 @@
   const stateOf = member => member.profile?.last_day ? 'Resigned' : member.active ? 'Active' : 'Inactive';
   const values = form => Object.fromEntries(new FormData(form));
   const empty = (pane, message) => content(pane).textContent = message;
+  const documentCategories = [
+    ['emirates-id','🪪','Emirates ID'],
+    ['contract','📄','Employment Contract'],
+    ['food-safety','📋','Food Safety Certificate'],
+    ['health-card','➕','Health Card'],
+  ];
+  const documentTypes = ['application/pdf','image/jpeg','image/png'];
+  const uploadDate = new Intl.DateTimeFormat('en-AE',{timeZone:'Asia/Dubai',dateStyle:'medium',timeStyle:'short'});
   let emailSettingsRevision = null;
   let emailSettingsRequest = 0;
 
@@ -122,29 +133,19 @@
     node.showModal();
     return node;
   }
-  function profileEditor(member, refresh) {
-    const profile = member.profile || {};
-    const field = (key, label, type='text') => '<label>' + label + '<input name="' + key + '" type="' +
-      type + '" value="' + escaped(profile[key]) + '"></label>';
-    dialog(member.name, '<div class="hr-fields">' + field('employee_code','Employee ID') +
-      field('position','Position') + field('branch','Branch') + field('joining_date','Joining date','date') +
-      field('last_day','Last working day','date') + '</div>' +
-      '<label>Private manager notes<textarea name="manager_notes" maxlength="4000">' +
-      escaped(profile.manager_notes) + '</textarea></label>', async input => {
-      if (input.last_day && input.last_day !== profile.last_day &&
-          !confirm('Record resignation and deactivate portal access for ' + member.name + '?')) return;
-      await rpc('goya_hr_save_profile', {p_staff:member.id,p_profile:input});
-      await refresh();
-    });
-  }
   function resetStaff() {
     staffGeneration++;
+    documentGeneration++;
     submissionId = null;
     const form = $('hr-leave-form');
     if (!form) return;
     form.reset();
     renderStatus(form,'');
     for (const name of ['journey','leave','staff-archive']) empty($('hr-' + name),'');
+    $('hr-request-status')?.replaceChildren();
+    const documents = $('hr-journey').querySelector('[data-hr-documents]');
+    documents?.querySelector('.hr-document-list').replaceChildren();
+    documents?.querySelector('[role=status]').replaceChildren();
     $('hr-staff-archive-month').value = '';
     $('hr-staff-archive').open = false;
   }
@@ -170,14 +171,16 @@
         member.profile?.last_day && 'Last day ' + member.profile.last_day].filter(Boolean).map(escaped).join(' · ') +
       '</p>' + (member.history || []).map(item => '<p class="small muted">' + escaped(item.event) + ' · ' +
         escaped(item.details.rejoined_on || item.details.last_day) + '</p>').join('') +
-      '<button type="button" class="btn secondary" data-edit="' + i + '">Edit profile</button> ' +
-      (member.profile?.last_day ? '<button type="button" class="btn secondary" data-rejoin="' + i + '">Rejoin</button>' : '') +
+      (member.profile?.manager_notes ? '<p><strong>Private manager notes</strong><br>' + escaped(member.profile.manager_notes) + '</p>' : '') +
+      '<details class="hr-document-history" data-staff-documents="' + i + '"><summary>📎 Document history</summary>' +
+      '<p class="small" role="status"></p><div class="hr-document-list"></div></details>' +
       '</article>').join('');
     if (!items.length) empty(pane,'No staff match this filter.');
-    content(pane).querySelectorAll('[data-edit]').forEach(button =>
-      button.onclick = () => profileEditor(items[button.dataset.edit], openRecords));
-    content(pane).querySelectorAll('[data-rejoin]').forEach(button =>
-      button.onclick = () => rejoinEditor(items[button.dataset.rejoin], openRecords));
+    content(pane).querySelectorAll('[data-staff-documents]').forEach(details => {
+      details.ontoggle = () => {
+        if (details.open) void loadDocuments(details, items[details.dataset.staffDocuments].id);
+      };
+    });
   }
   async function openRecords() {
     const pane = $('hr-records');
@@ -235,7 +238,8 @@
       escaped(request.reason) + '</p>' +
       (/^[\w-]+$/.test(request.drive_file_id || '') ? '<p><a target="_blank" rel="noopener noreferrer" href="https://drive.google.com/open?id=' +
         request.drive_file_id + '">📎 Open private Drive document</a></p>' : '') +
-      '<button type="button" class="btn secondary" data-review="' + i + '">Review request</button></article>').join('');
+      (request.state === 'Withdrawn' ? '' : '<button type="button" class="btn secondary" data-review="' + i + '">Review request</button>') +
+      '</article>').join('');
     if (!items.length) empty(pane,'No requests match this filter.');
     content(pane).querySelectorAll('[data-review]').forEach(button =>
       button.onclick = () => review(items[button.dataset.review]));
@@ -359,15 +363,42 @@
     return year + '-' + String(month).padStart(2,'0') + '-' +
       String(Math.min(day,new Date(Date.UTC(year,month,0)).getUTCDate())).padStart(2,'0');
   }
+  function serviceLength(joined, today) {
+    const [year,month,day] = joined.split('-').map(Number);
+    const [currentYear,currentMonth] = today.split('-').map(Number);
+    const addMonths = count => {
+      const target = new Date(Date.UTC(year,month - 1 + count,1));
+      const days = new Date(Date.UTC(target.getUTCFullYear(),target.getUTCMonth() + 1,0)).getUTCDate();
+      target.setUTCDate(Math.min(day,days));
+      return target;
+    };
+    const end = new Date(today);
+    let months = (currentYear-year)*12+currentMonth-month;
+    if (addMonths(months)>end) months--;
+    const days = Math.round((end-addMonths(months))/86400000);
+    const units = [[Math.floor(months/12),'year'],[months%12,'month'],[days,'day']];
+    const parts = units.filter(([count])=>count).map(([count,unit])=>count+' '+unit+(count===1?'':'s'));
+    return parts.length ? new Intl.ListFormat('en',{type:'conjunction'}).format(parts) : '0 days';
+  }
   function journeyMarkup(data) {
     const profile = data.profile || {};
-    const details = [['Joining date',profile.joining_date],['Employee ID',profile.employee_code],
+    const today = date(), joined = profile.joining_date;
+    const name = context()?.user?.name;
+    const details = [['Joining date',joined || 'N/A'],['Employee ID',profile.employee_code],
       ['Position',profile.position],['Branch',profile.branch]];
-    let markup = '<dl>' + details.map(([label,value]) => '<dt>' + label + '</dt><dd>' + escaped(value || '—') + '</dd>').join('') + '</dl>';
+    let markup = '<div class="hr-service">';
+    if (joined && joined <= today) {
+      markup += '<p>Congratulations' + (name ? ', ' + escaped(name) : '') +
+        '! You’ve been part of GOYA for <strong>' + serviceLength(joined,today) + '</strong></p>';
+    } else {
+      markup += '<span class="small">Time at GOYA</span><strong>' + (joined ? 'Upcoming' : 'N/A') + '</strong>';
+    }
+    markup += '</div><dl class="hr-journey-details">' + details.map(([label,value]) =>
+      '<div><dt>' + label + '</dt><dd>' + escaped(value || 'N/A') + '</dd></div>').join('') + '</dl>';
     if (data.archived_pending_off) markup += '<p>Pending PH/PO in the Excel archive · ' +
       escaped(data.archived_pending_off.value) + ' (week of ' + escaped(data.archived_pending_off.week) + ')</p>';
     if (!profile.joining_date) return markup;
-    const today = date(), thisYear = Number(today.slice(0,4));
+    const thisYear = Number(today.slice(0,4));
     const current = anniversary(profile.joining_date,thisYear);
     const startYear = current > today ? thisYear - 1 : thisYear;
     const annual = data.requests.filter(item => item.kind === 'Annual Leave' && item.state === 'Approved');
@@ -383,6 +414,31 @@
     }
     return markup;
   }
+  function showMyRequests(pane, items) {
+    content(pane).innerHTML = items.map((request,i) =>
+      '<article class="hr-entry"><strong>' + escaped(request.kind) + ' · ' + escaped(request.state) +
+      '</strong><p>' + escaped([period(request),request.payroll,request.review_note].filter(Boolean).join(' · ')) +
+      '</p>' + (request.state === 'Pending' ? '<button type="button" class="btn secondary" data-withdraw="' + i +
+        '">Withdraw</button>' : '') + '</article>').join('') || 'No requests yet.';
+    content(pane).querySelectorAll('[data-withdraw]').forEach(button => {
+      button.onclick = async () => {
+        if (!confirm('Withdraw this leave request?')) return;
+        const status = $('hr-request-status'), token = context()?.token, generation = staffGeneration;
+        button.disabled = true;
+        if (status) status.textContent = 'Withdrawing…';
+        try {
+          await rpc('goya_hr_withdraw_request',{p_id:items[button.dataset.withdraw].id});
+          if (generation !== staffGeneration) return;
+          await openStaffTab('leave');
+          if (status && context()?.token === token) status.textContent = 'Request withdrawn.';
+        } catch (error) {
+          if (generation !== staffGeneration) return;
+          await openStaffTab('leave');
+          if (status && context()?.token === token) status.textContent = error.message;
+        }
+      };
+    });
+  }
   async function openStaffTab(name) {
     const generation = ++staffGeneration;
     for (const id of ['schedule','journey','leave']) $('hr-' + id).hidden = name !== id;
@@ -391,14 +447,150 @@
     if (name === 'schedule') return;
     const pane = $('hr-' + name);
     empty(pane,'Loading…');
+    if (name === 'journey') {
+      const documents = pane.querySelector('[data-hr-documents]');
+      if (documents) void loadDocuments(documents);
+    } else {
+      $('hr-request-status')?.replaceChildren();
+    }
     try {
       const data = await rpc('goya_hr_my_journey');
       if (generation !== staffGeneration) return;
-      content(pane).innerHTML = name === 'journey' ? journeyMarkup(data) : data.requests.map(request =>
-        '<article class="hr-entry"><strong>' + escaped(request.kind) + ' · ' + escaped(request.state) +
-        '</strong><p>' + escaped([period(request),request.payroll,request.review_note].filter(Boolean).join(' · ')) +
-        '</p></article>').join('') || 'No requests yet.';
+      if (name === 'journey') content(pane).innerHTML = journeyMarkup(data);
+      else showMyRequests(pane,data.requests);
     } catch (error) { if (generation === staffGeneration) empty(pane,error.message); }
+  }
+  async function documentRequest(token, body, json = false) {
+    const headers = {'x-goya-session':token};
+    if (json) headers['Content-Type'] = 'application/json';
+    const response = await fetch(config().SUPABASE_URL + '/functions/v1/staff-documents',{
+      method:'POST',headers,body:json ? JSON.stringify(body) : body,cache:'no-store',
+    });
+    if (!response.ok) {
+      const result = await response.json().catch(()=>null);
+      throw Error(result?.error || 'Unable to access this document.');
+    }
+    return response;
+  }
+  async function openDocument(row, staff, downloadFile, status, current) {
+    const token = context()?.token;
+    if (!token) return;
+    const preview = downloadFile ? null : window.open('about:blank','_blank');
+    if (!downloadFile && !preview) {
+      status.textContent = 'Allow pop-ups to view the document.';
+      return;
+    }
+    if (preview) {
+      preview.opener = null;
+      preview.document.body.textContent = 'Loading document…';
+    }
+    status.textContent = 'Opening document…';
+    try {
+      const result = await documentRequest(token,{id:row.id,staff},true);
+      const blob = await result.blob();
+      if (!current()) { preview?.close(); return; }
+      const url = URL.createObjectURL(blob);
+      setTimeout(()=>URL.revokeObjectURL(url),120000);
+      if (preview) preview.location.replace(url);
+      else {
+        const link = document.createElement('a');
+        link.href = url;
+        link.download = row.file_name;
+        document.body.append(link);
+        link.click();
+        link.remove();
+      }
+      status.textContent = '';
+    } catch (error) {
+      preview?.close();
+      if (current()) status.textContent = error.message;
+    }
+  }
+  function bindDocumentUpload(pane, card, category, status, current) {
+    const input = card.querySelector('input[type=file]');
+    const action = card.querySelector('[data-document-upload]');
+    let uploadId, selected;
+    action.onclick = () => {
+      if (selected) void sendFile();
+      else input.click();
+    };
+    input.onchange = () => {
+      if (!input.files[0]) return;
+      selected = input.files[0];
+      uploadId = crypto.randomUUID();
+      input.value = '';
+      void sendFile();
+    };
+    async function sendFile() {
+      if (!current() || action.disabled) return;
+      if (!documentTypes.includes(selected.type) || !selected.size || selected.size > 5000000) {
+        selected = null;
+        status.textContent = 'Choose a PDF, JPG or PNG up to 5 MB.';
+        return;
+      }
+      action.disabled = true;
+      status.textContent = 'Uploading to Google Drive…';
+      const body = new FormData();
+      body.set('id',uploadId);
+      body.set('category',category);
+      body.set('file',selected);
+      try {
+        await documentRequest(context()?.token,body);
+        if (!current()) return;
+        await loadDocuments(pane);
+        if (current()) status.textContent = 'Document uploaded.';
+      } catch (error) {
+        if (!current()) return;
+        action.textContent = 'Retry upload';
+        const reset = card.querySelector('[data-document-reset]');
+        reset.hidden = false;
+        reset.onclick = () => { selected = null; input.click(); };
+        status.textContent = error.message;
+      } finally {
+        action.disabled = false;
+      }
+    }
+  }
+  async function loadDocuments(pane, staff = null) {
+    const token = context()?.token, generation = documentGeneration;
+    const current = () => pane.isConnected && token === context()?.token && (staff || generation === documentGeneration);
+    const status = pane.querySelector('[role=status]'), list = pane.querySelector('.hr-document-list');
+    status.textContent = 'Loading documents…';
+    try {
+      const rows = await rpc('goya_hr_documents',{p_staff:staff});
+      if (!current()) return;
+      list.innerHTML = documentCategories.map(([category,icon,title]) => {
+        const versions = rows.filter(item=>item.category===category);
+        if (staff && !versions.length) return '';
+        const menu = !staff && versions.length ? '<details class="hr-document-menu"><summary aria-label="More options for ' +
+          title + '">⋯</summary><div><button type="button" class="btn secondary" data-document-upload>Replace</button>' +
+          '<button type="button" class="btn secondary" data-file-mode="download" data-file-id="' + escaped(versions[0].id) +
+          '">Download</button><button type="button" class="btn secondary" hidden data-document-reset>Choose another file</button></div></details>' : '';
+        return '<article class="hr-document-card" data-document-category="' + category + '"><h3><span aria-hidden="true">' +
+          icon + '</span> ' + title + '</h3>' + (versions.length ? versions.map(item => {
+          const id = escaped(item.id);
+          return '<div class="hr-document-version"><div><strong>' + escaped(item.file_name) + '</strong><small>' +
+            (staff ? (item.version_rank === 1 ? 'Current · ' : 'Previous · ') : '') +
+            escaped(uploadDate.format(new Date(item.uploaded_at))) + '</small></div><div class="hr-document-actions">' +
+            '<button type="button" class="btn secondary" data-file-mode="view" data-file-id="' + id + '">View</button>' +
+            (staff ? '<button type="button" class="btn secondary" data-file-mode="download" data-file-id="' + id +
+              '">Download</button>' : menu) + '</div></div>';
+        }).join('') : '<p class="small muted">No file uploaded</p><div class="hr-document-actions">' +
+          '<button type="button" class="btn secondary" data-document-upload>Upload</button>' +
+          '<button type="button" class="btn secondary" hidden data-document-reset>Choose another file</button></div>') +
+          (staff ? '' : '<input hidden type="file" accept="' + documentTypes.join(',') + '" aria-label="Choose ' + title + ' file">') +
+          '</article>';
+      }).join('') || '<p class="small muted">No documents uploaded.</p>';
+      list.querySelectorAll('[data-file-mode]').forEach(button => {
+        const row = rows.find(item=>item.id===button.dataset.fileId);
+        button.onclick = () => void openDocument(row,staff,button.dataset.fileMode==='download',status,current);
+      });
+      if (!staff) list.querySelectorAll('[data-document-category]').forEach(card =>
+        bindDocumentUpload(pane,card,card.dataset.documentCategory,status,current));
+      status.textContent = '';
+    } catch (error) {
+      if (current()) status.textContent = error.message;
+    }
   }
   async function submitLeave(event) {
     event.preventDefault();
@@ -455,29 +647,8 @@
       $('hr-leave-form').oninput = () => { submissionId = null; };
       $('hr-staff-archive-month').onchange = () => showArchive(false);
     }
-    if ($('adminStaff')) {
-      const button = document.createElement('button');
-      button.type = 'button';
-      button.className = 'btn secondary';
-      button.textContent = '👤 Employment profiles';
-      button.onclick = async () => {
-        button.disabled = true;
-        try {
-          const staff = await rpc('goya_hr_admin_profiles');
-          const list = '<label>Staff member<select name="id" required>' +
-            staff.map(member => '<option value="' + escaped(member.id) + '">' + escaped(member.name) + ' · ' +
-              stateOf(member) + '</option>').join('') + '</select></label>';
-          dialog('Employment profiles',list, input => {
-            const member = staff.find(entry => entry.id === input.id);
-            if (member) setTimeout(() => profileEditor(member,() => window.GoyaAdmin.refreshStaff()),0);
-          });
-        } catch (error) { alert(error.message); }
-        finally { button.disabled = false; }
-      };
-      $('adminStaff').querySelector('.page-head').append(button);
-    }
   }
-  window.GoyaHR = {openRecords,openRequests,openStaffTab,resetStaff,openEmailSettings};
+  window.GoyaHR = {openRecords,openRequests,openStaffTab,resetStaff,openEmailSettings,openRejoin:rejoinEditor};
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded',init,{once:true});
   else init();
 })();
