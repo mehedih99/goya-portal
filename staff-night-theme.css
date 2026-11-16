@@ -1,0 +1,141 @@
+html[data-theme="dark"] body[data-page="staff"] {
+  --bg: #0c1125;
+  --panel: #11182c;
+  --card: #11192d;
+  --ink: #f4f6ff;
+  --muted: #c5cce2;
+  --line: #adc2f240;
+  --soft: #52648f40;
+  --accent: #afc7ff;
+  --accent2: #4b67a83f;
+  --green: #3a528c;
+  --green2: #3a528c;
+  isolation: isolate;
+  background: linear-gradient(180deg, #04050a, #111834 56%, #153252 82%, #362839);
+}
+
+html[data-theme="dark"] body[data-page="staff"]::before {
+  position: fixed;
+  inset: 0;
+  z-index: -1;
+  pointer-events: none;
+  content: "";
+  background:
+    radial-gradient(circle at 10% 6%, #d7e3ffb0 0 1px, transparent 1.5px),
+    radial-gradient(circle at 29% 10%, #e5edff8c 0 .6px, transparent 1.1px),
+    radial-gradient(circle at 51% 4%, #d7e3ffb0 0 1px, transparent 1.5px),
+    radial-gradient(circle at 78% 8%, #e5edff8c 0 .8px, transparent 1.3px),
+    radial-gradient(circle at 92% 13%, #e5edff9c 0 1px, transparent 1.5px),
+    radial-gradient(circle at 61% 17%, #e5edff70 0 .6px, transparent 1.1px),
+    radial-gradient(circle at 19% 19%, #d7e3ff60 0 .7px, transparent 1.2px),
+    radial-gradient(circle at 39% 15%, #e5edff85 0 .6px, transparent 1.1px),
+    radial-gradient(circle at 87% 21%, #e5edff85 0 .6px, transparent 1.1px),
+    radial-gradient(ellipse 100% 36% at 51% 83%, #184e8270, transparent 82%),
+    linear-gradient(180deg, #040509 0%, #0a1027 24%, #151f45 50%, #123756 76%, #39304b 100%);
+}
+
+html[data-theme="dark"] body[data-page="staff"] :is(.main, .login-shell) {
+  background: transparent;
+}
+
+html[data-theme="dark"] body[data-page="staff"] .topbar {
+  background: linear-gradient(120deg, #10172edb, #111831f2);
+  border-bottom-color: var(--line);
+  -webkit-backdrop-filter: blur(18px) saturate(135%);
+  backdrop-filter: blur(18px) saturate(135%);
+}
+
+html[data-theme="dark"] body[data-page="staff"] :is(.sidebar, .login-card) {
+  color: var(--ink);
+  background: linear-gradient(165deg, #263754db, #131d38ed 56%, #223557de);
+  border: 1px solid #cedbff57;
+  box-shadow: inset 0 1px #ffffff26, 0 20px 40px #050916a0;
+  -webkit-backdrop-filter: blur(18px) saturate(140%);
+  backdrop-filter: blur(18px) saturate(140%);
+}
+
+html[data-theme="dark"] body[data-page="staff"] :is(.sidebar .brand small, .login-card .build, .staff-login-status) {
+  color: var(--muted);
+}
+
+html[data-theme="dark"] body[data-page="staff"] .staff-login-error {
+  color: #ffc2bd;
+}
+
+html[data-theme="dark"] body[data-page="staff"] .nav button {
+  color: var(--ink);
+  border: 1px solid transparent;
+  border-radius: .78rem;
+}
+
+html[data-theme="dark"] body[data-page="staff"] .nav button.active {
+  color: #fff;
+  border-color: #bbd0ff80;
+  background: linear-gradient(105deg, #96b2ff46, #6c8ac948);
+  box-shadow: inset 2px 0 #b6ceff, 0 4px 16px #0a132951;
+}
+
+html[data-theme="dark"] body[data-page="staff"] :is(.mobile-menu, .btn.secondary) {
+  color: var(--ink);
+  border: 1px solid var(--line);
+  background: linear-gradient(140deg, #35456f85, #24314fbf);
+}
+
+html[data-theme="dark"] body[data-page="staff"] :is(.card, .dash-card, .live-app-card, .modal-card, .records-modal-card, .hr-dialog) {
+  color: var(--ink);
+  border-color: var(--line);
+  background: linear-gradient(150deg, #182239f5, #10182df5);
+}
+
+html[data-theme="dark"] body[data-page="staff"] #dashNotice {
+  background: linear-gradient(125deg, #202d4ef5, #1a2642f2);
+  border: 1px solid #a6baf154;
+  box-shadow: inset 0 1px #ffffff12, 0 10px 25px #0b081d60;
+}
+
+html[data-theme="dark"] body[data-page="staff"] #dashNotice :is(.dash-eyebrow, p, small) {
+  color: #d8e2f7;
+}
+
+html[data-theme="dark"] body[data-page="staff"] .dash-actions {
+  border-color: var(--line);
+}
+
+html[data-theme="dark"] body[data-page="staff"] .dash-actions .btn {
+  color: #fff;
+  background: linear-gradient(110deg, #38558b, #384779);
+  border: 1px solid #b5caff66;
+}
+
+html[data-theme="dark"] body[data-page="staff"] .dash-actions small {color: #d9d9f1}
+html[data-theme="dark"] body[data-page="staff"] #dashProgress {accent-color: #a9c5ff}
+html[data-theme="dark"] body[data-page="staff"] .dash-status.on {background: #7adbc52a; color: #a8f0dc}
+
+html[data-theme="dark"] body[data-page="staff"] .roster-attendance-update {
+  background: linear-gradient(115deg, #294070d9, #263756e6);
+}
+
+html[data-theme="dark"] body[data-page="staff"] .hr-tabs [aria-pressed="true"] {outline-color: #aac4ff}
+html[data-theme="dark"] body[data-page="staff"] .hr-service {
+  color: #e0ebff;
+  background: linear-gradient(115deg, #263a62, #202e50);
+  border-color: #8aa7e65c;
+}
+
+html[data-theme="dark"] body[data-page="staff"] #staffLiveAttendance :is(.live-mini-grid > div, .live-segmented, .live-ring-inner) {
+  background: var(--panel);
+  border-color: var(--line);
+}
+
+@media (max-width: 760px) {
+  html[data-theme="dark"] body[data-page="staff"] #sidebar.sidebar {
+    top: 12px !important;
+    bottom: auto !important;
+    left: 12px !important;
+    width: min(310px, calc(100vw - 44px)) !important;
+    height: calc(100dvh - 24px) !important;
+    border-radius: 1.3rem;
+    padding: 1.15rem .85rem;
+  }
+  html[data-theme="dark"] body[data-page="staff"] #staffSidebarBackdrop {background: #06091982}
+}
