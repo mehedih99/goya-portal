@@ -1,0 +1,32 @@
+.hr-tabs {display:flex;align-items:end;flex-wrap:wrap;gap:.65rem;margin-bottom:1rem}
+.hr-tabs [aria-pressed="true"] {outline:2px solid #46aa99;outline-offset:2px}
+.hr-fields {display:grid;grid-template-columns:repeat(auto-fit,minmax(min(10rem,100%),1fr));gap:.8rem}
+.hr-content .hr-entry {padding:1rem 0;border-top:1px solid var(--border,#536b75)}
+.hr-entry p {margin:.45rem 0;overflow-wrap:anywhere;white-space:pre-wrap}
+.hr-dialog {width:min(42rem,calc(100% - 2rem));max-height:85vh;padding:1.25rem;border:1px solid var(--border,#536b75);border-radius:1rem;color:inherit;background:var(--card,Canvas)}
+.hr-dialog::backdrop {background:#0008}
+.hr-dialog textarea,#hr-leave textarea {width:100%}
+.hr-dialog label,#hr-leave label {display:block;margin-bottom:.6rem}
+.hr-fields input,.hr-fields select,.hr-tabs select,.hr-tabs input,.hr-archive input,
+#hr-leave input,#hr-leave select,#hr-leave textarea,.hr-dialog input,.hr-dialog select,.hr-dialog textarea {
+  display:block;width:100%;min-width:0;margin-top:.35rem;padding:.65rem .75rem;
+  border:1px solid var(--line,#536b75);border-radius:.65rem;
+  background:var(--panel,Canvas);color:var(--ink,CanvasText);font:inherit;
+}
+#hr-leave input[type="file"]::file-selector-button {
+  margin-right:.65rem;padding:.45rem .65rem;border:0;border-radius:.4rem;
+  background:var(--soft,#e7f0ed);color:var(--ink,CanvasText);font:inherit;
+}
+[data-theme="dark"] :is(.hr-dialog,#hr-leave,.hr-tabs,.hr-archive) {color-scheme:dark}
+.hr-content dl {display:grid;grid-template-columns:minmax(7rem,11rem) 1fr;row-gap:.5rem}
+.hr-content dt {color:var(--muted)}
+.hr-content dd {margin:0}
+.hr-content a {color:var(--accent,#176e68)}
+[data-theme="dark"] .hr-content a {color:#7edacc}
+.hr-archive {margin-top:1rem}
+.hr-email-settings {margin-top:1rem}
+.hr-email-settings h3 {margin-top:0}
+.hr-email-settings .hr-fields {max-width:50rem}
+.hr-archive summary {cursor:pointer;margin-bottom:.75rem}
+.hr-archive .hr-mapping {display:grid;grid-template-columns:repeat(auto-fit,minmax(min(12rem,100%),1fr));gap:.65rem}
+#staffSchedule [hidden], #hr-records [hidden], #hr-requests [hidden] {display:none !important}

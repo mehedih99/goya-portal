@@ -1,0 +1,13 @@
+#roster-admin [hidden],#staffSchedule [hidden]{display:none!important}
+#roster-actions,#roster-times{min-width:0;border:0;padding:0;margin:0}
+.roster-buttons{display:flex;gap:.6rem;flex-wrap:wrap;margin-bottom:1rem}
+.roster-scroll{overflow-x:auto;margin-bottom:1rem}
+#roster-grid{width:100%;min-width:850px;border-collapse:collapse}
+#roster-grid th,#roster-grid td{padding:.45rem;border:1px solid var(--line);vertical-align:top;text-align:left}
+#roster-grid td button{width:100%;font-size:.82rem;text-align:left}
+#roster-edit{width:min(620px,calc(100% - 2rem));max-height:90vh;overflow:auto;color:var(--ink);background:var(--card)}
+#roster-edit::backdrop{background:#0009}
+.roster-days{display:grid;grid-template-columns:repeat(auto-fit,minmax(145px,1fr));gap:.7rem}
+.roster-days .card{margin:0}
+.roster-note{white-space:pre-wrap}
+#roster-tomorrow{margin-bottom:1rem}
