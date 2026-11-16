@@ -206,9 +206,89 @@
   async function saveSupplier(){const row={id:$('supplierId').value||null,name:$('supplierName').value.trim(),phone:$('supplierPhone').value.trim(),email:$('supplierEmail').value.trim(),active:true};if(!row.name){toast('Supplier name required.',true);return;}try{await rpc('admin_save_supplier',{p_token:state.token,p_row:row});resetSupplierForm();await adminLoad();toast('Supplier saved.');}catch(e){toast(e.message,true)}}
   async function deleteSupplier(id){if(!confirm('Delete this supplier?'))return;try{await rpc('admin_delete_supplier',{p_token:state.token,p_id:id});await adminLoad();toast('Supplier deleted.');}catch(e){toast(e.message,true)}}
   function renderStaff(){$('staffBody').innerHTML=(state.adminData.staff||[]).map(x=>`<tr><td>${esc(x.name)}</td><td><strong>${esc(x.pin_code||'Reset PIN')}</strong></td><td>${x.active?'Active':'Inactive'}</td><td>${x.can_order?'✓':'—'}</td><td>${x.can_production?'✓':'—'}</td><td>${x.can_wastage?'✓':'—'}</td><td>${x.can_inventory?'✓':'—'}</td><td>${esc((x.sections||[]).join(', '))}</td><td><div class="toolbar"><button class="btn secondary tiny" onclick="GoyaAdmin.editStaff('${x.id}')">Edit</button><button class="btn danger tiny" onclick="GoyaAdmin.deleteStaff('${x.id}')">Delete</button></div></td></tr>`).join('')||'<tr><td colspan="9" class="empty">No staff.</td></tr>';}
-  function editStaff(id){const x=(state.adminData.staff||[]).find(y=>y.id===id);if(!x)return;$('staffId').value=x.id;$('staffName').value=x.name;$('staffPinNew').value=x.pin_code||'';$('staffActive').checked=x.active;$('canOrder').checked=x.can_order;$('canProd').checked=x.can_production;$('canWaste').checked=x.can_wastage;$('canInv').checked=x.can_inventory;setSectionsChecked('staffSection',x.sections||[]);}
-  function resetStaffForm(){['staffId','staffName','staffPinNew'].forEach(id=>$(id).value='');$('staffActive').checked=true;$('canOrder').checked=true;$('canProd').checked=true;$('canWaste').checked=true;$('canInv').checked=false;setSectionsChecked('staffSection',[]);}
-  async function saveStaff(){const row={id:$('staffId').value||null,name:$('staffName').value.trim(),pin:$('staffPinNew').value.trim(),active:$('staffActive').checked,can_order:$('canOrder').checked,can_production:$('canProd').checked,can_wastage:$('canWaste').checked,can_inventory:$('canInv').checked,sections:sectionsChecked('staffSection')};if(!row.name||!/^\d{4}$/.test(row.pin)){toast('Staff name and 4-digit PIN are required.',true);return;}try{await rpc('admin_save_staff',{p_token:state.token,p_row:row});resetStaffForm();await adminLoad();toast('Staff saved.');}catch(e){toast(e.message,true)}}
+  let staffFormRevision=0, staffProfileReady=true, staffSaveBusy=false, staffProfile={};
+  const staffProfileFields={employee_code:'staffEmployeeCode',position:'staffPosition',joining_date:'staffJoiningDate',
+    last_day:'staffLastDay',manager_notes:'staffManagerNotes'};
+  function fillStaffProfile(profile={}) {
+    staffProfile=profile;
+    for (const [field,id] of Object.entries(staffProfileFields)) $(id).value=profile[field] || '';
+    $('staffActive').disabled=Boolean(profile.last_day);
+    $('staffRejoin').classList.toggle('hidden',!profile.last_day);
+  }
+  async function editStaff(id) {
+    const employee=(state.adminData.staff||[]).find(row=>row.id===id);
+    if (!employee || staffSaveBusy) return;
+    const revision=++staffFormRevision, token=state.token;
+    staffProfileReady=false;
+    $('staffSave').disabled=true;
+    $('staffProfileStatus').textContent='Loading employment profile…';
+    fillStaffProfile();
+    $('staffId').value=id;
+    $('staffName').value=employee.name;
+    $('staffPinNew').value=employee.pin_code||'';
+    $('staffActive').checked=employee.active;
+    $('canOrder').checked=employee.can_order;
+    $('canProd').checked=employee.can_production;
+    $('canWaste').checked=employee.can_wastage;
+    $('canInv').checked=employee.can_inventory;
+    setSectionsChecked('staffSection',employee.sections||[]);
+    try {
+      const profile=await rpc('goya_hr_admin_profile',{p_token:token,p_staff:id});
+      if (revision!==staffFormRevision || state.token!==token) return;
+      fillStaffProfile(profile || {});
+      $('staffRejoin').onclick=()=>window.GoyaHR.openRejoin(employee,async()=>{
+        resetStaffForm();
+        await adminLoad();
+        await editStaff(id);
+      });
+      staffProfileReady=true;
+      $('staffSave').disabled=false;
+      $('staffProfileStatus').textContent=profile?.last_day ? 'Resigned · Portal access inactive.' : '';
+    } catch (error) {
+      if (revision===staffFormRevision && state.token===token) $('staffProfileStatus').textContent=error.message;
+    }
+  }
+  function resetStaffForm(){
+    staffFormRevision++;
+    staffProfileReady=true;
+    if ($('staffEmployeeCode')) {
+      fillStaffProfile();
+      $('staffProfileStatus').textContent='';
+      $('staffSave').disabled=staffSaveBusy;
+    }
+    ['staffId','staffName','staffPinNew'].forEach(id=>$(id).value='');
+    $('staffActive').checked=true;
+    $('canOrder').checked=true;
+    $('canProd').checked=true;
+    $('canWaste').checked=true;
+    $('canInv').checked=false;
+    setSectionsChecked('staffSection',[]);
+  }
+  async function saveStaff(){
+    if (!staffProfileReady || staffSaveBusy) return;
+    const row={id:$('staffId').value||null,name:$('staffName').value.trim(),pin:$('staffPinNew').value.trim(),
+      active:$('staffActive').checked,can_order:$('canOrder').checked,can_production:$('canProd').checked,
+      can_wastage:$('canWaste').checked,can_inventory:$('canInv').checked,sections:sectionsChecked('staffSection')};
+    if (!row.name || !/^\d{4}$/.test(row.pin)) {toast('Staff name and 4-digit PIN are required.',true);return;}
+    const profile=Object.fromEntries(Object.entries(staffProfileFields)
+      .filter(([field])=>field!=='employee_code').map(([field,id])=>[field,$(id).value.trim()]));
+    if (profile.last_day && profile.last_day!==staffProfile.last_day &&
+        !confirm('Record resignation and deactivate portal access for '+row.name+'?')) return;
+    staffSaveBusy=true;
+    $('staffSave').disabled=true;
+    $('staffClear').disabled=true;
+    try {
+      await rpc('goya_hr_save_staff',{p_token:state.token,p_row:row,p_profile:profile,p_expected:staffProfile.updated_at||null});
+      resetStaffForm();
+      await adminLoad();
+      toast('Staff saved.');
+    } catch (error) {toast(error.message,true)}
+    finally {
+      staffSaveBusy=false;
+      $('staffSave').disabled=!staffProfileReady;
+      $('staffClear').disabled=false;
+    }
+  }
   async function deleteStaff(id){if(!confirm('Delete this staff?'))return;try{await rpc('admin_delete_staff',{p_token:state.token,p_id:id});await adminLoad();toast('Staff deleted.');}catch(e){toast(e.message,true)}}
 
   let adminOrderRequest=0,adminOrderPage=1,adminOrderTotal=0,adminOrdersBusy=false,adminOrdersFailed=false,appliedOrderFilters={};

@@ -26,9 +26,50 @@
   async function rpc(name,args={}){await client();const {data,error}=await (window.GoyaUI?.task?window.GoyaUI.task(()=>sb.rpc(name,args)):sb.rpc(name,args));if(error)throw new Error(error.message);return data}
   function nav(btn,id){document.querySelectorAll('.nav button').forEach(x=>x.classList.remove('active'));btn?.classList.add('active');document.querySelectorAll('[data-view]').forEach(x=>x.classList.add('hidden'));$(id)?.classList.remove('hidden');$('attSidebar').classList.remove('open');if(id==='attHistory')loadHistory();if(id==='attFiles')loadDocuments();if(id==='attStaffDetails')renderStaffDetails();if(id==='attSubmissions')loadSubmissions();if(id==='attUpload'){loadUploadHistory();loadFinalizedReportHistory()}}
   function mobileMenu(){$('attSidebar').classList.toggle('open')}
+  const handoffKey='goya-attendance-handoff', rememberedKey='goya-admin-session-v1';
   let loginBusy=false;
-  async function login(){if(loginBusy)return;const pin=$('attAdminPin').value.trim();if(!/^\d{4,12}$/.test(pin)){toast('Enter Admin PIN',true);return}loginBusy=true;const b=$('attLoginButton'),end=window.GoyaUI?.begin('Signing in…');if(b){b.disabled=true;b.innerHTML='<span class="portal-spinner" aria-hidden="true"></span> Signing in…';}try{const d=await rpc('admin_login',{p_pin:pin});state.token=d.token;await bootstrap();$('attLogin').classList.add('hidden');$('attApp').classList.remove('hidden');toast('Attendance portal unlocked');setTimeout(()=>window.GoyaLiveAdmin?.openDashboard?.(),50)}catch(e){state.token=null;toast(e.message,true)}finally{loginBusy=false;end?.();if(b){b.disabled=false;b.textContent='Unlock Attendance';}}}
-  async function logout(){try{if(state.token)await rpc('logout',{p_token:state.token})}catch{}state.token=null;location.reload()}
+  async function openAttendance(token) {
+    state.token=token;
+    await bootstrap();
+    $('attAdminPin').value='';
+    $('attLogin').classList.add('hidden');
+    $('attApp').classList.remove('hidden');
+    setTimeout(()=>window.GoyaLiveAdmin?.openDashboard?.(),50);
+  }
+  async function resumeAdmin() {
+    let handoff, remembered;
+    try {
+      handoff=sessionStorage.getItem(handoffKey);
+      sessionStorage.removeItem(handoffKey);
+      remembered=localStorage.getItem(rememberedKey);
+    } catch {}
+    if (!handoff && !remembered) return;
+    loginBusy=true;
+    $('attLoginButton').disabled=true;
+    const end=window.GoyaUI?.begin('Checking Admin login…');
+    try {
+      if (!handoff) await rpc('goya_admin_resume',{p_token:remembered});
+      await openAttendance(handoff || remembered);
+    } catch (error) {
+      state.token=null;
+      if (!/DEVICE_LOGIN_REQUIRED|Session expired|unauthorized/i.test(error.message)) toast(error.message,true);
+    } finally {
+      loginBusy=false;
+      $('attLoginButton').disabled=false;
+      end?.();
+    }
+  }
+  async function login(){if(loginBusy)return;const pin=$('attAdminPin').value.trim();if(!/^\d{4,12}$/.test(pin)){toast('Enter Admin PIN',true);return}loginBusy=true;const b=$('attLoginButton'),end=window.GoyaUI?.begin('Signing in…');if(b){b.disabled=true;b.innerHTML='<span class="portal-spinner" aria-hidden="true"></span> Signing in…';}try{const d=await rpc('admin_login',{p_pin:pin});await openAttendance(d.token);toast('Attendance portal unlocked')}catch(e){state.token=null;toast(e.message,true)}finally{loginBusy=false;end?.();if(b){b.disabled=false;b.textContent='Unlock Attendance';}}}
+  async function logout(){
+    const token=state.token;
+    state.token=null;
+    try {
+      sessionStorage.removeItem(handoffKey);
+      if (localStorage.getItem(rememberedKey)===token) localStorage.removeItem(rememberedKey);
+    } catch {}
+    try { if (token) await rpc('logout',{p_token:token}); } catch {}
+    location.reload();
+  }
   async function bootstrap(){const d=await rpc('attendance_bootstrap',{p_token:state.token});state.staff=d.staff||[];state.settings=d.settings||{};fillStaffSelects();fillSettings();const t=today();$('dashDate').value=t;$('manualDate').value=t;$('dailyDate').value=t;$('monthPick').value=monthNow();if($('subMonth'))$('subMonth').value=monthNow();const first=`${monthNow()}-01`;$('histFrom').value=first;$('histTo').value=t;await loadDashboard()}
   function fillStaffSelects(){['manualStaff','fileStaff'].forEach(id=>{$(id).innerHTML=state.staff.map(s=>`<option value="${s.id}">${esc(s.name)}${s.employee_code?` · ${esc(s.employee_code)}`:''}</option>`).join('')});const opts='<option value="">All Staff</option>'+state.staff.map(s=>`<option value="${s.id}">${esc(s.name)}</option>`).join('');$('histStaff').innerHTML=opts;if($('subStaff'))$('subStaff').innerHTML=opts}
   function fillSettings(){const s=state.settings;$('setStart').value=s.operational_start||'08:00';$('setCutoff').value=s.operational_cutoff||'02:00';$('setGrace').value=s.late_grace_minutes??15;$('setPresence').value=(s.default_presence_minutes??540)/60;$('setBreak').value=s.default_break_minutes??60;if($('setLastShift'))$('setLastShift').value=s.last_shift_start||'17:00';if($('setDuplicateWindow'))$('setDuplicateWindow').value=Math.max(10,Number(s.duplicate_punch_window_minutes??10));if($('shiftPreview'))$('shiftPreview').textContent=buildHourlyShiftTimes(s.operational_start||'08:00',s.last_shift_start||'17:00').map(formatClock).join(', ')}
@@ -190,6 +231,7 @@
 
   async function saveSettings(){const first=$('setStart').value||'08:00',last=$('setLastShift')?.value||'17:00',shifts=buildHourlyShiftTimes(first,last),value={operational_start:first,operational_cutoff:$('setCutoff').value||'02:00',late_grace_minutes:Number($('setGrace').value||15),default_presence_minutes:Math.round((+$('setPresence').value||9)*60),default_break_minutes:Number($('setBreak').value||60),last_shift_start:last,shift_interval_minutes:60,duplicate_punch_window_minutes:Number($('setDuplicateWindow')?.value||5),shift_start_times:shifts};try{await rpc('attendance_save_settings',{p_token:state.token,p_value:value});state.settings=value;fillSettings();toast(`Attendance settings saved. Hourly shifts: ${formatClock(shifts[0])} to ${formatClock(shifts.at(-1))}.`)}catch(e){toast(e.message,true)}}
 
+  document.addEventListener('DOMContentLoaded',resumeAdmin,{once:true});
   document.addEventListener('keydown',e=>{if(e.key==='Enter'&&!$('attLogin').classList.contains('hidden'))login()});
   window.GoyaAttendance={login,logout,nav,mobileMenu,loadDashboard,previewDeviceFile,setPreviewTime,setPreviewBreak,setPreviewNote,exportPreviewPDF,exportPreviewExcel,importDeviceFile,loadUploadHistory,downloadUpload,loadFinalizedReportHistory,redownloadFinalizedReport,regenerateFinalizedReport,loadSubmissions,renderSubmissionComparison,updateSubSelected,toggleAllSubmissions,approveSubmission,approveSelectedSubmissions,approveAllMatched,loadHistory,exportHistoryExcel,exportHistoryPDF,editRecord,deleteRecord,saveManual,saveStaff,resetStaffForm,editStaff,renderStaffDetails,uploadDocument,loadDocuments,downloadDocument,deleteDocument,generateDailyReport,openDailyWhatsApp,exportDailyExcel,generateMonthlySummary,exportMonthlyExcel,exportManagementPDF,finalizeMonthlyPayroll,saveSettings,_liveContext:()=>({token:state.token,staff:state.staff,settings:state.settings})};
 })();
