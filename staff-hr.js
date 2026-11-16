@@ -196,11 +196,19 @@
   const period = request => {
     const from = request.approved_from || request.requested_from;
     const to = request.approved_to || request.requested_to;
+    if (request.state === 'Recorded' && ['Cancelled Off','Attendance Note'].includes(request.kind)) {
+      return new Intl.DateTimeFormat('en',{month:'long',year:'numeric',timeZone:'UTC'}).format(new Date(from));
+    }
     return from === to ? from : from + ' – ' + to;
   };
+  function leaveStatus(request, today = date()) {
+    if (request.kind !== 'Annual Leave' || request.state !== 'Approved') return request.state;
+    if (request.approved_to < today) return 'Done';
+    return request.approved_from <= today ? 'In progress' : 'Approved';
+  }
   function filteredRequests() {
     const filter = $('hr-request-filter').value;
-    return requests.filter(request => filter === 'All requests' || request.state === filter);
+    return requests.filter(request => filter === 'All requests' || request.state === filter || leaveStatus(request) === filter);
   }
   function review(request) {
     const node = dialog('Review · ' + request.name,
@@ -233,12 +241,13 @@
   function renderRequests() {
     const pane = $('hr-requests'), items = filteredRequests();
     content(pane).innerHTML = items.map((request,i) => '<article class="hr-entry"><strong>' + escaped(request.name) +
-      ' · ' + escaped(request.kind) + ' · ' + escaped(request.state) + '</strong><p>' +
-      escaped([period(request),request.payroll,'Email: ' + request.email_state].filter(Boolean).join(' · ')) + '</p><p>' +
+      ' · ' + escaped(request.kind) + ' · ' + escaped(leaveStatus(request)) + '</strong><p>' +
+      escaped([period(request),request.payroll,request.email_state === 'Imported' ? 'From Excel' : 'Email: ' + request.email_state].filter(Boolean).join(' · ')) + '</p><p>' +
       escaped(request.reason) + '</p>' +
+      (request.review_note && request.review_note !== request.reason ? '<p>' + escaped(request.review_note) + '</p>' : '') +
       (/^[\w-]+$/.test(request.drive_file_id || '') ? '<p><a target="_blank" rel="noopener noreferrer" href="https://drive.google.com/open?id=' +
         request.drive_file_id + '">📎 Open private Drive document</a></p>' : '') +
-      (request.state === 'Withdrawn' ? '' : '<button type="button" class="btn secondary" data-review="' + i + '">Review request</button>') +
+      (['Withdrawn','Recorded'].includes(request.state) ? '' : '<button type="button" class="btn secondary" data-review="' + i + '">Review request</button>') +
       '</article>').join('');
     if (!items.length) empty(pane,'No requests match this filter.');
     content(pane).querySelectorAll('[data-review]').forEach(button =>
@@ -397,17 +406,23 @@
       '<div><dt>' + label + '</dt><dd>' + escaped(value || 'N/A') + '</dd></div>').join('') + '</dl>';
     if (data.archived_pending_off) markup += '<p>Pending PH/PO in the Excel archive · ' +
       escaped(data.archived_pending_off.value) + ' (week of ' + escaped(data.archived_pending_off.week) + ')</p>';
+    const annual = data.requests.filter(item => item.kind === 'Annual Leave' && item.state === 'Approved');
+    if (annual.length) {
+      markup += '<h3>Annual leave history</h3>' + annual.map(item => '<p><strong>' +
+        escaped(period(item) + ' · ' + leaveStatus(item,today)) + '</strong>' +
+        (item.review_note ? '<br>' + escaped(item.review_note) : '') + '</p>').join('');
+    }
     if (!profile.joining_date) return markup;
     const thisYear = Number(today.slice(0,4));
     const current = anniversary(profile.joining_date,thisYear);
     const startYear = current > today ? thisYear - 1 : thisYear;
-    const annual = data.requests.filter(item => item.kind === 'Annual Leave' && item.state === 'Approved');
     markup += '<h3>Annual leave</h3><p>Annual entitlement · 1 month per completed service year</p>';
     for (let year = startYear; year >= Math.max(Number(profile.joining_date.slice(0,4)),startYear - 30); year--) {
       const start = anniversary(profile.joining_date,year), next = anniversary(profile.joining_date,year + 1);
       const used = annual.filter(item => item.approved_from < next && item.approved_to >= start);
       const archived = (data.archived_annual_days || []).filter(day=>day>=start && day<next && day<today);
-      const status = used.some(item => item.approved_to < today) ? 'Taken' : used.length ? 'Approved' :
+      const status = used.some(item => leaveStatus(item,today) === 'In progress') ? 'In progress' :
+        used.some(item => leaveStatus(item,today) === 'Done') ? 'Done' : used.length ? 'Approved' :
         archived.length ? 'Recorded in Excel (' + archived.length + ' dates)' :
         year === Number(profile.joining_date.slice(0,4)) ? 'First service year' : 'No approved leave recorded';
       markup += '<p>' + start + ' to ' + next + ' (next anniversary) · ' + status + '</p>';
@@ -416,7 +431,7 @@
   }
   function showMyRequests(pane, items) {
     content(pane).innerHTML = items.map((request,i) =>
-      '<article class="hr-entry"><strong>' + escaped(request.kind) + ' · ' + escaped(request.state) +
+      '<article class="hr-entry"><strong>' + escaped(request.kind) + ' · ' + escaped(leaveStatus(request)) +
       '</strong><p>' + escaped([period(request),request.payroll,request.review_note].filter(Boolean).join(' · ')) +
       '</p>' + (request.state === 'Pending' ? '<button type="button" class="btn secondary" data-withdraw="' + i +
         '">Withdraw</button>' : '') + '</article>').join('') || 'No requests yet.';
@@ -639,7 +654,7 @@
             member.profile?.joining_date,member.profile?.last_day])]);
       $('hr-request-export').onclick = () => download('GOYA-Leave-Records.csv',
         [['Staff','Type','Period','Status','Payroll'], ...filteredRequests().map(request =>
-          [request.name,request.kind,period(request),request.state,request.payroll])]);
+          [request.name,request.kind,period(request),leaveStatus(request),request.payroll])]);
     }
     if ($('hr-leave-form')) {
       document.querySelectorAll('[data-hr-tab]').forEach(button => button.onclick = () => openStaffTab(button.dataset.hrTab));
