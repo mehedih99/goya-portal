@@ -56,11 +56,52 @@ async function ensureFolder(headers: HeadersInit, parent: string, name: string) 
   throw new Error("The leave folder could not be prepared in Google Drive.");
 }
 
+function base64(bytes: Uint8Array) {
+  let binary = "";
+  for (let offset = 0; offset < bytes.length; offset += 32768) {
+    binary += String.fromCharCode(...bytes.subarray(offset, offset + 32768));
+  }
+  return btoa(binary);
+}
+
+async function uploadThroughDriveBridge(url: string, secret: string, payload: Record<string,string>) {
+  if (!/^https:\/\/script\.google\.com\/macros\/s\/[A-Za-z0-9_-]+\/exec$/.test(url) || secret.length < 32) {
+    throw new Error("Google Drive upload is awaiting setup.");
+  }
+  const time = Date.now(), message = JSON.stringify(payload), encoder = new TextEncoder();
+  const key = await crypto.subtle.importKey("raw",encoder.encode(secret),{name:"HMAC",hash:"SHA-256"},false,["sign"]);
+  const signed = await crypto.subtle.sign("HMAC",key,encoder.encode(time + "." + message));
+  const signature = base64(new Uint8Array(signed)).replaceAll("+","-").replaceAll("/","_").replace(/=+$/,"");
+  const timeout = AbortSignal.timeout(40000);
+  let response = await fetch(url,{
+    method:"POST",headers:{"Content-Type":"application/json"},redirect:"manual",signal:timeout,
+    body:JSON.stringify({time,payload:message,signature}),
+  });
+  if ([302,303].includes(response.status)) {
+    const location = new URL(response.headers.get("location") ?? "",url);
+    if (location.origin !== "https://script.googleusercontent.com") {
+      throw new Error("Google Drive authorization is incomplete.");
+    }
+    response = await fetch(location,{redirect:"error",signal:timeout});
+  }
+  const result = response.ok ? await response.json().catch(()=>null) : null;
+  if (!result?.ok || typeof result.id !== "string" || !/^[A-Za-z0-9_-]+$/.test(result.id)) {
+    throw new Error("The attachment could not be saved in Google Drive. Ask the manager to check the connection.");
+  }
+  return result.id;
+}
+
 async function upload(file: File, employee: string, request: string, from: string, kind: string) {
   const type = acceptedTypes[file.type];
   if (!type || file.size > maxFile || !file.size) throw new Error("Choose a PDF, JPEG or PNG up to 5 MB.");
   const bytes = new Uint8Array(await file.arrayBuffer());
   if (!type.signature.every((byte, index) => bytes[index] === byte)) throw new Error("The attachment does not match its file type.");
+  const bridgeUrl = env("GOYA_DRIVE_BRIDGE_URL").trim(), bridgeSecret = env("GOYA_DRIVE_BRIDGE_SECRET").trim();
+  if (bridgeUrl || bridgeSecret) {
+    return await uploadThroughDriveBridge(bridgeUrl,bridgeSecret,{
+      operation:"upload",request,employee,from,kind,type:file.type,bytes:base64(bytes),
+    });
+  }
   const root = env("GOYA_LEAVE_DRIVE_FOLDER_ID");
   const account = env("GOYA_LEAVE_DRIVE_ACCOUNT").trim().toLowerCase();
   const clientId = env("GOYA_DRIVE_CLIENT_ID");
