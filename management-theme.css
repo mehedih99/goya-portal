@@ -1,0 +1,147 @@
+/* Staff Portal palettes for the Admin, Attendance and P&L screen interfaces. */
+html[data-theme="dark"] body[data-portal] {
+  --bg: #0c1125;
+  --panel: #11182c;
+  --card: #11192d;
+  --ink: #f4f6ff;
+  --muted: #c5cce2;
+  --line: #adc2f240;
+  --soft: #52648f40;
+  --accent: #afc7ff;
+  --accent2: #4b67a83f;
+  --green: #3a528c;
+  --green2: #3a528c;
+  isolation: isolate;
+  background: linear-gradient(180deg, #04050a, #111834 56%, #153252 82%, #362839);
+}
+
+html[data-theme="dark"] body[data-portal]::before {
+  position: fixed;
+  inset: 0;
+  z-index: -1;
+  pointer-events: none;
+  content: "";
+  background:
+    radial-gradient(circle at 10% 6%, #d7e3ffb0 0 1px, transparent 1.5px),
+    radial-gradient(circle at 29% 10%, #e5edff8c 0 .6px, transparent 1.1px),
+    radial-gradient(circle at 51% 4%, #d7e3ffb0 0 1px, transparent 1.5px),
+    radial-gradient(circle at 78% 8%, #e5edff8c 0 .8px, transparent 1.3px),
+    radial-gradient(circle at 92% 13%, #e5edff9c 0 1px, transparent 1.5px),
+    radial-gradient(circle at 61% 17%, #e5edff70 0 .6px, transparent 1.1px),
+    radial-gradient(circle at 19% 19%, #d7e3ff60 0 .7px, transparent 1.2px),
+    radial-gradient(circle at 39% 15%, #e5edff85 0 .6px, transparent 1.1px),
+    radial-gradient(circle at 87% 21%, #e5edff85 0 .6px, transparent 1.1px),
+    radial-gradient(ellipse 100% 36% at 51% 83%, #184e8270, transparent 82%),
+    linear-gradient(180deg, #040509 0%, #0a1027 24%, #151f45 50%, #123756 76%, #39304b 100%);
+}
+
+html[data-theme="light"] body[data-portal] {
+  --bg:#edf3fb;
+  --panel:#f9fbff;
+  --card:#ffffffef;
+  --ink:#1b304d;
+  --muted:#465c77;
+  --line:#8da8cd70;
+  --soft:#dbe8f8;
+  --accent:#24579a;
+  --accent2:#e0edff;
+  --shadow:0 14px 32px #26477112;
+}
+html[data-theme="light"] body[data-portal] {
+  isolation:isolate;
+  background:linear-gradient(160deg,#e1edfc,#f4f8ff 59%,#faf1e5);
+}
+html[data-theme="light"] body[data-portal]::before {
+  content:"";
+  position:fixed;
+  inset:0;
+  z-index:-1;
+  pointer-events:none;
+  background:
+    radial-gradient(ellipse 105% 46% at -12% 5%,#c1dafd 0%,#d7e9ffad 44%,transparent 75%),
+    radial-gradient(ellipse 93% 35% at 110% 18%,#f8dfc6bf 0%,#fff3e285 43%,transparent 78%),
+    radial-gradient(ellipse 148% 62% at 95% 120%,#bacaefc9 0%,#d5e5ffb8 53%,#ffffffa3 54%,transparent 55%),
+    linear-gradient(156deg,#edf4ff,#f7fbff 57%,#f7edf0);
+}
+
+body[data-portal] {
+  color: var(--ink);
+  --live-ink: var(--ink);
+  --live-muted: var(--muted);
+  --live-line: var(--line);
+  --live-card: var(--card);
+  --live-soft: var(--soft);
+}
+body[data-portal] :is(.main,.login-shell) {background:transparent}
+body[data-portal] .topbar {
+  color: var(--ink);
+  border-color: var(--line);
+  -webkit-backdrop-filter: blur(18px) saturate(135%);
+  backdrop-filter: blur(18px) saturate(135%);
+}
+body[data-portal] :is(.sidebar,.login-card) {
+  color: var(--ink);
+  border-color: var(--line);
+  -webkit-backdrop-filter: blur(18px) saturate(140%);
+  backdrop-filter: blur(18px) saturate(140%);
+}
+body[data-portal] .sidebar .brand small {color:var(--muted)}
+body[data-portal] .sidebar .nav button {color:var(--ink)}
+body[data-portal] :is(.portal-theme,.portal-install,.mobile-menu) {color:var(--ink);background:var(--soft);border-color:var(--line)}
+body[data-portal] :is(.card:not(#preview),.live-app-card,.live-modal-card,.modal-card,.records-modal-card,.hr-dialog) {
+  color: var(--ink);
+  border-color: var(--line);
+}
+
+html[data-theme="dark"] body[data-portal] .topbar {background:linear-gradient(120deg,#10172edb,#111831f2)}
+html[data-theme="dark"] body[data-portal] :is(.sidebar,.login-card) {
+  background:linear-gradient(165deg,#263754db,#131d38ed 56%,#223557de);
+  box-shadow:inset 0 1px #ffffff26,0 20px 40px #050916a0;
+}
+html[data-theme="dark"] body[data-portal] .sidebar .nav button:hover {background:#96b2ff24}
+html[data-theme="dark"] body[data-portal] .sidebar .nav button.active {
+  background:linear-gradient(105deg,#96b2ff46,#6c8ac948);
+  box-shadow:inset 2px 0 #b6ceff,0 4px 16px #0a132951;
+}
+html[data-theme="dark"] body[data-portal] :is(.card:not(#preview),.live-app-card,.live-modal-card,.modal-card,.records-modal-card,.hr-dialog) {
+  background:linear-gradient(150deg,#182239f5,#10182df5);
+}
+html[data-theme="dark"] body[data-portal] :is(.mobile-menu,.btn.secondary) {
+  color:var(--ink);
+  background:linear-gradient(140deg,#35456f85,#24314fbf);
+  border-color:var(--line);
+}
+html[data-theme="dark"] body[data-portal="attendance"] :is(
+  .login-card > button,.btn:not(.secondary,.success,.danger,.warning,.warn,.ghost)
+) {background:#3a528c;color:#fff}
+
+html[data-theme="light"] body[data-portal] .topbar {background:linear-gradient(105deg,#f7fbffe0,#edf5ffd9 65%,#fff6eae0)}
+html[data-theme="light"] body[data-portal] :is(.sidebar,.login-card) {
+  background:linear-gradient(150deg,#f9fcffed,#dfeafbdf 58%,#eff4ffe8);
+  box-shadow:inset 0 1px #fffffffb,0 18px 45px #24446d27;
+}
+html[data-theme="light"] body[data-portal] .sidebar .brand img {filter:none;background:#ffffffb8;border-radius:50%}
+html[data-theme="light"] body[data-portal] .sidebar .nav button:hover {background:#dceafe}
+html[data-theme="light"] body[data-portal] .sidebar .nav button.active {
+  color:#173f76;
+  background:linear-gradient(105deg,#c9defa,#dceafe);
+  box-shadow:inset 2px 0 #3465a6,0 4px 16px #4c74aa20;
+}
+html[data-theme="light"] body[data-portal] :is(.card:not(#preview),.live-app-card,.live-modal-card,.modal-card,.records-modal-card,.hr-dialog) {
+  background:linear-gradient(150deg,#fffffff8,#f5f9fff2);
+  box-shadow:0 10px 24px #3b629519;
+}
+html[data-theme="light"] body[data-portal] :is(.mobile-menu,.btn.secondary) {
+  color:#234873;
+  background:linear-gradient(145deg,#f9fcff,#e1edfb);
+  border-color:var(--line);
+}
+body[data-portal="attendance"] .login-card > button:disabled {opacity:.65}
+.management-opening-shell {min-height:100vh;display:grid;place-items:center;padding:24px}
+.management-opening {
+  display:flex;align-items:center;gap:.65rem;padding:.8rem 1.15rem;
+  border:1px solid var(--line);border-radius:.8rem;background:var(--card);color:var(--ink);
+}
+
+body[data-portal="attendance"]:has(#attApp:not(.hidden)) #attOpening,
+body[data-portal="attendance"]:has(#attOpening:not(.hidden)) #portalLoading {display:none}

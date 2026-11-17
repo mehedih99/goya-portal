@@ -23,14 +23,36 @@
   const timeText=v=>{if(!v)return '—';const d=new Date(v.replace(' ','T'));if(Number.isNaN(d.getTime()))return String(v).slice(11,16);return d.toLocaleTimeString('en-AE',{hour:'numeric',minute:'2-digit'})};
   const toast=(msg,err=false)=>{const d=document.createElement('div');d.className='toast'+(err?' err':'');d.textContent=msg;$('toastHost').appendChild(d);setTimeout(()=>d.remove(),3500)};
   async function client(){if(!cfg.SUPABASE_URL||!cfg.SUPABASE_ANON_KEY)throw new Error('Supabase config missing');if(!sb)sb=window.supabase.createClient(cfg.SUPABASE_URL,cfg.SUPABASE_ANON_KEY,{auth:{persistSession:false,autoRefreshToken:false}});return sb}
-  async function rpc(name,args={}){await client();const {data,error}=await (window.GoyaUI?.task?window.GoyaUI.task(()=>sb.rpc(name,args)):sb.rpc(name,args));if(error)throw new Error(error.message);return data}
+  async function rpc(name,args={},signal) {
+    await client();
+    const run=async()=>{
+      if (!signal) return sb.rpc(name,args);
+      const timeoutError=()=>Error('Connection timed out. Please try again.');
+      if (signal.aborted) throw timeoutError();
+      let request=sb.rpc(name,args);
+      if (request.abortSignal) request=request.abortSignal(signal);
+      let cancel;
+      try {
+        const timeout=new Promise((_,reject)=>{
+          cancel=()=>reject(timeoutError());
+          signal.addEventListener('abort',cancel,{once:true});
+        });
+        return await Promise.race([request,timeout]);
+      } finally {
+        signal.removeEventListener('abort',cancel);
+      }
+    };
+    const {data,error}=await (window.GoyaUI?.task ? window.GoyaUI.task(run) : run());
+    if(error)throw new Error(error.message);
+    return data;
+  }
   function nav(btn,id){document.querySelectorAll('.nav button').forEach(x=>x.classList.remove('active'));btn?.classList.add('active');document.querySelectorAll('[data-view]').forEach(x=>x.classList.add('hidden'));$(id)?.classList.remove('hidden');$('attSidebar').classList.remove('open');if(id==='attHistory')loadHistory();if(id==='attFiles')loadDocuments();if(id==='attStaffDetails')renderStaffDetails();if(id==='attSubmissions')loadSubmissions();if(id==='attUpload'){loadUploadHistory();loadFinalizedReportHistory()}}
   function mobileMenu(){$('attSidebar').classList.toggle('open')}
   const handoffKey='goya-attendance-handoff', rememberedKey='goya-admin-session-v1';
   let loginBusy=false;
-  async function openAttendance(token) {
+  async function openAttendance(token,signal) {
     state.token=token;
-    await bootstrap();
+    await bootstrap(signal);
     $('attAdminPin').value='';
     $('attLogin').classList.add('hidden');
     $('attApp').classList.remove('hidden');
@@ -41,22 +63,32 @@
     try {
       handoff=sessionStorage.getItem(handoffKey);
       sessionStorage.removeItem(handoffKey);
-      remembered=localStorage.getItem(rememberedKey);
     } catch {}
-    if (!handoff && !remembered) return;
+    try { remembered=localStorage.getItem(rememberedKey); } catch {}
+
+    const pinPanel=$('attLogin'), opening=$('attOpening'), button=$('attLoginButton');
+    if (!handoff && !remembered) {
+      opening?.classList.add('hidden');
+      pinPanel.classList.remove('hidden');
+      return;
+    }
+
     loginBusy=true;
-    $('attLoginButton').disabled=true;
-    const end=window.GoyaUI?.begin('Checking Admin login…');
+    button.disabled=true;
+    const controller=new AbortController();
+    const timer=setTimeout(()=>controller.abort(),20000);
     try {
-      if (!handoff) await rpc('goya_admin_resume',{p_token:remembered});
-      await openAttendance(handoff || remembered);
+      if (!handoff) await rpc('goya_admin_resume',{p_token:remembered},controller.signal);
+      await openAttendance(handoff || remembered,controller.signal);
     } catch (error) {
       state.token=null;
+      pinPanel.classList.remove('hidden');
       if (!/DEVICE_LOGIN_REQUIRED|Session expired|unauthorized/i.test(error.message)) toast(error.message,true);
     } finally {
+      clearTimeout(timer);
+      opening?.classList.add('hidden');
       loginBusy=false;
-      $('attLoginButton').disabled=false;
-      end?.();
+      button.disabled=false;
     }
   }
   async function login(){if(loginBusy)return;const pin=$('attAdminPin').value.trim();if(!/^\d{4,12}$/.test(pin)){toast('Enter Admin PIN',true);return}loginBusy=true;const b=$('attLoginButton'),end=window.GoyaUI?.begin('Signing in…');if(b){b.disabled=true;b.innerHTML='<span class="portal-spinner" aria-hidden="true"></span> Signing in…';}try{const d=await rpc('admin_login',{p_pin:pin});await openAttendance(d.token);toast('Attendance portal unlocked')}catch(e){state.token=null;toast(e.message,true)}finally{loginBusy=false;end?.();if(b){b.disabled=false;b.textContent='Unlock Attendance';}}}
@@ -70,13 +102,13 @@
     try { if (token) await rpc('logout',{p_token:token}); } catch {}
     location.reload();
   }
-  async function bootstrap(){const d=await rpc('attendance_bootstrap',{p_token:state.token});state.staff=d.staff||[];state.settings=d.settings||{};fillStaffSelects();fillSettings();const t=today();$('dashDate').value=t;$('manualDate').value=t;$('dailyDate').value=t;$('monthPick').value=monthNow();if($('subMonth'))$('subMonth').value=monthNow();const first=`${monthNow()}-01`;$('histFrom').value=first;$('histTo').value=t;await loadDashboard()}
+  async function bootstrap(signal){const d=await rpc('attendance_bootstrap',{p_token:state.token},signal);state.staff=d.staff||[];state.settings=d.settings||{};fillStaffSelects();fillSettings();const t=today();$('dashDate').value=t;$('manualDate').value=t;$('dailyDate').value=t;$('monthPick').value=monthNow();if($('subMonth'))$('subMonth').value=monthNow();const first=`${monthNow()}-01`;$('histFrom').value=first;$('histTo').value=t;await loadDashboard(signal)}
   function fillStaffSelects(){['manualStaff','fileStaff'].forEach(id=>{$(id).innerHTML=state.staff.map(s=>`<option value="${s.id}">${esc(s.name)}${s.employee_code?` · ${esc(s.employee_code)}`:''}</option>`).join('')});const opts='<option value="">All Staff</option>'+state.staff.map(s=>`<option value="${s.id}">${esc(s.name)}</option>`).join('');$('histStaff').innerHTML=opts;if($('subStaff'))$('subStaff').innerHTML=opts}
   function fillSettings(){const s=state.settings;$('setStart').value=s.operational_start||'08:00';$('setCutoff').value=s.operational_cutoff||'02:00';$('setGrace').value=s.late_grace_minutes??15;$('setPresence').value=(s.default_presence_minutes??540)/60;$('setBreak').value=s.default_break_minutes??60;if($('setLastShift'))$('setLastShift').value=s.last_shift_start||'17:00';if($('setDuplicateWindow'))$('setDuplicateWindow').value=Math.max(10,Number(s.duplicate_punch_window_minutes??10));if($('shiftPreview'))$('shiftPreview').textContent=buildHourlyShiftTimes(s.operational_start||'08:00',s.last_shift_start||'17:00').map(formatClock).join(', ')}
   function recordStatus(r,date){if(!r)return 'No Record';if(r.day_off)return 'Day Off';if(r.split_shift&&(!r.punch_in||!r.punch_out||!r.shift2_in||!r.shift2_out))return date===today()?'On Duty':'Missing Punch';if(r.punch_in&&!r.punch_out)return date===today()?'On Duty':'Missing Punch';if(!r.punch_in&&r.punch_out)return 'Missing Punch';if(r.punch_in&&r.punch_out)return 'Completed';return 'No Record'}
   function rowForStaff(s,r,date){return {staff:s,record:r,status:recordStatus(r,date)}}
-  async function getRange(start,end){const d=await rpc('attendance_records_range',{p_token:state.token,p_start:start,p_end:end});state.staff=d.staff||state.staff;fillStaffSelects();return d.records||[]}
-  async function loadDashboard(){try{const date=$('dashDate').value||today();const rec=await getRange(date,date);const map=new Map(rec.map(r=>[r.attendance_staff_id,r]));const rows=state.staff.filter(s=>s.active!==false).map(s=>rowForStaff(s,map.get(s.id),date));state.daily=rows;const c={joined:0,completed:0,on:0,late:0,off:0,missing:0};rows.forEach(x=>{if(x.record?.punch_in)c.joined++;if(x.status==='Completed')c.completed++;if(x.status==='On Duty')c.on++;if((x.record?.late_minutes||0)>0)c.late++;if(x.status==='Day Off')c.off++;if(x.status==='Missing Punch')c.missing++});$('dJoined').textContent=c.joined;$('dCompleted').textContent=c.completed;$('dOnDuty').textContent=c.on;$('dLate').textContent=c.late;$('dOff').textContent=c.off;$('dMissing').textContent=c.missing;$('dashRows').innerHTML=rows.map(({staff:s,record:r,status})=>`<tr><td><strong>${esc(s.name)}</strong></td><td>${esc(s.employment_type)}</td><td>${timeText(r?.punch_in)}</td><td>${timeText(r?.punch_out)}</td><td>${r?minsText(r.presence_minutes):'—'}</td><td>${r?minsText(r.net_work_minutes):'—'}</td><td>${r&&exactOtForRecord(r,s)?`+${otText(exactOtForRecord(r,s))}`:'—'}</td><td>${r&&r.late_minutes?`<span class="pill late">${r.late_minutes} min</span>`:'—'}</td><td>${r?(r.break_taken?'Yes':'No'):'—'}</td><td>${statusPill(status)}</td><td>${esc(r?.note||'')}</td></tr>`).join('')}catch(e){toast(e.message,true)}}
+  async function getRange(start,end,signal){const d=await rpc('attendance_records_range',{p_token:state.token,p_start:start,p_end:end},signal);state.staff=d.staff||state.staff;fillStaffSelects();return d.records||[]}
+  async function loadDashboard(signal){try{const date=$('dashDate').value||today();const rec=await getRange(date,date,signal);const map=new Map(rec.map(r=>[r.attendance_staff_id,r]));const rows=state.staff.filter(s=>s.active!==false).map(s=>rowForStaff(s,map.get(s.id),date));state.daily=rows;const c={joined:0,completed:0,on:0,late:0,off:0,missing:0};rows.forEach(x=>{if(x.record?.punch_in)c.joined++;if(x.status==='Completed')c.completed++;if(x.status==='On Duty')c.on++;if((x.record?.late_minutes||0)>0)c.late++;if(x.status==='Day Off')c.off++;if(x.status==='Missing Punch')c.missing++});$('dJoined').textContent=c.joined;$('dCompleted').textContent=c.completed;$('dOnDuty').textContent=c.on;$('dLate').textContent=c.late;$('dOff').textContent=c.off;$('dMissing').textContent=c.missing;$('dashRows').innerHTML=rows.map(({staff:s,record:r,status})=>`<tr><td><strong>${esc(s.name)}</strong></td><td>${esc(s.employment_type)}</td><td>${timeText(r?.punch_in)}</td><td>${timeText(r?.punch_out)}</td><td>${r?minsText(r.presence_minutes):'—'}</td><td>${r?minsText(r.net_work_minutes):'—'}</td><td>${r&&exactOtForRecord(r,s)?`+${otText(exactOtForRecord(r,s))}`:'—'}</td><td>${r&&r.late_minutes?`<span class="pill late">${r.late_minutes} min</span>`:'—'}</td><td>${r?(r.break_taken?'Yes':'No'):'—'}</td><td>${statusPill(status)}</td><td>${esc(r?.note||'')}</td></tr>`).join('')}catch(e){toast(e.message,true)}}
   function statusPill(s){const cls=s==='Completed'?'ok':s==='Day Off'?'off':s==='Missing Punch'?'missing':s==='On Duty'?'ok':'';return `<span class="pill ${cls}">${esc(s)}</span>`}
 
   // -------- DEVICE FILE PARSER V14 --------
