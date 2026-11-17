@@ -1,4 +1,4 @@
-<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"><meta name="theme-color" content="#f2f5f6"><title>Goya Attendance Portal</title><link rel="stylesheet" href="attendance.css"><link rel="stylesheet" href="live-attendance.css?v=39.0"><link rel="stylesheet" href="attendance-admin.css?v=40.3"><script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script><script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script><script src="https://cdn.jsdelivr.net/npm/jspdf@2.5.1/dist/jspdf.umd.min.js"></script><script src="https://cdn.jsdelivr.net/npm/jspdf-autotable@3.8.4/dist/jspdf.plugin.autotable.min.js"></script><script src="config.js"></script><script defer src="attendance-ot.js?v=48.0"></script><script defer src="attendance.js?v=44.0"></script><script defer src="attendance-xlsx.js?v=54.0"></script><script defer src="live-admin.js?v=54.0"></script><link rel="stylesheet" href="portal-ui.css?v=45.0"><script src="portal-ui.js?v=43.0"></script><link rel="manifest" href="manifest.webmanifest"><link rel="apple-touch-icon" href="goya-icon-180.png"><link rel="stylesheet" href="weekly-roster.css"><script defer src="weekly-roster.js"></script><link rel="stylesheet" href="staff-hr.css?v=3"><script defer src="staff-hr.js?v=4"></script></head><body>
+<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"><meta name="theme-color" content="#f2f5f6"><title>Goya Attendance Portal</title><link rel="stylesheet" href="attendance.css"><link rel="stylesheet" href="live-attendance.css?v=39.0"><link rel="stylesheet" href="attendance-admin.css?v=40.3"><script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script><script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script><script src="https://cdn.jsdelivr.net/npm/jspdf@2.5.1/dist/jspdf.umd.min.js"></script><script src="https://cdn.jsdelivr.net/npm/jspdf-autotable@3.8.4/dist/jspdf.plugin.autotable.min.js"></script><script src="config.js"></script><script defer src="attendance-ot.js?v=48.0"></script><script defer src="attendance.js?v=44.0"></script><script defer src="attendance-xlsx.js?v=54.0"></script><script defer src="live-admin.js?v=54.0"></script><link rel="stylesheet" href="portal-ui.css?v=45.0"><script src="portal-ui.js?v=43.0"></script><link rel="manifest" href="manifest.webmanifest"><link rel="apple-touch-icon" href="goya-icon-180.png"><link rel="stylesheet" href="weekly-roster.css?v=3"><script defer src="weekly-roster.js?v=3"></script><link rel="stylesheet" href="staff-hr.css?v=5"><script defer src="staff-hr.js?v=6"></script></head><body>
 <section id="attLogin" class="login-shell"><div class="login-card"><img src="goya-logo.png" alt="Goya"><h1>Attendance Portal</h1><p>Admin access · Staff attendance & HR records</p><input id="attAdminPin" type="password" inputmode="numeric" maxlength="12" placeholder="Admin PIN"><button id="attLoginButton" onclick="GoyaAttendance.login()">Unlock Attendance</button><a href="admin.html">← Back to Admin Panel</a></div></section>
 <section id="attApp" class="app-shell hidden"><aside id="attSidebar" class="sidebar"><div class="brand"><img src="goya-logo.png" alt="Goya"><div><strong>GOYA</strong><small>Attendance Portal</small></div></div><nav class="nav">
 <div class="live-nav-label">LIVE ATTENDANCE</div>
@@ -20,6 +20,7 @@
   <div class="page-head"><h1>Staff Records</h1><p>Employment profiles and resignation history</p></div>
   <div class="card">
     <div class="hr-tabs">
+      <label>Search staff<input id="hr-record-search" type="search" placeholder="Staff name" autocomplete="off"></label>
       <label>Status<select id="hr-record-filter"><option>All staff</option><option>Active</option><option>Inactive</option><option>Resigned</option></select></label>
       <button class="btn secondary" id="hr-record-export" type="button">⬇️ Export CSV</button>
     </div>
@@ -55,6 +56,7 @@
     <p id="roster-status" role="status"></p>
     <fieldset id="roster-actions" hidden>
       <div class="roster-buttons">
+        <button type="button" class="btn secondary" id="roster-import">Import Excel</button>
         <button type="button" class="btn secondary" id="roster-copy">Copy Last Week</button>
         <button type="button" class="btn secondary" id="roster-draft">Save Draft</button>
         <button type="button" class="btn" id="roster-publish">Publish</button>
@@ -65,9 +67,24 @@
       <details><summary>Publication history</summary><ul id="roster-history"></ul></details>
     </fieldset>
   </div>
+  <dialog id="roster-import-dialog" class="card">
+    <form id="roster-import-form">
+      <h2>Import weekly roster</h2>
+      <p>Choose your GOYA Excel workbook. The selected Monday–Sunday week is used.</p>
+      <label class="field">Excel file<input name="workbook" type="file" accept=".xlsx,.xls" required></label>
+      <p id="roster-import-status" role="status"></p>
+      <div id="roster-import-preview"></div>
+      <div class="roster-buttons">
+        <button class="btn secondary" type="submit">Preview</button>
+        <button class="btn" type="button" id="roster-apply-import" disabled>Apply to draft</button>
+        <button class="btn secondary" type="button" id="roster-import-cancel">Close</button>
+      </div>
+    </form>
+  </dialog>
   <dialog id="roster-edit" class="card">
     <form id="roster-day-form">
       <h2 id="roster-edit-title">Edit day</h2>
+      <label class="field">Quick shift<select name="preset"></select></label>
       <label class="field">Day type<select name="kind">
         <option value="">Not scheduled</option><option>Shift</option><option>Weekly Off</option>
         <option>Annual Leave</option><option>Sick Leave</option><option>Other Leave</option>
@@ -88,6 +105,7 @@
       <label class="field">Shift Note<textarea name="note" maxlength="500" rows="2"></textarea></label>
       <p id="roster-edit-status" role="status"></p>
       <button class="btn" type="submit">Apply</button>
+      <button class="btn secondary" type="button" id="roster-save-preset">Save as preset</button>
       <button class="btn secondary" type="button" id="roster-cancel">Cancel</button>
     </form>
   </dialog>
