@@ -36,7 +36,11 @@
     ['emirates-id','🪪','Emirates ID'],
     ['contract','📄','Employment Contract'],
     ['food-safety','📋','Food Safety Certificate'],
-    ['health-card','➕','Health Card'],
+    ['health-card','➕','Food Handler Health Card'],
+    ['work-permit','📄','Work Permit / Labour Card'],
+    ['residence-visa','🛂','Residence Visa'],
+    ['health-insurance','➕','Health Insurance Card'],
+    ['pic-certificate','📋','PIC Certificate'],
   ];
   const documentTypes = ['application/pdf','image/jpeg','image/png'];
   const uploadDate = new Intl.DateTimeFormat('en-AE',{timeZone:'Asia/Dubai',dateStyle:'medium',timeStyle:'short'});
@@ -107,27 +111,33 @@
     setTimeout(() => URL.revokeObjectURL(url), 1000);
   }
 
-  function dialog(title, body, handler) {
+  function dialog(title, body, handler, action = 'Save') {
     const node = document.createElement('dialog');
     node.className = 'hr-dialog';
     node.innerHTML = '<form><h2>' + escaped(title) + '</h2>' + body +
-      '<p role="status"></p><div class="hr-tabs"><button class="btn primary" type="submit">Save</button>' +
+      '<p role="status"></p><div class="hr-tabs"><button class="btn primary" type="submit">' + escaped(action) + '</button>' +
       '<button class="btn secondary" type="button">Cancel</button></div></form>';
     document.body.append(node);
     node.querySelector('button[type=button]').onclick = () => node.close();
     node.addEventListener('close', () => node.remove(), {once:true});
     const form = node.querySelector('form');
+    let saving = false;
+    node.addEventListener('cancel',event=>{if(saving) event.preventDefault();});
     form.addEventListener('submit', async event => {
       event.preventDefault();
-      const buttons = Array.from(form.querySelectorAll('button'));
-      buttons.forEach(button => button.disabled = true);
+      if (saving) return;
+      const input = values(form);
+      const fields = Array.from(form.elements).filter(field=>!field.disabled);
+      saving = true;
+      fields.forEach(field=>field.disabled=true);
       try {
-        await handler(values(form));
+        await handler(input);
         node.close();
       } catch (error) {
         renderStatus(node, error.message);
       } finally {
-        buttons.forEach(button => button.disabled = false);
+        saving = false;
+        fields.forEach(field=>field.disabled=false);
       }
     });
     node.showModal();
@@ -159,28 +169,85 @@
 
   function filteredProfiles() {
     const filter = $('hr-record-filter').value;
-    return profiles.filter(member => filter === 'All staff' || stateOf(member) === filter);
+    const search = $('hr-record-search').value.trim().toLowerCase();
+    return profiles.filter(member => (filter === 'All staff' || stateOf(member) === filter) &&
+      member.name.toLowerCase().includes(search));
   }
   function renderRecords() {
     const pane = $('hr-records');
     const items = filteredProfiles();
-    content(pane).innerHTML = items.map((member, i) => '<article class="hr-entry"><strong>' + escaped(member.name) +
-      ' · ' + stateOf(member) + '</strong><p>' +
-      [member.profile?.position,member.profile?.branch,member.profile?.employee_code,
-        member.profile?.joining_date && 'Joined ' + member.profile.joining_date,
-        member.profile?.last_day && 'Last day ' + member.profile.last_day].filter(Boolean).map(escaped).join(' · ') +
-      '</p>' + (member.history || []).map(item => '<p class="small muted">' + escaped(item.event) + ' · ' +
-        escaped(item.details.rejoined_on || item.details.last_day) + '</p>').join('') +
-      (member.profile?.manager_notes ? '<p><strong>Private manager notes</strong><br>' + escaped(member.profile.manager_notes) + '</p>' : '') +
-      '<details class="hr-document-history" data-staff-documents="' + i + '"><summary>📎 Document history</summary>' +
-      '<p class="small" role="status"></p><div class="hr-document-list"></div></details>' +
-      '</article>').join('');
+    content(pane).innerHTML = items.map((member, i) => {
+      const profile = member.profile || {};
+      const fields = [['Employee ID',profile.employee_code],['Position',profile.position],['Branch',profile.branch],
+        ['Joining date',profile.joining_date],['Last working day',profile.last_day]];
+      return '<details class="hr-staff-card" data-staff-record="' + i + '"><summary><strong>' + escaped(member.name) +
+        '</strong><span>' + escaped([profile.employee_code,stateOf(member)].filter(Boolean).join(' · ')) + '</span></summary>' +
+        '<div class="hr-staff-card-body"><dl class="hr-journey-details">' + fields.map(([label,value]) =>
+          '<div><dt>' + label + '</dt><dd>' + escaped(value || 'N/A') + '</dd></div>').join('') + '</dl>' +
+        (member.history || []).map(item => '<p class="small muted">' + escaped(item.event) + ' · ' +
+          escaped(item.details.rejoined_on || item.details.last_day) + '</p>').join('') +
+        (profile.manager_notes ? '<p><strong>Private manager notes</strong><br>' + escaped(profile.manager_notes) + '</p>' : '') +
+        '<section data-annual-history><h3>Annual Leave History</h3><button type="button" class="btn secondary" data-add-annual>＋ Add annual leave</button>' +
+        '<p class="small" role="status"></p><div class="hr-annual-list"></div></section>' +
+        '<section data-record-documents><h3>Document history</h3><button type="button" class="btn secondary" data-add-document>＋ Upload Document</button>' +
+        '<p class="small" role="status"></p><div class="hr-document-list"></div></section></div></details>';
+    }).join('');
     if (!items.length) empty(pane,'No staff match this filter.');
-    content(pane).querySelectorAll('[data-staff-documents]').forEach(details => {
+    content(pane).querySelectorAll('[data-staff-record]').forEach(details => {
+      const member = items[details.dataset.staffRecord];
+      const documents = details.querySelector('[data-record-documents]');
+      const annual = details.querySelector('[data-annual-history]');
+      documents.querySelector('[data-add-document]').onclick = () => documentEditor(documents,member.id);
+      annual.querySelector('[data-add-annual]').onclick = () => annualEditor(annual,member);
       details.ontoggle = () => {
-        if (details.open) void loadDocuments(details, items[details.dataset.staffDocuments].id);
+        if (!details.open) return;
+        void loadDocuments(documents,member.id);
+        void loadAnnualHistory(annual,member);
       };
     });
+  }
+  async function loadAnnualHistory(pane, member) {
+    const token = context()?.token;
+    renderStatus(pane,'Loading annual leave…');
+    try {
+      const [manual, sources] = await Promise.all([
+        rpc('goya_hr_annual_history',{p_staff:member.id}),
+        rpc('goya_hr_admin_annual_sources',{p_staff:member.id}),
+      ]);
+      if (!pane.isConnected || token !== context()?.token) return;
+      const rows = [...manual,...sources.map(row=>({...row,source_id:row.id,id:null}))];
+      const list = pane.querySelector('.hr-annual-list');
+      list.innerHTML = rows.length ? rows.map((row,index) => '<div class="hr-annual-row"><span><strong>' +
+        escaped(row.leave_from ? journeyRange(row.leave_from,row.leave_to) : 'N/A') + '</strong> · Done' +
+        (row.service_year ? ' · Service year ' + escaped(journeyDateFormat.format(journeyDate(row.service_year))) : '') +
+        (row.note ? '<br>' + escaped(row.note) : '') + '</span>' +
+        '<button class="btn secondary" type="button" data-annual-edit="' + index + '">Edit</button></div>').join('') :
+        '<p class="small muted">No completed annual leave recorded.</p>';
+      list.querySelectorAll('[data-annual-edit]').forEach(button =>
+        button.onclick = () => annualEditor(pane,member,rows[button.dataset.annualEdit]));
+      renderStatus(pane,'');
+    } catch (error) { if (pane.isConnected && token === context()?.token) renderStatus(pane,error.message); }
+  }
+  function annualEditor(pane, member, row = {}) {
+    const joined = member.profile?.joining_date;
+    const today = date();
+    if (!joined || joined > today) return renderStatus(pane,'Add a valid joining date in Staff Management first.');
+    const years = serviceYears(joined,today);
+    const preferred = row.service_year || years.find(year=>year <= (row.leave_from || today));
+    const id = row.id || crypto.randomUUID();
+    dialog('Annual Leave · ' + member.name,
+      '<label>Service year<select name="year" required>' + years.map(year => '<option value="' + year + '"' +
+        (year === preferred ? ' selected' : '') + '>' + escaped(journeyRange(year,anniversary(joined,Number(year.slice(0,4))+1))) +
+        '</option>').join('') + '</select></label>' +
+      '<p class="small muted">Saved as Done. For an earlier service year, leave both dates blank if unknown.</p>' +
+      '<div class="hr-fields"><label>From<input name="from" type="date" value="' + escaped(row.leave_from) + '"></label>' +
+      '<label>To<input name="to" type="date" value="' + escaped(row.leave_to) + '"></label></div>' +
+      '<label>Note visible to staff<textarea name="note" maxlength="2000">' + escaped(row.note) + '</textarea></label>',
+      async input => {
+        await rpc('goya_hr_save_annual_history',{p_staff:member.id,p_id:id,p_expected:row.updated_at || null,
+          p_source:row.source_id || null,p_year:input.year,p_from:input.from || null,p_to:input.to || null,p_note:input.note});
+        await loadAnnualHistory(pane,member);
+      });
   }
   async function openRecords() {
     const pane = $('hr-records');
@@ -372,6 +439,12 @@
     return year + '-' + String(month).padStart(2,'0') + '-' +
       String(Math.min(day,new Date(Date.UTC(year,month,0)).getUTCDate())).padStart(2,'0');
   }
+  function serviceYears(joined,today) {
+    const first = Number(joined.slice(0,4));
+    const current = Number(today.slice(0,4));
+    const newest = anniversary(joined,current) > today ? current-1 : current;
+    return Array.from({length:Math.max(0,Math.min(31,newest-first+1))},(_,i)=>anniversary(joined,newest-i));
+  }
   function serviceLength(joined, today) {
     const [year,month,day] = joined.split('-').map(Number);
     const [currentYear,currentMonth] = today.split('-').map(Number);
@@ -398,7 +471,8 @@
     const from = request.approved_from || request.requested_from;
     const to = request.approved_to || request.requested_to;
     const monthOnly = request.state === 'Recorded' && ['Cancelled Off','Attendance Note'].includes(request.kind);
-    const when = monthOnly ? period(request) : journeyRange(from,to);
+    const when = request.service_year && !from ? 'N/A · Service year ' + journeyDateFormat.format(journeyDate(request.service_year)) :
+      monthOnly ? period(request) : journeyRange(from,to);
     return '<article class="hr-leave-card">' + journeyIcon(request.kind === 'Annual Leave' ? '🌴' : '📋') +
       '<div class="hr-leave-card-body"><strong>' + escaped(request.kind) + '</strong><p class="hr-leave-dates">' +
       escaped(when) + '</p>' +
@@ -430,7 +504,14 @@
       '<div><h3>Pending Day Off</h3><p>PH/PO' +
       (pending?.week ? ' · As of ' + escaped(journeyDateFormat.format(journeyDate(pending.week))) : '') +
       '</p></div><strong>' + escaped(pending?.value ?? 'N/A') + '</strong></div>';
-    const annual = data.requests.filter(item => item.kind === 'Annual Leave' && item.state === 'Approved');
+    const history = data.annual_history || [];
+    const originals = new Map(data.requests.filter(item => item.kind === 'Annual Leave' && item.state === 'Approved')
+      .map(item=>[item.id,item]));
+    const replaced = new Set(history.map(item=>item.source_id).filter(Boolean));
+    const annual = [...Array.from(originals.values()).filter(item=>!replaced.has(item.id)), ...history.map(item=>({
+      kind:'Annual Leave',state:'Done',approved_from:item.leave_from,approved_to:item.leave_to,
+      service_year:item.service_year,review_note:item.note,payroll:originals.get(item.source_id)?.payroll,
+    }))].sort((a,b)=>(b.approved_from || b.service_year || '').localeCompare(a.approved_from || a.service_year || ''));
     if (annual.length) {
       markup += '<h3 class="hr-journey-heading">Annual leave history</h3><div class="hr-leave-list">' +
         annual.map(item => leaveCard(item,today)).join('') + '</div>';
@@ -443,7 +524,8 @@
       '<p class="hr-entitlement-rule">1 month per completed service year</p><ul class="hr-entitlement-list">';
     for (let year = startYear; year >= Math.max(Number(profile.joining_date.slice(0,4)),startYear - 30); year--) {
       const start = anniversary(profile.joining_date,year), next = anniversary(profile.joining_date,year + 1);
-      const used = annual.filter(item => item.approved_from < next && item.approved_to >= start);
+      const used = annual.filter(item => item.service_year ? item.service_year === start :
+        item.approved_from < next && item.approved_to >= start);
       const archived = (data.archived_annual_days || []).filter(day=>day>=start && day<next && day<today);
       const status = used.some(item => leaveStatus(item,today) === 'In progress') ? 'In progress' :
         used.some(item => leaveStatus(item,today) === 'Done') ? 'Done' : used.length ? 'Approved' :
@@ -485,17 +567,25 @@
     if (name === 'schedule') return;
     const pane = $('hr-' + name);
     empty(pane,'Loading…');
+    if (name === 'journey') renderStatus(pane,'');
     if (name === 'journey') {
       const documents = pane.querySelector('[data-hr-documents]');
-      if (documents) void loadDocuments(documents);
+      if (documents) {
+        documents.querySelector('[data-add-document]').onclick = () => documentEditor(documents);
+        void loadDocuments(documents);
+      }
     } else {
       $('hr-request-status')?.replaceChildren();
     }
     try {
-      const data = await rpc('goya_hr_my_journey');
+      const history = name === 'journey' ? rpc('goya_hr_annual_history').catch(error=>error) : Promise.resolve([]);
+      const [data, annual] = await Promise.all([rpc('goya_hr_my_journey'),history]);
       if (generation !== staffGeneration) return;
-      if (name === 'journey') content(pane).innerHTML = journeyMarkup(data);
-      else showMyRequests(pane,data.requests);
+      if (name === 'journey') {
+        content(pane).innerHTML = journeyMarkup({...data,annual_history:Array.isArray(annual) ? annual : []});
+        if (annual instanceof Error) renderStatus(pane,'Additional annual leave history could not be loaded. Reopen My Journey to retry.');
+        else renderStatus(pane,'');
+      } else showMyRequests(pane,data.requests);
     } catch (error) { if (generation === staffGeneration) empty(pane,error.message); }
   }
   async function documentRequest(token, body, json = false) {
@@ -544,50 +634,49 @@
       if (current()) status.textContent = error.message;
     }
   }
-  function bindDocumentUpload(pane, card, category, status, current) {
-    const input = card.querySelector('input[type=file]');
-    const action = card.querySelector('[data-document-upload]');
-    let uploadId, selected;
-    action.onclick = () => {
-      if (selected) void sendFile();
-      else input.click();
-    };
-    input.onchange = () => {
-      if (!input.files[0]) return;
-      selected = input.files[0];
+  function documentEditor(pane, staff = null, row = null) {
+    const token = context()?.token;
+    const generation = documentGeneration;
+    const current = () => pane.isConnected && token === context()?.token &&
+      (staff || generation === documentGeneration);
+    const categoryTitle = item => documentCategories.find(([key])=>key===item.category)?.[2] || item.custom_title;
+    const options = documentCategories.map(([key,,title])=>'<option value="' + key + '">' + title + '</option>').join('');
+    let uploadId = crypto.randomUUID(), customKey = 'custom-' + crypto.randomUUID();
+    const extra = staff && !row ? '<label hidden data-custom-title>Document name<input name="title" maxlength="100"></label>' : '';
+    const node = dialog(row ? 'Replace · ' + categoryTitle(row) : staff ? 'Upload Document' : 'Add Files',
+      (row ? '' : '<label>Document type<select name="category" required><option value="">Choose a document type</option>' +
+        options + (staff ? '<option value="custom">Custom document</option>' : '') + '</select></label>') + extra +
+      '<label>File<input type="file" name="file" accept="' + documentTypes.join(',') + '" required></label>' +
+      '<p class="small muted">PDF, JPG or PNG up to 5 MB per document.</p>',
+      async input => {
+        if (!current() || !token) throw Error('Sign in again and reopen this page.');
+        const file = input.file;
+        const category = row?.category || (input.category === 'custom' ? customKey : input.category);
+        const title = row?.custom_title || (input.category === 'custom' ? input.title.trim() : '');
+        if (input.category === 'custom' && !title) throw Error('Enter a document name.');
+        if (!documentTypes.includes(file?.type) || !file.size || file.size > 5000000) {
+          throw Error('Choose a PDF, JPG or PNG up to 5 MB.');
+        }
+        renderStatus(node,'Uploading to Google Drive…');
+        const body = new FormData();
+        body.set('id',uploadId);
+        body.set('category',category);
+        if (staff) body.set('staff',staff);
+        if (title) body.set('title',title);
+        body.set('file',file);
+        await documentRequest(token,body);
+        if (current()) await loadDocuments(pane,staff);
+      },'Upload');
+    const form = node.querySelector('form');
+    form.onchange = () => {
       uploadId = crypto.randomUUID();
-      input.value = '';
-      void sendFile();
+      customKey = 'custom-' + crypto.randomUUID();
+      const field = form.querySelector('[data-custom-title]');
+      if (field) {
+        field.hidden = form.elements.category.value !== 'custom';
+        form.elements.title.required = !field.hidden;
+      }
     };
-    async function sendFile() {
-      if (!current() || action.disabled) return;
-      if (!documentTypes.includes(selected.type) || !selected.size || selected.size > 5000000) {
-        selected = null;
-        status.textContent = 'Choose a PDF, JPG or PNG up to 5 MB.';
-        return;
-      }
-      action.disabled = true;
-      status.textContent = 'Uploading to Google Drive…';
-      const body = new FormData();
-      body.set('id',uploadId);
-      body.set('category',category);
-      body.set('file',selected);
-      try {
-        await documentRequest(context()?.token,body);
-        if (!current()) return;
-        await loadDocuments(pane);
-        if (current()) status.textContent = 'Document uploaded.';
-      } catch (error) {
-        if (!current()) return;
-        action.textContent = 'Retry upload';
-        const reset = card.querySelector('[data-document-reset]');
-        reset.hidden = false;
-        reset.onclick = () => { selected = null; input.click(); };
-        status.textContent = error.message;
-      } finally {
-        action.disabled = false;
-      }
-    }
   }
   async function loadDocuments(pane, staff = null) {
     const token = context()?.token, generation = documentGeneration;
@@ -597,34 +686,28 @@
     try {
       const rows = await rpc('goya_hr_documents',{p_staff:staff});
       if (!current()) return;
-      list.innerHTML = documentCategories.map(([category,icon,title]) => {
-        const versions = rows.filter(item=>item.category===category);
-        if (staff && !versions.length) return '';
-        const menu = !staff && versions.length ? '<details class="hr-document-menu"><summary aria-label="More options for ' +
-          title + '">⋯</summary><div><button type="button" class="btn secondary" data-document-upload>Replace</button>' +
-          '<button type="button" class="btn secondary" data-file-mode="download" data-file-id="' + escaped(versions[0].id) +
-          '">Download</button><button type="button" class="btn secondary" hidden data-document-reset>Choose another file</button></div></details>' : '';
-        return '<article class="hr-document-card" data-document-category="' + category + '"><h3><span aria-hidden="true">' +
-          icon + '</span> ' + title + '</h3>' + (versions.length ? versions.map(item => {
-          const id = escaped(item.id);
-          return '<div class="hr-document-version"><div><strong>' + escaped(item.file_name) + '</strong><small>' +
-            (staff ? (item.version_rank === 1 ? 'Current · ' : 'Previous · ') : '') +
-            escaped(uploadDate.format(new Date(item.uploaded_at))) + '</small></div><div class="hr-document-actions">' +
-            '<button type="button" class="btn secondary" data-file-mode="view" data-file-id="' + id + '">View</button>' +
-            (staff ? '<button type="button" class="btn secondary" data-file-mode="download" data-file-id="' + id +
-              '">Download</button>' : menu) + '</div></div>';
-        }).join('') : '<p class="small muted">No file uploaded</p><div class="hr-document-actions">' +
-          '<button type="button" class="btn secondary" data-document-upload>Upload</button>' +
-          '<button type="button" class="btn secondary" hidden data-document-reset>Choose another file</button></div>') +
-          (staff ? '' : '<input hidden type="file" accept="' + documentTypes.join(',') + '" aria-label="Choose ' + title + ' file">') +
-          '</article>';
+      list.innerHTML = rows.map((row,index) => {
+        const [,icon,title] = documentCategories.find(([key])=>key===row.category) || [row.category,'📎',row.custom_title || 'Document'];
+        const button = (mode,label) => '<button type="button" class="btn secondary" data-file-mode="' + mode +
+          '" data-file-index="' + index + '">' + label + '</button>';
+        const name = staff ? '<strong>' + escaped(row.file_name) + '</strong>' : '';
+        const date = escaped(uploadDate.format(new Date(row.uploaded_at)));
+        const version = staff ? (row.version_rank === 1 ? 'Current · ' : 'Previous · ') : '';
+        const menu = '<details class="hr-document-menu"><summary aria-label="More options for ' + escaped(title) +
+          '">⋯</summary><div>' +
+          (row.version_rank===1 && (staff || !row.custom_title) ? button('replace','Replace') : '') +
+          button('download','Download') + '</div></details>';
+        return '<article class="hr-document-card hr-file-card"><div><h3><span aria-hidden="true">' +
+          icon + '</span> ' + escaped(title) + '</h3>' + name + '<small>' + version + date + '</small></div>' +
+          '<div class="hr-document-actions">' + button('view','View') + menu + '</div></article>';
       }).join('') || '<p class="small muted">No documents uploaded.</p>';
       list.querySelectorAll('[data-file-mode]').forEach(button => {
-        const row = rows.find(item=>item.id===button.dataset.fileId);
-        button.onclick = () => void openDocument(row,staff,button.dataset.fileMode==='download',status,current);
+        const row = rows[button.dataset.fileIndex];
+        button.onclick = () => {
+          if (button.dataset.fileMode === 'replace') documentEditor(pane,staff,row);
+          else void openDocument(row,staff,button.dataset.fileMode==='download',status,current);
+        };
       });
-      if (!staff) list.querySelectorAll('[data-document-category]').forEach(card =>
-        bindDocumentUpload(pane,card,card.dataset.documentCategory,status,current));
       status.textContent = '';
     } catch (error) {
       if (current()) status.textContent = error.message;
@@ -661,6 +744,7 @@
     if ($('hr-email-settings')) $('hr-email-settings').querySelector('form').onsubmit = saveEmailSettings;
     if ($('hr-records')) {
       $('hr-record-filter').onchange = renderRecords;
+      $('hr-record-search').oninput = renderRecords;
       $('hr-preview-import').onclick = prepareImport;
       $('hr-commit-import').onclick = importArchive;
       $('hr-admin-archive-month').onchange = () => showArchive(true);
