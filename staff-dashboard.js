@@ -36,21 +36,75 @@
   $('dashOperations').textContent=`Team activity this month: ${Number(data.operations?.production)||0} production entries · ${Number(data.operations?.wastage)||0} wastage entries`;
   renderNotice();renderClock();
  }
- function renderClock(){if(!data)return;const d=data.today,ss=d.sessions||[],open=ss.find(s=>!s.check_out_at),row={...(d.day||{}),operational_date:d.operational_date,sessions:ss},c=totals(row,d.rules,true),status=open?'On Duty':ss.length?'Completed':d.day?.classification&&d.day.classification!=='Day Off - Pending Review'?d.day.classification:'Not checked in yet';
+ function renderClock(){if(rosterPublication&&!recentPublication()){rosterPublication=null;renderNotice();}if(!data)return;const d=data.today,ss=d.sessions||[],open=ss.find(s=>!s.check_out_at),row={...(d.day||{}),operational_date:d.operational_date,sessions:ss},c=totals(row,d.rules,true),status=open?'On Duty':ss.length?'Completed':d.day?.classification&&d.day.classification!=='Day Off - Pending Review'?d.day.classification:'Not checked in yet';
   $('dashTodayStatus').textContent=status;$('dashTodayStatus').classList.toggle('on',!!open);$('dashCheckIn').textContent=uae(ss[0]?.check_in_at);const outs=ss.filter(s=>s.check_out_at).sort((a,b)=>Date.parse(b.check_out_at)-Date.parse(a.check_out_at));$('dashCheckOut').textContent=uae(outs[0]?.check_out_at);
   $('dashWorked').textContent=mins(c.work);$('dashTarget').textContent=mins(c.target);$('dashBreak').textContent=d.rules?.force_no_break?'No break · set by Admin':c.breakTaken?'Break included':'No break';$('dashRemaining').textContent=mins(Math.ceil(Math.max(0,c.target-(c.otPolicy?c.creditedSeconds/60:c.work))));$('dashProgress').value=Math.min(100,(c.otPolicy?c.creditedSeconds/60:c.work)/c.target*100);
   $('dashReminderTime').textContent=c.otDisabled&&c.remainingSeconds<=0?'Overtime is currently disabled by management. Check Out when finished.':open?(c.work>=c.target?'Duty target reached':`Reminder ${c.work>=c.target-15?'is due now':`in ${mins(Math.ceil(c.target-15-c.work))}`} · ${c.target/60}h target`):'Reminder runs only while checked in';
  }
- function renderNotice(){const ns=data?.notices||[];if(!ns.length){$('dashNoticeContent').innerHTML='<span class="dash-eyebrow">NOTICE BOARD</span><h2>No new notices</h2><p>Management updates will appear here.</p>';$('dashNoticeControls').hidden=true;return;}
- noticeIndex=((noticeIndex%ns.length)+ns.length)%ns.length;const n=ns[noticeIndex];$('dashNoticeContent').innerHTML=`<span class="dash-eyebrow">NOTICE BOARD ${n.important?'<b class="dash-important">IMPORTANT</b>':''}</span><h2>${esc(n.title)}</h2><p>${esc(n.body)}</p><small>Management · ${esc(new Date(n.published_at||n.created_at||n.updated_at).toLocaleDateString('en-AE',{day:'numeric',month:'short',timeZone:'Asia/Dubai'}))}</small>`;
- $('dashNoticeControls').hidden=ns.length<2;$('dashNoticePosition').textContent=`${noticeIndex+1} / ${ns.length}`;$('dashNoticePause').textContent=paused?'Play':'Pause';$('dashNoticePause').setAttribute('aria-pressed',String(paused));}
+ let rosterPublication=null;
+ function recentPublication() {
+  const age=Date.now()-Date.parse(rosterPublication?.published_at);
+  return Number.isFinite(age)&&age>=0&&age<48*60*60*1000;
+ }
+ function scheduleNotice() {
+  if(!recentPublication())return null;
+  const week=rosterPublication.week;
+  if(!/^\d{4}-\d{2}-\d{2}$/.test(week||''))return null;
+  const start=new Date(week+'T00:00:00Z'),end=new Date(start);
+  if(Number.isNaN(start.getTime()))return null;
+  end.setUTCDate(end.getUTCDate()+6);
+  const format=new Intl.DateTimeFormat('en-GB',{day:'numeric',month:'short',year:'numeric',timeZone:'UTC'});
+  return {title:'New schedule published',body:format.formatRange(start,end),published_at:rosterPublication.published_at,roster:true};
+ }
+ function renderTomorrow(day,unavailable=false) {
+  const node=$('dashTomorrow');
+  if(!node)return;
+  const first=day?.segments?.[0],last=day?.segments?.at(-1);
+  const shift=day?.kind==='Shift'&&first&&last,off=day?.kind==='Weekly Off';
+  const label=shift?first.start:off?'DAY OFF':day?.kind||'—';
+  const hint=unavailable?'Schedule unavailable':shift?'Be on time':off?'Enjoy your day':day?'Take care':'Not scheduled yet';
+  $('dashTomorrowTime').textContent=label;
+  $('dashTomorrowEnd').textContent=shift?'– '+last.end+(last.end<first.start?' (+1 day)':''):'';
+  $('dashTomorrowHint').textContent=hint;
+  node.dataset.kind=shift?'shift':off?'off':'other';
+  const description=shift?day.segments.map(item=>item.start+'–'+item.end+(item.break?' · '+item.break+'m break':'')).join(' / '):label;
+  node.setAttribute('aria-label','Tomorrow · '+description+'. '+hint+'. Open My Schedule.');
+  node.title=description;
+ }
+ function setRoster(day,publication,unavailable=false) {
+  renderTomorrow(day,unavailable);
+  const was=rosterPublication?.published_at;
+  rosterPublication=publication||null;
+  if(was!==rosterPublication?.published_at)noticeIndex=0;
+  renderNotice();
+ }
+ function renderNotice() {
+  const announcement=scheduleNotice(),ns=[...(announcement?[announcement]:[]),...(data?.notices||[])];
+  if(!ns.length){$('dashNoticeContent').innerHTML='<span class="dash-eyebrow">NOTICE BOARD</span><h2>No new notices</h2><p>Management updates will appear here.</p>';$('dashNoticeControls').hidden=true;return;}
+  noticeIndex=((noticeIndex%ns.length)+ns.length)%ns.length;
+  const n=ns[noticeIndex];
+  $('dashNoticeContent').innerHTML='<span class="dash-eyebrow">NOTICE BOARD '+(n.important?'<b class="dash-important">IMPORTANT</b>':'')+
+   '</span><h2>'+esc(n.title)+'</h2><p>'+esc(n.body)+'</p>'+
+   (n.roster?'<button class="dash-schedule-link" type="button" data-open-schedule>View My Schedule →</button>':'')+
+   '<small>'+(n.roster?'Published':'Management')+' · '+esc(new Date(n.published_at||n.created_at||n.updated_at).toLocaleDateString('en-AE',{day:'numeric',month:'short',timeZone:'Asia/Dubai'}))+'</small>';
+  $('dashNoticeContent').querySelector('[data-open-schedule]')?.addEventListener('click',()=>go('staffSchedule'));
+  $('dashNoticeControls').hidden=ns.length<2;
+  $('dashNoticePosition').textContent=(noticeIndex+1)+' / '+ns.length;
+  $('dashNoticePause').textContent=paused?'Play':'Pause';
+  $('dashNoticePause').setAttribute('aria-pressed',String(paused));
+ }
+
  function step(n){noticeIndex+=n;renderNotice();if($('dashNoticeContent'))$('dashNoticeContent').scrollTop=0;}function togglePause(){paused=!paused;renderNotice();}
- async function open(force=false){if(loading||!ctx().token)return;startTimers();if(force)window.GoyaRoster?.reminder();if(data&&!force){renderClock();return;}const id=++requestId,token=ctx().token;loading=true;$('dashLoading').hidden=false;$('dashError').textContent='';
+ async function open(force=false){if(loading||!ctx().token)return;startTimers();if(force||!data)window.GoyaRoster?.reminder();if(data&&!force){renderClock();return;}const id=++requestId,token=ctx().token;loading=true;$('dashLoading').hidden=false;$('dashError').textContent='';
   try{const result=await rpc('goya_staff_dashboard');if(id!==requestId||token!==ctx().token)return;data=result;offset=Date.parse(data.server_now)-Date.now();render();await syncPushState();}
-  catch(e){if(id===requestId)$('dashError').textContent='Dashboard could not refresh: '+e.message+' Use Refresh to retry. Other sections remain available.';}
+  catch(e){if(id===requestId){
+  $('dashError').textContent='Dashboard could not refresh: '+e.message+' ';
+  const retry=document.createElement('button');retry.type='button';retry.className='btn secondary';
+  retry.textContent='Retry';retry.onclick=()=>open(true);$('dashError').append(retry);
+ }}
   finally{if(id===requestId){loading=false;$('dashLoading').hidden=true;}}
  }
- function go(id){if(id==='staffHistory')return window.GoyaStaff.openMonthHistory();const btn=document.querySelector(`.nav button[onclick*="'${id}'"]`);window.GoyaStaff.nav(btn,id);if(id==='staffLiveAttendance')window.GoyaLiveAttendance.open();}
+ function go(id){if(id==='staffHistory')return window.GoyaStaff.openMonthHistory();const btn=document.querySelector(`.nav button[onclick*="'${id}'"]`);window.GoyaStaff.nav(btn,id);if(id==='staffLiveAttendance')window.GoyaLiveAttendance.open();if(id==='staffSchedule')window.GoyaRoster?.open();}
  async function serviceWorker(){if(!('serviceWorker'in navigator))throw Error('This browser does not support reminders.');if(!registration)registration=await navigator.serviceWorker.register('sw.js');return navigator.serviceWorker.ready;}
  async function syncPushState(){const label=$('dashPushStatus');if(!('Notification'in window)||!('PushManager'in window)){label.textContent='Push reminders are not supported here. On iPhone, add this portal to the Home Screen first.';return;}
   try{const reg=await serviceWorker(),sub=await reg.pushManager.getSubscription();pushEnabled=sub?!!(await rpc('goya_staff_push_state',{p_endpoint:sub.endpoint})).enabled:false;label.textContent=Notification.permission==='denied'?'Notifications are blocked in browser settings.':pushEnabled?'Duty reminders and management notices enabled on this device.':'Notifications are off on this device.';$('dashPushEnable').textContent=pushEnabled?'Disable notifications':'Enable notifications';}catch{label.textContent='Notifications are unavailable. Try again when connected.';}
@@ -65,9 +119,9 @@
   await syncPushState();
  }catch(e){$('dashPushStatus').textContent=e.message;}finally{pushBusy=false;$('dashPushEnable').disabled=false;}}
  async function logout(){let sub;try{if(pushEnabled){const reg=await serviceWorker();sub=await reg.pushManager.getSubscription();if(sub)await rpc('goya_staff_push',{p_subscription:sub.toJSON(),p_enabled:false});}}catch{}finally{if(sub)try{await sub.unsubscribe();}catch{}stop();}}
- function stop(){window.GoyaRoster?.clearReminder();requestId++;data=null;loading=false;clearInterval(tickTimer);clearInterval(refreshTimer);clearInterval(noticeTimer);tickTimer=refreshTimer=noticeTimer=null;}
- function startTimers(){if(noticeTimer!==null)return;noticeTimer=setInterval(()=>{if(visible()&&!paused&&!$('dashNotice').matches(':hover')&&!$('dashNotice').contains(document.activeElement))step(1);},3000);tickTimer=setInterval(()=>{if(visible())renderClock();},1000);refreshTimer=setInterval(()=>{if(visible())open(true);},90000);}
+ function stop(){data=null;window.GoyaRoster?.clearReminder();requestId++;loading=false;clearInterval(tickTimer);clearInterval(refreshTimer);clearInterval(noticeTimer);tickTimer=refreshTimer=noticeTimer=null;}
+ function startTimers(){if(noticeTimer!==null)return;noticeTimer=setInterval(()=>{if(visible()&&!paused&&!$('dashNotice').matches(':hover')&&!$('dashNotice').contains(document.activeElement))step(1);},5000);tickTimer=setInterval(()=>{if(visible())renderClock();},1000);refreshTimer=setInterval(()=>{if(visible())open(true);},90000);}
  function init(){if(!$('staffDashboard'))return;const content=$('dashNoticeContent');content.tabIndex=0;content.setAttribute('aria-label','Notice content. Scroll to read; use Pause to keep this notice.');content.addEventListener('pointerdown',e=>{if(e.pointerType==='touch'){paused=true;$('dashNoticePause').textContent='Play';$('dashNoticePause').setAttribute('aria-pressed','true');}});paused=!!window.matchMedia?.('(prefers-reduced-motion: reduce)').matches;startTimers();
   document.addEventListener('goya:attendance-updated',()=>{data=null;if(visible())open(true);});document.addEventListener('visibilitychange',()=>{if(visible()&&ctx().token)open(true);});}
- window.GoyaDashboard={open,go,step,togglePause,togglePush,logout,stop};document.addEventListener('DOMContentLoaded',init);
+ window.GoyaDashboard={open,go,setRoster,step,togglePause,togglePush,logout,stop};document.addEventListener('DOMContentLoaded',init);
 })();

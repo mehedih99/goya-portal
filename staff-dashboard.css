@@ -11,3 +11,76 @@
 #dashNoticeContent h2{overflow-wrap:anywhere}#dashNoticeContent p{max-height:none;overflow:visible}
 #dashNoticeControls{flex:0 0 auto}.dash-notice-controls button{touch-action:manipulation}
 @media(max-width:1100px){#dashNotice{height:350px;min-height:350px;max-height:350px;gap:12px}#dashNoticeContent{height:auto}#dashNoticeControls{align-items:center;min-height:44px}}
+
+/* Compact roster clock and notice carousel on the Staff Dashboard. */
+#staffDashboard .dash-hero {
+  display:grid;grid-template-columns:minmax(0,1fr) auto;column-gap:12px;row-gap:18px;align-items:center;
+}
+#staffDashboard .dash-head {grid-area:1/1}
+#staffDashboard .dash-welcome {grid-area:2/1;display:block;min-width:0}
+#staffDashboard .dash-welcome h2 {font-size:clamp(16px,2.2vw,23px)}
+#staffDashboard .dash-welcome small {display:block;color:var(--muted);font-size:12px;margin-top:5px}
+#staffDashboard .dash-head p {color:var(--muted);font-size:13px}
+#staffDashboard .dash-tomorrow {
+  grid-area:1/2/3/3;position:relative;display:grid;place-items:center;isolation:isolate;
+  width:148px;aspect-ratio:1;border:1px solid var(--line);border-radius:50%;
+  color:var(--ink);background:radial-gradient(circle at 35% 20%,var(--soft),var(--panel) 80%);
+  box-shadow:inset 0 0 16px #82aaff15,0 6px 20px #00000018;text-decoration:none;overflow:hidden;
+}
+.dash-clock-face {display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;max-width:78%;text-align:center;z-index:1}
+.dash-clock-label {font-size:9px;letter-spacing:.09em;font-weight:650;color:var(--muted)}
+#dashTomorrowTime {font-size:26px;line-height:1.12;font-variant-numeric:tabular-nums}
+#dashTomorrowEnd {font-size:14px;font-variant-numeric:tabular-nums}
+#dashTomorrowHint {font-size:10px;color:var(--muted);line-height:1.3;margin-top:2px}
+.dash-tomorrow[data-kind="other"] #dashTomorrowTime {font-size:16px}
+.dash-tomorrow[data-kind="off"] #dashTomorrowTime {font-size:20px}
+.dash-tomorrow[data-kind="off"] #dashTomorrowEnd::after {content:"☀";font-size:22px;color:#d6a22e}
+.dash-clock-ticks {
+  position:absolute;inset:8px;border-radius:50%;
+  background:repeating-conic-gradient(from -1deg,var(--muted) 0deg 1deg,transparent 1deg 30deg);
+  -webkit-mask:radial-gradient(circle,transparent 63%,#000 64% 67%,transparent 68%);
+  mask:radial-gradient(circle,transparent 63%,#000 64% 67%,transparent 68%);opacity:.6;
+}
+.dash-clock-orbit {position:absolute;inset:1px;border:1px solid var(--accent);border-radius:50%;opacity:.9;animation:dash-clock-shine 9s linear infinite}
+.dash-clock-orbit::after {
+  content:"";position:absolute;top:-2px;left:50%;width:5px;height:5px;border-radius:50%;
+  background:var(--accent);box-shadow:0 0 6px var(--accent),0 0 13px var(--accent);
+}
+@keyframes dash-clock-shine {to{transform:rotate(360deg)}}
+#staffDashboard #dashNotice {
+  display:flex;flex-direction:column;height:246px;min-height:246px;max-height:246px;
+  padding:16px 18px;gap:10px;
+}
+#staffDashboard #dashNoticeContent {padding-right:4px;flex:1;min-height:0}
+#staffDashboard #dashNoticeContent h2 {font-size:19px;line-height:1.25;margin:9px 0 7px}
+#staffDashboard #dashNoticeContent p {font-size:13px;line-height:1.5;margin:0 0 7px}
+#staffDashboard #dashNoticeContent small {display:block;font-size:10px;margin-top:6px}
+#staffDashboard #dashNoticeControls {display:flex;align-items:center;gap:9px}
+#staffDashboard #dashNoticeControls[hidden] {display:none}
+#staffDashboard #dashNoticeControls button {font-size:12px;min-height:36px;padding:5px 10px;border-color:var(--line);color:var(--ink)}
+#staffDashboard #dashNoticeControls span {font-size:11px}
+#staffDashboard .dash-schedule-link {
+  display:block;border:0;padding:3px 0;background:transparent;color:inherit;text-decoration:underline;
+  text-underline-offset:3px;font:inherit;font-size:13px;font-weight:650;cursor:pointer;
+}
+@media(max-width:600px) {
+  #staffDashboard .dash-hero {column-gap:10px;row-gap:16px}
+  #staffDashboard .dash-head h1 {font-size:23px}
+  #staffDashboard .dash-tomorrow {width:134px}
+  #staffDashboard .dash-welcome h2 {font-size:16px;line-height:1.3}
+  #staffDashboard .dash-welcome small {font-size:11px;line-height:1.5}
+  #staffDashboard .dash-head p {font-size:11px;line-height:1.4}
+  #staffDashboard #dashNotice {height:230px;min-height:230px;max-height:230px;padding:14px 16px}
+}
+@media(max-width:370px) {
+  #staffDashboard .dash-tomorrow {width:114px}
+  #staffDashboard .dash-head h1 {font-size:21px}
+  #staffDashboard .dash-welcome h2 {font-size:14px}
+  #dashTomorrowTime {font-size:23px}
+  #dashTomorrowEnd {font-size:12px}
+  #dashTomorrowHint {font-size:9px}
+  .dash-tomorrow[data-kind="off"] #dashTomorrowTime {font-size:17px}
+}
+@media(prefers-reduced-motion:reduce) {
+  #staffDashboard .dash-clock-orbit {animation:none}
+}
