@@ -63,6 +63,7 @@
   const shift=day?.kind==='Shift'&&first&&last,off=day?.kind==='Weekly Off';
   const label=shift?first.start:off?'DAY OFF':day?.kind||'—';
   const hint=unavailable?'Schedule unavailable':shift?'Be on time':off?'Enjoy your day':day?'Take care':'Not scheduled yet';
+  node.querySelector('.dash-clock-label').textContent=shift?"TOMORROW’S DUTY":'TOMORROW';
   $('dashTomorrowTime').textContent=label;
   $('dashTomorrowEnd').textContent=shift?'– '+last.end+(last.end<first.start?' (+1 day)':''):'';
   $('dashTomorrowHint').textContent=hint;
