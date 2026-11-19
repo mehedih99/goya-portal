@@ -68,6 +68,11 @@
   next.setUTCDate(next.getUTCDate()+1);
   return next.toISOString().slice(0,10);
  }
+ function dutyTime(value) {
+  const [hour,minute]=value.split(':');
+  const hours=Number(hour);
+  return (hours%12||12)+':'+minute+(hours>=12?' PM':' AM');
+ }
  function renderDutyCard() {
   const node=$('dashTomorrow');
   if(!node)return;
@@ -97,7 +102,7 @@
   if(shift) {
    for(const segment of segments) {
     const line=document.createElement('span');
-    line.textContent=segment.start+' – '+segment.end;
+    line.textContent=dutyTime(segment.start)+' – '+dutyTime(segment.end);
     if(segment.end<segment.start) {
      const suffix=document.createElement('small');
      suffix.className='dash-duty-overnight';
@@ -111,7 +116,7 @@
   }
   $('dashTomorrowHint').textContent=hint;
   node.dataset.kind=shift?'shift':off?'off':'other';
-  const description=shift?segments.map(item=>item.start+'–'+item.end+(item.break?' · '+item.break+'m break':'')).join(' / '):time.textContent;
+  const description=shift?segments.map(item=>dutyTime(item.start)+'–'+dutyTime(item.end)+(item.break?' · '+item.break+'m break':'')).join(' / '):time.textContent;
   node.setAttribute('aria-label',heading+' · '+$('dashDutyDate').textContent+' · '+description+'. '+hint+'. Open My Schedule.');
   node.title=description;
  }
