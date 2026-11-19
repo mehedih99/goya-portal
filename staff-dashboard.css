@@ -12,45 +12,49 @@
 #dashNoticeControls{flex:0 0 auto}.dash-notice-controls button{touch-action:manipulation}
 @media(max-width:1100px){#dashNotice{height:350px;min-height:350px;max-height:350px;gap:12px}#dashNoticeContent{height:auto}#dashNoticeControls{align-items:center;min-height:44px}}
 
-/* Compact roster clock and notice carousel on the Staff Dashboard. */
-#staffDashboard .dash-hero {
-  display:grid;grid-template-columns:minmax(0,1fr) auto;column-gap:12px;row-gap:18px;align-items:center;
-}
-#staffDashboard .dash-head {grid-area:1/1}
-#staffDashboard .dash-welcome {grid-area:2/1;display:block;min-width:0}
-#staffDashboard .dash-welcome h2 {font-size:clamp(16px,2.2vw,23px)}
-#staffDashboard .dash-welcome small {display:block;color:var(--muted);font-size:12px;margin-top:5px}
-#staffDashboard .dash-head p {color:var(--muted);font-size:13px}
+/* Compact duty card and notice carousel on the Staff Dashboard. */
+#staffDashboard .dash-hero {display:grid;grid-template-columns:minmax(0,1fr);gap:14px}
+#staffDashboard .dash-head {display:block}
+#staffDashboard .dash-head h1 {font-size:28px}
+#staffDashboard .dash-head p {color:var(--muted);font-size:14px}
+#staffDashboard .dash-welcome {display:block;min-width:0}
+#staffDashboard .dash-welcome h2 {font-size:22px;line-height:1.3}
+#staffDashboard .dash-welcome small {display:block;color:var(--muted);font-size:13px;margin-top:5px}
 #staffDashboard .dash-tomorrow {
-  grid-area:1/2/3/3;position:relative;display:grid;place-items:center;isolation:isolate;
-  width:148px;aspect-ratio:1;border:1px solid var(--line);border-radius:50%;
-  color:var(--ink);background:radial-gradient(circle at 35% 20%,var(--soft),var(--panel) 80%);
-  box-shadow:inset 0 0 16px #82aaff15,0 6px 20px #00000018;text-decoration:none;overflow:hidden;
+  position:relative;display:grid;gap:9px;max-width:560px;width:100%;padding:12px 16px;
+  border:1px solid var(--accent);border-radius:18px;color:var(--ink);text-decoration:none;overflow:hidden;
+  background:radial-gradient(ellipse at 10% 0%,var(--soft),transparent 75%),var(--panel);
+  box-shadow:inset 0 1px #ffffff16,0 6px 20px #00000018;
 }
-.dash-clock-face {display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;max-width:78%;text-align:center;z-index:1}
-.dash-clock-label {font-size:9px;letter-spacing:.09em;font-weight:650;color:var(--muted)}
-#dashTomorrowTime {font-size:26px;line-height:1.12;font-variant-numeric:tabular-nums}
-#dashTomorrowEnd {font-size:14px;font-variant-numeric:tabular-nums}
-#dashTomorrowHint {font-size:10px;color:var(--muted);line-height:1.3;margin-top:2px}
-.dash-tomorrow[data-kind="other"] #dashTomorrowTime {font-size:16px}
-.dash-tomorrow[data-kind="off"] #dashTomorrowTime {font-size:20px}
-.dash-tomorrow[data-kind="off"] #dashTomorrowEnd::after {content:"☀";font-size:22px;color:#d6a22e}
-.dash-clock-ticks {
-  position:absolute;inset:8px;border-radius:50%;
-  background:repeating-conic-gradient(from -1deg,var(--muted) 0deg 1deg,transparent 1deg 30deg);
-  -webkit-mask:radial-gradient(circle,transparent 63%,#000 64% 67%,transparent 68%);
-  mask:radial-gradient(circle,transparent 63%,#000 64% 67%,transparent 68%);opacity:.6;
+#staffDashboard .dash-tomorrow::after {
+  content:"";position:absolute;inset:auto -20% -75% 20%;height:100%;border-radius:50%;
+  background:var(--accent2);transform:rotate(-10deg);pointer-events:none;
 }
-.dash-clock-orbit {position:absolute;inset:1px;border:1px solid var(--accent);border-radius:50%;opacity:.9;animation:dash-clock-shine 9s linear infinite}
-.dash-clock-orbit::after {
-  content:"";position:absolute;top:-2px;left:50%;width:5px;height:5px;border-radius:50%;
-  background:var(--accent);box-shadow:0 0 6px var(--accent),0 0 13px var(--accent);
+.dash-duty-top,.dash-duty-body,.dash-duty-bottom {display:flex;align-items:center;justify-content:space-between;gap:12px;position:relative;z-index:1;min-width:0}
+.dash-duty-top {justify-content:flex-start;flex-wrap:wrap;gap:8px 12px}
+.dash-duty-date {display:inline-flex;align-items:center;gap:5px;background:var(--accent2);border:1px solid var(--line);border-radius:9px;padding:5px 8px;white-space:nowrap;font-size:12px;font-weight:550}
+html[data-theme="dark"] #staffDashboard .dash-tomorrow {
+  border-color:#63aadd;
+  background:radial-gradient(ellipse at 5% 0%,#367aa85e,transparent 70%),linear-gradient(125deg,#142a49,#111c34);
+  box-shadow:inset 0 1px #a5ddff3d,0 6px 20px #00000018;
 }
+.dash-duty-date {text-transform:uppercase}
+.dash-duty-date > span:first-child {font-size:15px}
+.dash-clock-label {font-size:16px;font-weight:600;line-height:1.3}
+#dashTomorrowTime {display:grid;gap:3px;font-size:27px;font-weight:450;line-height:1.25;font-variant-numeric:tabular-nums;min-width:0;overflow-wrap:anywhere}
+.dash-duty-overnight {font-size:11px;color:var(--muted);font-weight:400}
+#dashTomorrowHint {font-size:13px;color:var(--muted);font-weight:400;line-height:1.4}
+.dash-duty-arrow {font-size:19px;line-height:1;border:1px solid var(--line);border-radius:12px;padding:1px 13px}
+.dash-duty-clock {display:block;position:relative;width:40px;height:40px;flex:none;margin-right:5px}
+.dash-clock-orbit {position:absolute;inset:0;border:2px solid var(--accent);border-radius:50%;animation:dash-clock-shine 9s linear infinite}
+.dash-clock-orbit::after {content:"";position:absolute;top:-3px;left:50%;width:5px;height:5px;border-radius:50%;background:var(--accent);box-shadow:0 0 6px var(--accent),0 0 12px var(--accent)}
+.dash-clock-hands {position:absolute;top:10px;left:18px;height:12px;width:2px;background:var(--ink);border-radius:2px}
+.dash-clock-hands::after {content:"";position:absolute;bottom:0;left:0;width:10px;height:2px;border-radius:2px;background:var(--ink)}
+.dash-tomorrow:is([data-kind="off"],[data-kind="other"]) #dashTomorrowTime {font-size:20px}
+.dash-tomorrow[data-kind="off"] .dash-clock-hands {background:transparent;inset:0;width:40px;height:40px;display:grid;place-items:center;color:#d6a22e}
+.dash-tomorrow[data-kind="off"] .dash-clock-hands::after {content:"☀";position:static;width:auto;height:auto;background:transparent;font-size:23px}
 @keyframes dash-clock-shine {to{transform:rotate(360deg)}}
-#staffDashboard #dashNotice {
-  display:flex;flex-direction:column;height:246px;min-height:246px;max-height:246px;
-  padding:16px 18px;gap:10px;
-}
+#staffDashboard #dashNotice {display:flex;flex-direction:column;height:246px;min-height:246px;max-height:246px;padding:16px 18px;gap:10px}
 #staffDashboard #dashNoticeContent {padding-right:4px;flex:1;min-height:0}
 #staffDashboard #dashNoticeContent h2 {font-size:19px;line-height:1.25;margin:9px 0 7px}
 #staffDashboard #dashNoticeContent p {font-size:13px;line-height:1.5;margin:0 0 7px}
@@ -59,28 +63,20 @@
 #staffDashboard #dashNoticeControls[hidden] {display:none}
 #staffDashboard #dashNoticeControls button {font-size:12px;min-height:36px;padding:5px 10px;border-color:var(--line);color:var(--ink)}
 #staffDashboard #dashNoticeControls span {font-size:11px}
-#staffDashboard .dash-schedule-link {
-  display:block;border:0;padding:3px 0;background:transparent;color:inherit;text-decoration:underline;
-  text-underline-offset:3px;font:inherit;font-size:13px;font-weight:650;cursor:pointer;
-}
+#staffDashboard .dash-schedule-link {display:block;border:0;padding:3px 0;background:transparent;color:inherit;text-decoration:underline;text-underline-offset:3px;font:inherit;font-size:13px;font-weight:650;cursor:pointer}
 @media(max-width:600px) {
-  #staffDashboard .dash-hero {column-gap:10px;row-gap:16px}
-  #staffDashboard .dash-head h1 {font-size:23px}
-  #staffDashboard .dash-tomorrow {width:134px}
-  #staffDashboard .dash-welcome h2 {font-size:16px;line-height:1.3}
-  #staffDashboard .dash-welcome small {font-size:11px;line-height:1.5}
-  #staffDashboard .dash-head p {font-size:11px;line-height:1.4}
+  #staffDashboard .dash-head h1 {font-size:25px}
+  #staffDashboard .dash-welcome h2 {font-size:20px}
+  #staffDashboard .dash-head p {font-size:13px}
+  #staffDashboard .dash-tomorrow {padding:11px 14px;gap:8px}
+  #dashTomorrowTime {font-size:25px}
   #staffDashboard #dashNotice {height:230px;min-height:230px;max-height:230px;padding:14px 16px}
 }
 @media(max-width:370px) {
-  #staffDashboard .dash-tomorrow {width:114px}
-  #staffDashboard .dash-head h1 {font-size:21px}
-  #staffDashboard .dash-welcome h2 {font-size:14px}
   #dashTomorrowTime {font-size:23px}
-  #dashTomorrowEnd {font-size:12px}
-  #dashTomorrowHint {font-size:9px}
-  .dash-tomorrow[data-kind="off"] #dashTomorrowTime {font-size:17px}
+  .dash-clock-label {font-size:15px}
+  .dash-duty-clock {width:36px;height:36px}
+  .dash-clock-hands {left:16px;top:8px}
+  .dash-tomorrow[data-kind="off"] .dash-clock-hands {width:36px;height:36px}
 }
-@media(prefers-reduced-motion:reduce) {
-  #staffDashboard .dash-clock-orbit {animation:none}
-}
+@media(prefers-reduced-motion:reduce) {#staffDashboard .dash-clock-orbit {animation:none}}
