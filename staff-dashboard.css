@@ -41,19 +41,38 @@ html[data-theme="dark"] #staffDashboard .dash-tomorrow {
 .dash-duty-date {text-transform:uppercase}
 .dash-duty-date > span:first-child {font-size:15px}
 .dash-clock-label {font-size:16px;font-weight:600;line-height:1.3}
-#dashTomorrowTime {display:grid;gap:3px;font-size:27px;font-weight:450;line-height:1.25;font-variant-numeric:tabular-nums;min-width:0;overflow-wrap:anywhere}
+#dashTomorrowTime {display:grid;gap:3px;font-size:24px;font-weight:450;line-height:1.25;font-variant-numeric:tabular-nums;min-width:0;overflow-wrap:anywhere}
 .dash-duty-overnight {font-size:11px;color:var(--muted);font-weight:400}
 #dashTomorrowHint {font-size:13px;color:var(--muted);font-weight:400;line-height:1.4}
 .dash-duty-arrow {font-size:19px;line-height:1;border:1px solid var(--line);border-radius:12px;padding:1px 13px}
-.dash-duty-clock {display:block;position:relative;width:40px;height:40px;flex:none;margin-right:5px}
-.dash-clock-orbit {position:absolute;inset:0;border:2px solid var(--accent);border-radius:50%;animation:dash-clock-shine 9s linear infinite}
-.dash-clock-orbit::after {content:"";position:absolute;top:-3px;left:50%;width:5px;height:5px;border-radius:50%;background:var(--accent);box-shadow:0 0 6px var(--accent),0 0 12px var(--accent)}
-.dash-clock-hands {position:absolute;top:10px;left:18px;height:12px;width:2px;background:var(--ink);border-radius:2px}
-.dash-clock-hands::after {content:"";position:absolute;bottom:0;left:0;width:10px;height:2px;border-radius:2px;background:var(--ink)}
+.dash-duty-companion {display:block;position:relative;width:64px;height:56px;flex:none;overflow:hidden;pointer-events:none}
+.dash-companion-sprite {display:block;position:absolute;bottom:0;left:0;width:64px;height:64px;background:url("goya-companion.webp?v=1") 0 0 / 400% 200% no-repeat;animation:dash-companion-poses 32s steps(1,end) infinite,dash-companion-motion 32s ease-in-out infinite;transform-origin:50% 90%}
 .dash-tomorrow:is([data-kind="off"],[data-kind="other"]) #dashTomorrowTime {font-size:20px}
-.dash-tomorrow[data-kind="off"] .dash-clock-hands {background:transparent;inset:0;width:40px;height:40px;display:grid;place-items:center;color:#d6a22e}
-.dash-tomorrow[data-kind="off"] .dash-clock-hands::after {content:"☀";position:static;width:auto;height:auto;background:transparent;font-size:23px}
-@keyframes dash-clock-shine {to{transform:rotate(360deg)}}
+@keyframes dash-companion-poses {
+  0%,8%,14%,20% {background-position:0 0}
+  11%,17% {background-position:33.333333% 0}
+  26%,32% {background-position:66.666667% 0}
+  29%,35% {background-position:100% 0}
+  38% {background-position:0 100%}
+  44%,54% {background-position:100% 100%}
+  60%,68% {background-position:33.333333% 100%}
+  64%,72% {background-position:66.666667% 100%}
+  78%,86%,100% {background-position:0 0}
+  82% {background-position:33.333333% 0}
+}
+@keyframes dash-companion-motion {
+  0%,3%,97%,100% {transform:translateY(64px)}
+  6% {transform:translateY(25px)}
+  9%,22%,41%,57%,75%,89% {transform:translateY(0)}
+  26%,32% {transform:translateY(-2px) rotate(-7deg)}
+  29%,35% {transform:translateY(-4px) rotate(7deg)}
+  38% {transform:translateY(0) rotate(0)}
+  47%,54% {transform:translateY(3px)}
+  62%,70% {transform:translateX(-1px)}
+  66%,74% {transform:translateX(1px)}
+  93% {transform:translateY(25px)}
+}
+#staffDashboard.hidden .dash-companion-sprite {animation-play-state:paused}
 #staffDashboard #dashNotice {display:flex;flex-direction:column;height:246px;min-height:246px;max-height:246px;padding:16px 18px;gap:10px}
 #staffDashboard #dashNoticeContent {padding-right:4px;flex:1;min-height:0}
 #staffDashboard #dashNoticeContent h2 {font-size:19px;line-height:1.25;margin:9px 0 7px}
@@ -69,14 +88,11 @@ html[data-theme="dark"] #staffDashboard .dash-tomorrow {
   #staffDashboard .dash-welcome h2 {font-size:20px}
   #staffDashboard .dash-head p {font-size:13px}
   #staffDashboard .dash-tomorrow {padding:11px 14px;gap:8px}
-  #dashTomorrowTime {font-size:25px}
+  #dashTomorrowTime {font-size:21px}
   #staffDashboard #dashNotice {height:230px;min-height:230px;max-height:230px;padding:14px 16px}
 }
 @media(max-width:370px) {
-  #dashTomorrowTime {font-size:23px}
+  #dashTomorrowTime {font-size:19px}
   .dash-clock-label {font-size:15px}
-  .dash-duty-clock {width:36px;height:36px}
-  .dash-clock-hands {left:16px;top:8px}
-  .dash-tomorrow[data-kind="off"] .dash-clock-hands {width:36px;height:36px}
 }
-@media(prefers-reduced-motion:reduce) {#staffDashboard .dash-clock-orbit {animation:none}}
+@media(prefers-reduced-motion:reduce) {#staffDashboard .dash-companion-sprite {animation:none;transform:none;background-position:0 0}}
