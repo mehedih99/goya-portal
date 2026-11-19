@@ -18,6 +18,7 @@
     day.segments.map(s=>s.start+'–'+s.end+(s.end<s.start?' (+1 day)':'')+(s.break?' · '+s.break+'m break':'')).join(' / ');
   const context = () => $('roster-admin') ? window.GoyaAttendance?._liveContext() : window.GoyaStaff?._liveContext();
   let client, revision=0, staff=[], schedule, activeWeek, request=0, busy=false;
+  let offBalances={};
   let dirty=false, publishedStaff=null, approvedLeave=[], staffWeeks=[], reminderRequest=0;
   async function rpc(name, args) {
     const token=context()?.token;
@@ -63,6 +64,7 @@
       revision=data.draft?.revision || 0;
       schedule=data.draft?.draft || {staff:{},notes:''};
       staff=data.staff;
+      offBalances=data.off_balances || {};
       approvedLeave=data.approved_leave || [];
       publishedStaff=data.draft?.published_staff || null;
       $('roster-download').disabled=!publishedStaff;
@@ -86,15 +88,33 @@
     const leave=approvedDay(id,index);
     return leave ? {kind:leave.kind,segments:[],note:''} : day;
   }
+  function rosterColor(day) {
+    return !day?'':day.kind==='Weekly Off'?'roster-shift-off':day.kind==='Annual Leave'?'roster-shift-annual':day.kind!=='Shift'?'roster-shift-leave':day.segments?.[0]?.start<'12:00'?'roster-shift-morning':'roster-shift-closing';
+  }
+  function publishPreview() {
+    const warnings=[],counts={shifts:0,off:0,leave:0,blank:0};
+    for(const member of staff)for(let i=0;i<7;i++) {
+      const raw=schedule.staff[member.id]?.[i],day=effectiveDay(member.id,i,raw);
+      counts[!day?'blank':day.kind==='Shift'?'shifts':day.kind==='Weekly Off'?'off':'leave']++;
+      if(!day)warnings.push(member.name+' · '+add(activeWeek,i)+' · Not scheduled');
+      if(approvedDay(member.id,i)&&raw?.kind==='Shift')warnings.push(member.name+' · '+add(activeWeek,i)+' · Approved leave replaces draft duty');
+    }
+    return new Promise(resolve=>{
+      const node=document.createElement('dialog');node.className='card management-dialog';
+      node.innerHTML='<h2>Review before publishing</h2><p>'+esc(weekLabel(activeWeek))+'</p><p>'+staff.length+' staff · '+counts.shifts+' shifts · '+counts.off+' weekly offs · '+counts.leave+' leave days · '+counts.blank+' blank days</p><p>Approved leave is kept automatically.</p><details><summary>Warnings ('+warnings.length+')</summary><p>'+warnings.map(esc).join('<br>')+'</p></details><div class="toolbar"><button class="btn" data-confirm>Publish roster</button><button class="btn secondary" data-cancel>Back to draft</button></div>';
+      let confirmed=false;node.querySelector('[data-confirm]').onclick=()=>{confirmed=true;node.close();};node.querySelector('[data-cancel]').onclick=()=>node.close();
+      node.onclose=()=>{node.remove();resolve(confirmed);};document.body.append(node);node.showModal();
+    });
+  }
   function renderAdmin() {
     const grid=$('roster-grid');
-    grid.innerHTML='<thead><tr><th>Staff</th>'+names.map((name,i)=>'<th>'+name+'<br>'+shortDate(add(activeWeek,i))+'</th>').join('')+'</tr></thead>'+
+    grid.innerHTML='<thead><tr><th>Staff</th>'+names.map((name,i)=>'<th>'+name+'<br>'+shortDate(add(activeWeek,i))+'</th>').join('')+'<th>Off Balance</th></tr></thead>'+
       '<tbody>'+staff.map(member=>'<tr><th scope="row">'+esc(member.name)+'</th>'+schedule.staff[member.id].map((day,i)=>{
         const leave=approvedDay(member.id,i), text=describe(effectiveDay(member.id,i,day));
-        return '<td><button type="button" class="btn secondary" data-roster-staff="'+esc(member.id)+'" data-roster-day="'+i+
+        return '<td><button type="button" class="btn secondary '+rosterColor(effectiveDay(member.id,i,day))+'" data-roster-staff="'+esc(member.id)+'" data-roster-day="'+i+
           '" aria-label="'+esc(member.name+' '+names[i]+': '+text+(leave?' (approved request)':''))+'"'+
           (leave?' disabled title="Change approved dates in Staff Requests"':'')+'>'+esc(text)+'</button></td>';
-      }).join('')+'</tr>').join('')+'</tbody>';
+      }).join('')+'<td><button class="btn secondary roster-off-balance" data-roster-balance="'+esc(member.id)+'">'+esc(offBalances[member.id]?.balance??0)+'</button></td></tr>').join('')+'</tbody>';
   }
   async function save(publish) {
     if(busy || !schedule) return;
@@ -103,6 +123,7 @@
     $('roster-week').disabled=true;
     try {
       const activeStaff=new Set(staff.map(member=>member.id));
+      if(publish&&!await publishPreview())return;
       const former=Object.keys(schedule.staff).filter(id=>!activeStaff.has(id));
       if(publish && former.length && !confirm('Exclude inactive staff from this publication? Earlier publications will be kept.')) return;
       schedule.notes=$('roster-notes').value.trim();
@@ -366,6 +387,32 @@
         $('roster-edit-status').textContent='Shift preset saved on this device.';
       } catch (error) { $('roster-edit-status').textContent=error.message; }
     };
+    $('roster-template').onclick=()=>{
+      if(!activeWeek||!window.XLSX)return;
+      const rows=[['Staff',...names.map((name,i)=>add(activeWeek,i))],...staff.map(m=>[m.name,...Array(7).fill('')])];
+      const book=XLSX.utils.book_new(),sheet=XLSX.utils.aoa_to_sheet(rows);
+      sheet['!cols']=[{wch:24},...Array(7).fill({wch:22})];
+      XLSX.utils.book_append_sheet(book,sheet,'Weekly roster');
+      XLSX.utils.book_append_sheet(book,XLSX.utils.aoa_to_sheet([
+        ['GOYA Weekly Roster Template'],['Week starts Monday',activeWeek],
+        ['Shift example','09:00-18:00'],['Closing example','16:00-01:00'],
+        ['Split shift example','08:00-12:00 / 16:00-20:00'],['Day off','Weekly Off'],['Vacation','Annual Leave'],
+        ['Other leave','Sick Leave or Other Leave'],
+        ['Import','Select the same week in GOYA, choose Import Excel, Preview, then Apply to draft. Publish after review.'],
+        ['Off Balance','Edit Off Balance directly in GOYA. This template changes shifts only.']
+      ]),'Instructions');
+      XLSX.writeFile(book,'GOYA-roster-template-'+activeWeek+'.xlsx');
+    };
+    $('roster-grid').addEventListener('click',event=>{
+      const button=event.target.closest('[data-roster-balance]');if(!button||busy)return;
+      const member=staff.find(m=>m.id===button.dataset.rosterBalance);if(!member)return;
+      const week=activeWeek,version=request;
+      GoyaManagement.editBalance({...member,off_balance:offBalances[member.id]||{balance:0,revision:0}},async()=>{
+        const values=await GoyaManagement.rpc('goya_management_balances');
+        if(week===activeWeek&&version===request){offBalances=values;renderAdmin();}
+      });
+    });
+    window.addEventListener('beforeunload',event=>{if(dirty){event.preventDefault();event.returnValue='';}});
     initRosterImport();
     picker.addEventListener('change',()=>loadAdmin(picker.value));
     $('roster-notes').addEventListener('input',()=>{dirty=true;});

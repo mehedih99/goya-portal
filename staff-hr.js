@@ -16,6 +16,7 @@
   let staffGeneration = 0;
   let documentGeneration = 0;
   let submissionId;
+  let currentOffBalance=null;
   let archiveRows = [];
 
   async function rpc(name, payload = {}) {
@@ -144,6 +145,7 @@
     return node;
   }
   function resetStaff() {
+    currentOffBalance=null;
     staffGeneration++;
     documentGeneration++;
     submissionId = null;
@@ -162,7 +164,7 @@
   function rejoinEditor(member, refresh) {
     dialog('Rejoin · ' + member.name, '<label>Rejoin date<input type="date" name="date" value="' + date() +
       '" required></label>', async input => {
-      await rpc('goya_hr_rejoin', {p_staff:member.id,p_date:input.date});
+      await rpc('goya_management_rejoin', {p_staff:member.id,p_date:input.date});
       await refresh();
     });
   }
@@ -180,13 +182,17 @@
       const profile = member.profile || {};
       const fields = [['Employee ID',profile.employee_code],['Position',profile.position],['Branch',profile.branch],
         ['Joining date',profile.joining_date],['Last working day',profile.last_day]];
-      return '<details class="hr-staff-card" data-staff-record="' + i + '"><summary><strong>' + escaped(member.name) +
+      return '<details class="hr-staff-card" data-staff-record="' + i + '" data-staff-id="' + escaped(member.id) + '"><summary><strong>' + escaped(member.name) +
         '</strong><span>' + escaped([profile.employee_code,stateOf(member)].filter(Boolean).join(' · ')) + '</span></summary>' +
-        '<div class="hr-staff-card-body"><dl class="hr-journey-details">' + fields.map(([label,value]) =>
+        '<div class="hr-staff-card-body"><div class="toolbar"><button class="btn secondary" type="button" data-staff-pdf>⬇ Staff PDF</button><button class="btn secondary" type="button" data-balance>Edit Off Balance: ' + escaped(member.off_balance?.balance ?? 'N/A') + '</button></div><dl class="hr-journey-details">' + fields.map(([label,value]) =>
           '<div><dt>' + label + '</dt><dd>' + escaped(value || 'N/A') + '</dd></div>').join('') + '</dl>' +
         (member.history || []).map(item => '<p class="small muted">' + escaped(item.event) + ' · ' +
           escaped(item.details.rejoined_on || item.details.last_day) + '</p>').join('') +
         (profile.manager_notes ? '<p><strong>Private manager notes</strong><br>' + escaped(profile.manager_notes) + '</p>' : '') +
+        '<section><h3>Employment &amp; management history</h3>' +
+        (member.resignation && !member.resignation.cancelled_at ? '<p><strong>Resignation · Last Working Day: ' + escaped(member.resignation.last_working_day) + '</strong></p><p>' + escaped(member.resignation.note) + '</p>' : '') +
+        '<details><summary>View change history ('+(member.history||[]).length+')</summary>'+(member.history||[]).map(h=>'<div class="hr-private-note"><strong>'+escaped(h.event)+'</strong><p>'+escaped(h.created_at)+'</p><p>'+escaped(h.details?.actor||'Management')+'</p><p>'+escaped(h.details?.reason||h.details?.note||'')+'</p>'+(h.event==='Off balance changed'?'<p>Balance: '+escaped(h.details?.before?.balance)+' → '+escaped(h.details?.after?.balance)+'</p>':'')+'</div>').join('')+'</details></section>' +
+        '<details data-record-activity><summary>Attendance, roster and request records</summary><p role="status"></p><div data-record-activity-content></div></details>'+
         '<section data-annual-history><h3>Annual Leave History</h3><button type="button" class="btn secondary" data-add-annual>＋ Add annual leave</button>' +
         '<p class="small" role="status"></p><div class="hr-annual-list"></div></section>' +
         '<section data-record-documents><h3>Document history</h3><button type="button" class="btn secondary" data-add-document>＋ Upload Document</button>' +
@@ -197,6 +203,10 @@
       const member = items[details.dataset.staffRecord];
       const documents = details.querySelector('[data-record-documents]');
       const annual = details.querySelector('[data-annual-history]');
+      const activity=details.querySelector('[data-record-activity]');
+      activity.ontoggle=()=>{if(activity.open)GoyaManagement.renderRecordActivity(activity,member);};
+      details.querySelector('[data-staff-pdf]').onclick=async()=>{try{renderStatus(documents,'Preparing PDF…');await GoyaManagement.staffPDF(member);renderStatus(documents,'');}catch(e){renderStatus(documents,e.message);}};
+      details.querySelector('[data-balance]').onclick=()=>GoyaManagement.editBalance(member,openRecords);
       documents.querySelector('[data-add-document]').onclick = () => documentEditor(documents,member.id);
       annual.querySelector('[data-add-annual]').onclick = () => annualEditor(annual,member);
       details.ontoggle = () => {
@@ -255,7 +265,7 @@
     empty(pane,'');
     renderStatus(pane,'Loading records…');
     try {
-      profiles = await rpc('goya_hr_admin_profiles');
+      profiles = await rpc('goya_management_profiles');
       renderRecords();
       renderStatus(pane,'');
     } catch (error) { renderStatus(pane,error.message); }
@@ -269,65 +279,75 @@
     return from === to ? from : from + ' – ' + to;
   };
   function leaveStatus(request, today = date()) {
-    if (request.kind !== 'Annual Leave' || request.state !== 'Approved') return request.state;
+    if (request.state !== 'Approved') return request.state;
+    if(request.kind==='Resignation')return request.approved_to<today?'Done':'Approved';
     if (request.approved_to < today) return 'Done';
     return request.approved_from <= today ? 'In progress' : 'Approved';
   }
   function filteredRequests() {
     const filter = $('hr-request-filter').value;
-    return requests.filter(request => filter === 'All requests' || request.state === filter || leaveStatus(request) === filter);
+    const search=$('hr-request-search')?.value.trim().toLowerCase()||'';
+    return requests.filter(request => (!search||request.name.toLowerCase().includes(search)) && (filter === 'All requests' || (filter==='Approved'?request.state==='Approved':leaveStatus(request)===filter)));
   }
   function review(request) {
-    const node = dialog('Review · ' + request.name,
-      '<p>' + escaped(request.kind) + ' · ' + escaped(period(request)) + '</p><label>Decision<select name="decision">' +
-      '<option value="Approved">Approve</option><option value="Declined">Decline</option></select></label>' +
-      '<div class="hr-fields"><label>Approved from<input name="from" type="date" value="' +
-      escaped(request.approved_from || request.requested_from) + '"></label><label>Approved to<input name="to" type="date" value="' +
-      escaped(request.approved_to || request.requested_to) + '"></label><label>Payroll outcome<select name="payroll"></select></label></div>' +
-      '<label>Note visible to staff<textarea name="note" maxlength="2000">' + escaped(request.review_note) + '</textarea></label>',
-      async input => {
-        await rpc('goya_hr_review', {p_id:request.id,p_expected:request.updated_at,p_state:input.decision,
-          p_from:input.from || null,p_to:input.to || null,p_payroll:input.payroll || null,p_note:input.note});
-        await openRequests();
+    const resign=request.kind==='Resignation';
+    const prior=request.management_history?.[0];
+    const node=dialog('Review · '+request.name,
+      '<p>'+escaped(request.kind)+' · '+escaped(period(request))+'</p><label>Decision<select name="decision"><option value="Approved">Approve</option><option value="Declined">Reject</option></select></label>'+
+      '<div class="hr-fields"><label>'+(resign?'Last Working Day':'Approved from')+'<input name="from" type="date" value="'+escaped(request.approved_from||request.requested_from)+'"></label>'+
+      (resign?'':'<label>Approved to<input name="to" type="date" value="'+escaped(request.approved_to||request.requested_to)+'"></label><label>Payroll outcome<select name="payroll"></select></label>')+'</div>'+
+      '<div class="hr-overlap-warning small"></div>'+GoyaManagement.identity()+
+      '<label>Private management note<textarea name="private_note" maxlength="2000">'+escaped(prior?.note||'')+'</textarea></label><p class="small muted">Management name, decision history and this note are not visible to staff.</p>',
+      async input=>{
+        await rpc('goya_management_review',{p_id:request.id,p_expected:request.updated_at,p_state:input.decision,
+          p_from:input.from||null,p_to:(resign?input.from:input.to)||null,p_payroll:resign?'Unpaid':input.payroll||null,
+          p_note:request.review_note||'',p_actor:input.actor,p_private_note:input.private_note});
+        await openRequests(true);
       });
-    const {decision, payroll, from, to} = node.querySelector('form').elements;
-    if (request.state === 'Declined') decision.value = 'Declined';
-    const showChoices = preferred => {
-      const approved = decision.value === 'Approved';
-      from.disabled = to.disabled = !approved;
-      from.required = to.required = approved;
-      const choices = approved
-        ? (request.kind === 'Sick Leave' && !request.drive_file_id ? ['Unpaid'] : ['Paid','Unpaid'])
-        : (request.kind === 'Sick Leave' ? ['','Absent'] : ['']);
-      payroll.replaceChildren(...choices.map(item => new Option(item || 'No payroll decision', item)));
-      if (choices.includes(preferred)) payroll.value = preferred;
+    const form=node.querySelector('form'),{decision,from,to,payroll,private_note:note}=form.elements;
+    if(request.state==='Declined')decision.value='Declined';
+    const update=preferred=>{
+      const approved=decision.value==='Approved';from.disabled=!approved;from.required=approved;
+      if(to){to.disabled=!approved;to.required=approved;}
+      note.required=!approved;
+      if(payroll){const choices=approved?(request.kind==='Sick Leave'&&!request.drive_file_id?['Unpaid']:['Paid','Unpaid']):(request.kind==='Sick Leave'?['','Absent']:['']);
+        payroll.replaceChildren(...choices.map(item=>new Option(item||'No payroll decision',item)));if(choices.includes(preferred))payroll.value=preferred;}
+      const overlaps=requests.filter(r=>r.id!==request.id&&r.state==='Approved'&&r.kind!=='Resignation'&&
+        (r.sections||[]).some(section=>(request.sections||[]).includes(section))&&r.approved_from<=(to?.value||from.value)&&r.approved_to>=from.value);
+      node.querySelector('.hr-overlap-warning').textContent=resign?'Access will close after the approved last working day. Future roster entries will remain in history.':
+        overlaps.length?'Same section on approved leave: '+overlaps.map(r=>r.name+' ('+period(r)+')').join('; '):'No overlapping approved leave found in the loaded requests for this section.';
     };
-    decision.onchange = () => showChoices();
-    showChoices(request.payroll);
+    decision.onchange=()=>update();from.onchange=()=>update(payroll?.value);if(to)to.onchange=()=>update(payroll?.value);update(request.payroll);
   }
   function renderRequests() {
-    const pane = $('hr-requests'), items = filteredRequests();
-    content(pane).innerHTML = items.map((request,i) => '<article class="hr-entry"><strong>' + escaped(request.name) +
-      ' · ' + escaped(request.kind) + ' · ' + escaped(leaveStatus(request)) + '</strong><p>' +
-      escaped([period(request),request.payroll,request.email_state === 'Imported' ? 'From Excel' : 'Email: ' + request.email_state].filter(Boolean).join(' · ')) + '</p><p>' +
-      escaped(request.reason) + '</p>' +
-      (request.review_note && request.review_note !== request.reason ? '<p>' + escaped(request.review_note) + '</p>' : '') +
-      (/^[\w-]+$/.test(request.drive_file_id || '') ? '<p><a target="_blank" rel="noopener noreferrer" href="https://drive.google.com/open?id=' +
-        request.drive_file_id + '">📎 Open private Drive document</a></p>' : '') +
-      (['Withdrawn','Recorded'].includes(request.state) ? '' : '<button type="button" class="btn secondary" data-review="' + i + '">Review request</button>') +
-      '</article>').join('');
-    if (!items.length) empty(pane,'No requests match this filter.');
-    content(pane).querySelectorAll('[data-review]').forEach(button =>
-      button.onclick = () => review(items[button.dataset.review]));
+    const pane=$('hr-requests'),items=filteredRequests();
+    const pending=requests.filter(r=>r.state==='Pending').length;
+    if($('hr-pending-tab')){$('hr-pending-tab').textContent='Pending · '+pending;$('hr-all-tab').textContent='All · '+requests.length;
+      $('hr-pending-tab').setAttribute('aria-pressed',String($('hr-request-filter').value==='Pending'));
+      $('hr-all-tab').setAttribute('aria-pressed',String($('hr-request-filter').value==='All requests'));}
+    content(pane).innerHTML=items.map((r,i)=>{
+      const resign=r.kind==='Resignation',from=r.approved_from||r.requested_from,to=r.approved_to||r.requested_to;
+      const days=Math.round((Date.parse(to)-Date.parse(from))/86400000)+1;
+      return '<article class="hr-request-card"><div class="hr-request-heading"><div><h3>'+escaped(r.name)+'</h3><p>'+escaped(r.kind)+'</p></div>'+leaveBadge(leaveStatus(r))+'</div>'+
+        '<div class="hr-request-meta"><strong>'+escaped(resign?'Last Working Day: '+from:period(r))+'</strong>'+
+        (resign?'':'<span>'+days+' day'+(days===1?'':'s')+'</span>')+(r.payroll&&!resign?'<span>'+escaped(r.payroll)+'</span>':'')+'</div><p>'+escaped(r.reason)+'</p>'+
+        (r.review_note&&r.review_note!==r.reason?'<p>'+escaped(r.review_note)+'</p>':'')+
+        (/^[\w-]+$/.test(r.drive_file_id||'')?'<a target="_blank" rel="noopener noreferrer" href="https://drive.google.com/open?id='+r.drive_file_id+'">📎 View supporting document</a>':'')+
+        (['Withdrawn','Recorded'].includes(r.state)?'':'<div class="toolbar"><button type="button" class="btn" data-review="'+i+'">'+(r.state==='Pending'?'Review · Approve / Reject':'Review / Edit')+'</button></div>')+
+        '<details class="hr-management-history"><summary>🔒 Management-only decision history</summary>'+
+        ((r.management_history||[]).map(h=>'<div class="hr-private-note"><strong>'+escaped(h.actor)+' · '+escaped(h.after_data.state)+'</strong><p>'+escaped(uploadDate.format(new Date(h.created_at)))+'</p><p>'+escaped(h.note||'No note')+'</p><p>Previous dates: '+escaped([h.before_data.approved_from,h.before_data.approved_to].filter(Boolean).join(' – ')||'N/A')+' · New dates: '+escaped([h.after_data.approved_from,h.after_data.approved_to].filter(Boolean).join(' – ')||'N/A')+'</p></div>').join('')||'<p>No management decision recorded.</p>')+'</details></article>';
+    }).join('')||'<div class="hr-request-card">'+($('hr-request-filter').value==='Pending'?'✓ No pending requests.':'No requests match this filter.')+'</div>';
+    content(pane).querySelectorAll('[data-review]').forEach(button=>button.onclick=()=>review(items[button.dataset.review]));
   }
-  async function openRequests() {
+  async function openRequests(keepFilter=false) {
+    if(keepFilter!==true){$('hr-request-filter').value='Pending';$('hr-request-month').value='';}
     const pane = $('hr-requests'), generation = ++requestGeneration;
     requests = [];
     empty(pane,'');
     renderStatus(pane,'Loading requests…');
     const month = $('hr-request-month').value;
     try {
-      const data = await rpc('goya_hr_admin_requests',{p_month:month ? month + '-01' : null});
+      const data = await rpc('goya_management_requests',{p_month:month ? month + '-01' : null});
       if (generation !== requestGeneration) return;
       requests = data;
       renderRequests();
@@ -381,7 +401,7 @@
       const {weeks,rows} = parseArchive(XLSX.utils.sheet_to_json(sheet,{header:1,range:0,defval:null}),
         book.Workbook?.WBProps?.date1904 === true);
       if (!weeks.length || !rows.length) throw Error('No dated rosters were found.');
-      const members = await rpc('goya_hr_admin_profiles');
+      const members = await rpc('goya_management_profiles');
       const names = [...new Set(rows.map(row=>row.source_name).filter(Boolean))].sort();
       const norm = value => value.trim().toLowerCase();
       for (const name of names) {
@@ -471,12 +491,12 @@
     const from = request.approved_from || request.requested_from;
     const to = request.approved_to || request.requested_to;
     const monthOnly = request.state === 'Recorded' && ['Cancelled Off','Attendance Note'].includes(request.kind);
-    const when = request.service_year && !from ? 'N/A · Service year ' + journeyDateFormat.format(journeyDate(request.service_year)) :
+    const when = request.kind==='Resignation' ? 'Last Working Day: '+journeyDateFormat.format(journeyDate(from)) : request.service_year && !from ? 'N/A · Service year ' + journeyDateFormat.format(journeyDate(request.service_year)) :
       monthOnly ? period(request) : journeyRange(from,to);
     return '<article class="hr-leave-card">' + journeyIcon(request.kind === 'Annual Leave' ? '🌴' : '📋') +
       '<div class="hr-leave-card-body"><strong>' + escaped(request.kind) + '</strong><p class="hr-leave-dates">' +
       escaped(when) + '</p>' +
-      (request.payroll ? '<p class="hr-leave-dates">' + escaped(request.payroll) + '</p>' : '') +
+      (request.payroll && request.kind!=='Resignation' ? '<p class="hr-leave-dates">' + escaped(request.payroll) + '</p>' : '') +
       (request.review_note ? '<p class="hr-leave-note">' + escaped(request.review_note) + '</p>' : '') + action +
       '</div>' + leaveBadge(leaveStatus(request,today)) + '</article>';
   }
@@ -499,9 +519,9 @@
     }
     markup += '</div></div><dl class="hr-journey-details">' + details.map(([icon,label,value]) =>
       '<div><dt>' + journeyIcon(icon) + label + '</dt><dd>' + escaped(value || 'N/A') + '</dd></div>').join('') + '</dl>';
-    const pending = data.archived_pending_off;
+    const pending = data.off_balance ? {value:data.off_balance.balance,week:(data.off_balance.updated_at||data.off_balance.source_week||'').slice(0,10)} : data.archived_pending_off;
     markup += '<div class="hr-pending-off">' + journeyIcon('🗓️') +
-      '<div><h3>Pending Day Off</h3><p>PH/PO' +
+      '<div><h3>'+(Number(pending?.value)<0?'Advance Day Off':'Pending Day Off')+'</h3><p>'+(Number(pending?.value)<0?'Advance off taken':'PH/PO') +
       (pending?.week ? ' · As of ' + escaped(journeyDateFormat.format(journeyDate(pending.week))) : '') +
       '</p></div><strong>' + escaped(pending?.value ?? 'N/A') + '</strong></div>';
     const history = data.annual_history || [];
@@ -579,8 +599,10 @@
     }
     try {
       const history = name === 'journey' ? rpc('goya_hr_annual_history').catch(error=>error) : Promise.resolve([]);
-      const [data, annual] = await Promise.all([rpc('goya_hr_my_journey'),history]);
+      const [data, annual] = await Promise.all([rpc('goya_management_journey'),history]);
       if (generation !== staffGeneration) return;
+      currentOffBalance=data.off_balance?.balance??null;
+      updateRequestFields();
       if (name === 'journey') {
         content(pane).innerHTML = journeyMarkup({...data,annual_history:Array.isArray(annual) ? annual : []});
         if (annual instanceof Error) renderStatus(pane,'Additional annual leave history could not be loaded. Reopen My Journey to retry.');
@@ -634,7 +656,7 @@
       if (current()) status.textContent = error.message;
     }
   }
-  function documentEditor(pane, staff = null, row = null) {
+  function documentEditor(pane, staff = null, row = null, preferredTitle = '') {
     const token = context()?.token;
     const generation = documentGeneration;
     const current = () => pane.isConnected && token === context()?.token &&
@@ -668,6 +690,7 @@
         if (current()) await loadDocuments(pane,staff);
       },'Upload');
     const form = node.querySelector('form');
+    if(preferredTitle&&staff&&!row){form.elements.category.value='custom';form.elements.title.value=preferredTitle;form.elements.title.required=true;form.querySelector('[data-custom-title]').hidden=false;}
     form.onchange = () => {
       uploadId = crypto.randomUUID();
       customKey = 'custom-' + crypto.randomUUID();
@@ -717,6 +740,7 @@
     event.preventDefault();
     const form = event.currentTarget, button = form.querySelector('button[type=submit]');
     const token = context()?.token, body = new FormData(form);
+    if(body.get('kind')==='Resignation')body.set('to',body.get('from'));
     if (!token) return renderStatus(form,'Sign in again.');
     if (body.get('file')?.size > 5000000) return renderStatus(form,'Choose a file up to 5 MB.');
     submissionId ||= crypto.randomUUID();
@@ -733,6 +757,7 @@
       if (context()?.token !== token) return;
       if (!response.ok) throw Error(result.error || 'Unable to submit leave.');
       form.reset();
+      updateRequestFields();
       submissionId = null;
       if (!$('hr-leave').hidden) await openStaffTab('leave');
       renderStatus(form,result.email === 'Sent' ? 'Request saved. Email sent.' : 'Request saved. Email could not be sent.');
@@ -740,6 +765,17 @@
     finally { button.disabled = false; fields.forEach(field=>field.disabled = false); }
   }
 
+  function updateRequestFields(){
+    const form=$('hr-leave-form');if(!form)return;
+    const resign=form.elements.kind.value==='Resignation';
+    $('hr-from-label').textContent=resign?'Last Working Day':'From';
+    $('hr-to-label').hidden=resign;form.elements.to.required=!resign;
+    if(resign)form.elements.to.value=form.elements.from.value;
+    const from=form.elements.from.value,to=form.elements.to.value;
+    const days=Math.round((Date.parse(to)-Date.parse(from))/86400000)+1;
+    $('hr-request-days').textContent=resign?'Submit your resignation letter and proposed last working day. Management will review your request.':Number.isFinite(days)&&days>0?'Total: '+days+' day'+(days===1?'':'s'):'Choose your leave dates.';
+    if(['Pending Off','Advance Off'].includes(form.elements.kind.value))$('hr-request-days').textContent+=' Current Off Balance: '+(currentOffBalance??'N/A')+'. A deduction is made only after approval.';
+  }
   function init() {
     if ($('hr-email-settings')) $('hr-email-settings').querySelector('form').onsubmit = saveEmailSettings;
     if ($('hr-records')) {
@@ -753,24 +789,29 @@
         $('hr-commit-import').disabled = true;
         $('hr-admin-archive').querySelector('.hr-mapping').replaceChildren();
       };
-      $('hr-request-month').onchange = openRequests;
+      $('hr-request-month').onchange = ()=>openRequests(true);
+      $('hr-request-search').oninput=renderRequests;
+      $('hr-pending-tab').onclick=()=>{$('hr-request-filter').value='Pending';renderRequests();};
+      $('hr-all-tab').onclick=()=>{$('hr-request-filter').value='All requests';renderRequests();};
       $('hr-request-filter').onchange = renderRequests;
       $('hr-record-export').onclick = () => download('GOYA-Staff-Records.csv',
         [['Name','Status','Employee ID','Position','Branch','Joining Date','Last Day'], ...filteredProfiles().map(member =>
           [member.name,stateOf(member),member.profile?.employee_code,member.profile?.position,member.profile?.branch,
             member.profile?.joining_date,member.profile?.last_day])]);
       $('hr-request-export').onclick = () => download('GOYA-Leave-Records.csv',
-        [['Staff','Type','Period','Status','Payroll'], ...filteredRequests().map(request =>
-          [request.name,request.kind,period(request),leaveStatus(request),request.payroll])]);
+        [['Staff','Type','Period','Status','Payroll','Management name','Decision time','Private note'], ...filteredRequests().flatMap(request =>
+          (request.management_history?.length?request.management_history:[null]).map(h=>[request.name,request.kind,period(request),leaveStatus(request),request.payroll,h?.actor,h?.created_at,h?.note]))]);
     }
     if ($('hr-leave-form')) {
       document.querySelectorAll('[data-hr-tab]').forEach(button => button.onclick = () => openStaffTab(button.dataset.hrTab));
       $('hr-leave-form').onsubmit = submitLeave;
-      $('hr-leave-form').oninput = () => { submissionId = null; };
+      $('hr-leave-form').oninput = () => { submissionId = null; updateRequestFields(); };
+      $('hr-leave-form').elements.kind.onchange=updateRequestFields;
+      updateRequestFields();
       $('hr-staff-archive-month').onchange = () => showArchive(false);
     }
   }
-  window.GoyaHR = {openRecords,openRequests,openStaffTab,resetStaff,openEmailSettings,openRejoin:rejoinEditor};
+  window.GoyaHR = {documentEditor,openRecords,openRequests,openStaffTab,resetStaff,openEmailSettings,openRejoin:rejoinEditor};
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded',init,{once:true});
   else init();
 })();

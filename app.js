@@ -205,7 +205,7 @@
   function resetSupplierForm(){['supplierId','supplierName','supplierPhone','supplierEmail'].forEach(id=>$(id).value='');}
   async function saveSupplier(){const row={id:$('supplierId').value||null,name:$('supplierName').value.trim(),phone:$('supplierPhone').value.trim(),email:$('supplierEmail').value.trim(),active:true};if(!row.name){toast('Supplier name required.',true);return;}try{await rpc('admin_save_supplier',{p_token:state.token,p_row:row});resetSupplierForm();await adminLoad();toast('Supplier saved.');}catch(e){toast(e.message,true)}}
   async function deleteSupplier(id){if(!confirm('Delete this supplier?'))return;try{await rpc('admin_delete_supplier',{p_token:state.token,p_id:id});await adminLoad();toast('Supplier deleted.');}catch(e){toast(e.message,true)}}
-  function renderStaff(){$('staffBody').innerHTML=(state.adminData.staff||[]).map(x=>`<tr><td>${esc(x.name)}</td><td><strong>${esc(x.pin_code||'Reset PIN')}</strong></td><td>${x.active?'Active':'Inactive'}</td><td>${x.can_order?'✓':'—'}</td><td>${x.can_production?'✓':'—'}</td><td>${x.can_wastage?'✓':'—'}</td><td>${x.can_inventory?'✓':'—'}</td><td>${esc((x.sections||[]).join(', '))}</td><td><div class="toolbar"><button class="btn secondary tiny" onclick="GoyaAdmin.editStaff('${x.id}')">Edit</button><button class="btn danger tiny" onclick="GoyaAdmin.deleteStaff('${x.id}')">Delete</button></div></td></tr>`).join('')||'<tr><td colspan="9" class="empty">No staff.</td></tr>';}
+  function renderStaff(){window.GoyaManagement?.renderDirectory(state.adminData.staff||[]);$('staffBody').innerHTML=(state.adminData.staff||[]).map(x=>`<tr><td>${esc(x.name)}</td><td><strong>${esc(x.pin_code||'Reset PIN')}</strong></td><td>${x.active?'Active':'Inactive'}</td><td>${x.can_order?'✓':'—'}</td><td>${x.can_production?'✓':'—'}</td><td>${x.can_wastage?'✓':'—'}</td><td>${x.can_inventory?'✓':'—'}</td><td>${esc((x.sections||[]).join(', '))}</td><td><div class="toolbar"><button class="btn secondary tiny" onclick="GoyaAdmin.editStaff('${x.id}')">Edit</button><button class="btn danger tiny" onclick="GoyaAdmin.deleteStaff('${x.id}')">Delete</button></div></td></tr>`).join('')||'<tr><td colspan="9" class="empty">No staff.</td></tr>';}
   let staffFormRevision=0, staffProfileReady=true, staffSaveBusy=false, staffProfile={};
   const staffProfileFields={employee_code:'staffEmployeeCode',position:'staffPosition',joining_date:'staffJoiningDate',
     last_day:'staffLastDay',manager_notes:'staffManagerNotes'};
@@ -216,6 +216,7 @@
     $('staffRejoin').classList.toggle('hidden',!profile.last_day);
   }
   async function editStaff(id) {
+    if(document.getElementById("staffEditor"))document.getElementById("staffEditor").hidden=false;
     const employee=(state.adminData.staff||[]).find(row=>row.id===id);
     if (!employee || staffSaveBusy) return;
     const revision=++staffFormRevision, token=state.token;
@@ -249,6 +250,7 @@
     }
   }
   function resetStaffForm(){
+    if(document.getElementById("staffEditor"))document.getElementById("staffEditor").hidden=true;
     staffFormRevision++;
     staffProfileReady=true;
     if ($('staffEmployeeCode')) {

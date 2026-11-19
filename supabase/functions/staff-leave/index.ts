@@ -99,7 +99,7 @@ async function upload(file: File, employee: string, request: string, from: strin
   const bridgeUrl = env("GOYA_DRIVE_BRIDGE_URL").trim(), bridgeSecret = env("GOYA_DRIVE_BRIDGE_SECRET").trim();
   if (bridgeUrl || bridgeSecret) {
     return await uploadThroughDriveBridge(bridgeUrl,bridgeSecret,{
-      operation:"upload",request,employee,from,kind,type:file.type,bytes:base64(bytes),
+      operation:"upload",request,employee,from,kind:["Annual Leave","Sick Leave","Other Leave"].includes(kind)?kind:"Other Leave",type:file.type,bytes:base64(bytes),
     });
   }
   const root = env("GOYA_LEAVE_DRIVE_FOLDER_ID");
@@ -166,7 +166,7 @@ async function notify(record: Record<string, string>, staffName: string) {
   if (!manager) return "Needs setup";
   if (annual && (!recipients?.owner_email || !recipients?.hr_email)) return "Needs setup";
   const to = annual ? [recipients.owner_email, recipients.hr_email] : [manager];
-  const dateRange = record.requested_from + " to " + record.requested_to;
+  const dateRange = record.kind === "Resignation" ? "Last Working Day: " + record.requested_from : record.requested_from + " to " + record.requested_to;
   const message = staffName + " submitted " + record.kind + " for " + dateRange +
     ".\nReview the request in GOYA Attendance Admin: " +
     (env("GOYA_LEAVE_ADMIN_URL") || "https://mehedih99.github.io/goya-portal/attendance.html") +
@@ -204,10 +204,10 @@ Deno.serve(async req => {
     const id = String(form.get("id") ?? "");
     const kind = String(form.get("kind") ?? "");
     const from = String(form.get("from") ?? "");
-    const to = String(form.get("to") ?? "");
+    const to = kind === "Resignation" ? from : String(form.get("to") ?? "");
     const reason = String(form.get("reason") ?? "").trim();
     const days = (requestDate(to) - requestDate(from)) / 86400000;
-    if (!uuid.test(id) || !["Annual Leave", "Sick Leave", "Other Leave"].includes(kind) ||
+    if (!uuid.test(id) || !["Annual Leave", "Sick Leave", "Other Leave", "Pending Off", "Advance Off", "Emergency Leave", "Resignation"].includes(kind) ||
         !(days >= 0 && days <= 365) || !reason || reason.length > 2000) {
       return reply(400, { error: "Check the leave type, dates and reason." });
     }
