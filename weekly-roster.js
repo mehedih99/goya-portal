@@ -428,25 +428,15 @@
       setTimeout(()=>URL.revokeObjectURL(url),1000);
     });
   }
-  async function loadStaff(week, reminderOnly=false) {
-    if(!reminderOnly) {
-      $('roster-days').replaceChildren();
-      $('roster-next').textContent='';
-      $('roster-week-note').textContent='';
-      status('Loading schedule…');
-    }
-    const id=reminderOnly?++reminderRequest:++request;
+  async function loadStaff(week) {
+    $('roster-days').replaceChildren();
+    $('roster-next').textContent='';
+    $('roster-week-note').textContent='';
+    status('Loading schedule…');
+    const id=++request;
     try {
       const result=await rpc('goya_roster_my_week',{p_week:week});
-      if(!reminderOnly && id!==request) return;
-      if(reminderOnly) {
-        if(id!==reminderRequest) return;
-        const tomorrow=add(dubaiDate(),1);
-        if(monday(tomorrow)!==week) return;
-        const day=result.week?.days?.[(new Date(tomorrow+'T00:00:00Z').getUTCDay()+6)%7];
-        window.GoyaDashboard?.setRoster(day,result.latest_publication);
-        return;
-      }
+      if(id!==request) return;
       const current=monday(dubaiDate());
       staffWeeks=[...new Set([current,week,...result.weeks])].sort().reverse();
       showStaffWeeks(week);
@@ -462,10 +452,33 @@
       $('roster-week-note').textContent=roster.notes || '';
       status('Published schedule');
     } catch(error) {
-      if(!reminderOnly&&id===request) status(error.message);
-      if(reminderOnly&&id===reminderRequest) window.GoyaDashboard?.setRoster(null,null,true);
+      if(id===request) status(error.message);
     }
   }
+  async function loadDutyWindow() {
+    const generation=++reminderRequest;
+    const token=context()?.token;
+    const date=window.GoyaDashboard?.scheduleDate?.()||dubaiDate();
+    const tomorrow=add(date,1);
+    const weeks=[...new Set([monday(date),monday(tomorrow)])];
+    try {
+      const results=await Promise.all(weeks.map(week=>rpc('goya_roster_my_week',{p_week:week})));
+      if(generation!==reminderRequest||context()?.token!==token)return;
+      if((window.GoyaDashboard?.scheduleDate?.()||dubaiDate())!==date)return loadDutyWindow();
+      const dayFor=day=>{
+        const result=results[weeks.indexOf(monday(day))];
+        return result.week?.days?.[(new Date(day+'T00:00:00Z').getUTCDay()+6)%7]||null;
+      };
+      const latest=results.map(result=>result.latest_publication).filter(Boolean)
+        .sort((a,b)=>Date.parse(b.published_at)-Date.parse(a.published_at))[0];
+      window.GoyaDashboard?.setDutyWindow({date,today:dayFor(date),tomorrow:dayFor(tomorrow)},latest);
+    } catch(error) {
+      if(generation===reminderRequest&&context()?.token===token) {
+        window.GoyaDashboard?.setDutyWindow({date,unavailable:true},null);
+      }
+    }
+  }
+
   function showStaffWeeks(selected) {
     const month=$('roster-filter-month')?.value;
     const weeks=staffWeeks.filter(week=>!month || (week.slice(0,7)<=month && add(week,6).slice(0,7)>=month));
@@ -500,14 +513,14 @@
     clearReminder:()=>{
       if(!admin){
         request++;reminderRequest++;staffWeeks=[];
-        window.GoyaDashboard?.setRoster(null,null);
+        window.GoyaDashboard?.setDutyWindow(null,null);
         $('roster-days').replaceChildren();$('roster-staff-week').replaceChildren();
         $('roster-week-note').textContent='';$('roster-next').textContent='';
       }
     },
     reminder:()=>{
       if(admin) return;
-      return loadStaff(monday(add(dubaiDate(),1)),true);
+      return loadDutyWindow();
     }
   };
 })();
