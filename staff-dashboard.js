@@ -36,7 +36,7 @@
   $('dashOperations').textContent=`Team activity this month: ${Number(data.operations?.production)||0} production entries · ${Number(data.operations?.wastage)||0} wastage entries`;
   renderNotice();renderClock();
  }
- function renderClock(){if(rosterPublication&&!recentPublication()){rosterPublication=null;renderNotice();}if(!data)return;const d=data.today,ss=d.sessions||[],open=ss.find(s=>!s.check_out_at),row={...(d.day||{}),operational_date:d.operational_date,sessions:ss},c=totals(row,d.rules,true),status=open?'On Duty':ss.length?'Completed':d.day?.classification&&d.day.classification!=='Day Off - Pending Review'?d.day.classification:'Not checked in yet';
+ function renderClock(){renderDutyCard();if(rosterPublication&&!recentPublication()){rosterPublication=null;renderNotice();}if(!data)return;const d=data.today,ss=d.sessions||[],open=ss.find(s=>!s.check_out_at),row={...(d.day||{}),operational_date:d.operational_date,sessions:ss},c=totals(row,d.rules,true),status=open?'On Duty':ss.length?'Completed':d.day?.classification&&d.day.classification!=='Day Off - Pending Review'?d.day.classification:'Not checked in yet';
   $('dashTodayStatus').textContent=status;$('dashTodayStatus').classList.toggle('on',!!open);$('dashCheckIn').textContent=uae(ss[0]?.check_in_at);const outs=ss.filter(s=>s.check_out_at).sort((a,b)=>Date.parse(b.check_out_at)-Date.parse(a.check_out_at));$('dashCheckOut').textContent=uae(outs[0]?.check_out_at);
   $('dashWorked').textContent=mins(c.work);$('dashTarget').textContent=mins(c.target);$('dashBreak').textContent=d.rules?.force_no_break?'No break · set by Admin':c.breakTaken?'Break included':'No break';$('dashRemaining').textContent=mins(Math.ceil(Math.max(0,c.target-(c.otPolicy?c.creditedSeconds/60:c.work))));$('dashProgress').value=Math.min(100,(c.otPolicy?c.creditedSeconds/60:c.work)/c.target*100);
   $('dashReminderTime').textContent=c.otDisabled&&c.remainingSeconds<=0?'Overtime is currently disabled by management. Check Out when finished.':open?(c.work>=c.target?'Duty target reached':`Reminder ${c.work>=c.target-15?'is due now':`in ${mins(Math.ceil(c.target-15-c.work))}`} · ${c.target/60}h target`):'Reminder runs only while checked in';
@@ -56,29 +56,75 @@
   const format=new Intl.DateTimeFormat('en-GB',{day:'numeric',month:'short',year:'numeric',timeZone:'UTC'});
   return {title:'New schedule published',body:format.formatRange(start,end),published_at:rosterPublication.published_at,roster:true};
  }
- function renderTomorrow(day,unavailable=false) {
+ let dutyWindow=null,dutyRenderKey='',dutyReloadDate='';
+ const dutyDateFormat=new Intl.DateTimeFormat('en-GB',{weekday:'short',day:'numeric',month:'short',timeZone:'UTC'});
+ const dutyNowFormat=new Intl.DateTimeFormat('en-GB',{timeZone:'Asia/Dubai',year:'numeric',month:'2-digit',day:'2-digit',hour:'2-digit',minute:'2-digit',hourCycle:'h23'});
+ function dutyNow() {
+  const parts=Object.fromEntries(dutyNowFormat.formatToParts(new Date(Date.now()+offset)).map(item=>[item.type,item.value]));
+  return {date:parts.year+'-'+parts.month+'-'+parts.day,time:parts.hour+':'+parts.minute};
+ }
+ function nextDutyDate(date) {
+  const next=new Date(date+'T00:00:00Z');
+  next.setUTCDate(next.getUTCDate()+1);
+  return next.toISOString().slice(0,10);
+ }
+ function renderDutyCard() {
   const node=$('dashTomorrow');
   if(!node)return;
-  const first=day?.segments?.[0],last=day?.segments?.at(-1);
-  const shift=day?.kind==='Shift'&&first&&last,off=day?.kind==='Weekly Off';
-  const label=shift?first.start:off?'DAY OFF':day?.kind||'—';
-  const hint=unavailable?'Schedule unavailable':shift?'Be on time':off?'Enjoy your day':day?'Take care':'Not scheduled yet';
-  node.querySelector('.dash-clock-label').textContent=shift?"TOMORROW’S DUTY":'TOMORROW';
-  $('dashTomorrowTime').textContent=label;
-  $('dashTomorrowEnd').textContent=shift?'– '+last.end+(last.end<first.start?' (+1 day)':''):'';
+  const now=dutyNow(),today=dutyWindow?.date===now.date?dutyWindow.today:null;
+  if(dutyWindow&&dutyWindow.date!==now.date&&dutyReloadDate!==now.date) {
+   dutyReloadDate=now.date;
+   void window.GoyaRoster?.reminder();
+  }
+  const start=today?.kind==='Shift'?today.segments?.[0]?.start:null;
+  const showToday=today&&(start?now.time<start:now.time<'16:00');
+  const period=showToday?'Today':'Tomorrow';
+  const selectedDate=showToday?now.date:nextDutyDate(now.date);
+  const day=dutyWindow?.date===now.date?(showToday?today:dutyWindow.tomorrow):null;
+  const segments=day?.kind==='Shift'?day.segments||[]:[];
+  const shift=segments.length>0,off=day?.kind==='Weekly Off';
+  const unavailable=dutyWindow?.unavailable||!!dutyWindow&&dutyWindow.date!==now.date;
+  const heading=off?period+'’s Day Off':day&&!shift?period+'’s Leave':period+'’s Duty';
+  const hint=!dutyWindow?'Loading schedule…':unavailable?'Schedule unavailable. Open My Schedule to retry.':
+   shift?'Be on time':off?'Enjoy your day':day?'Take care':'Schedule not published yet';
+  const key=JSON.stringify([selectedDate,heading,day,hint]);
+  if(key===dutyRenderKey)return;
+  dutyRenderKey=key;
+  node.querySelector('.dash-clock-label').textContent=heading;
+  $('dashDutyDate').textContent=dutyDateFormat.format(new Date(selectedDate+'T00:00:00Z'));
+  const time=$('dashTomorrowTime');
+  time.replaceChildren();
+  if(shift) {
+   for(const segment of segments) {
+    const line=document.createElement('span');
+    line.textContent=segment.start+' – '+segment.end;
+    if(segment.end<segment.start) {
+     const suffix=document.createElement('small');
+     suffix.className='dash-duty-overnight';
+     suffix.textContent=' (+1 day)';
+     line.append(suffix);
+    }
+    time.append(line);
+   }
+  } else {
+   time.textContent=off?(showToday?'Today is your day off':'Tomorrow is your day off'):day?.kind||'—';
+  }
   $('dashTomorrowHint').textContent=hint;
   node.dataset.kind=shift?'shift':off?'off':'other';
-  const description=shift?day.segments.map(item=>item.start+'–'+item.end+(item.break?' · '+item.break+'m break':'')).join(' / '):label;
-  node.setAttribute('aria-label','Tomorrow · '+description+'. '+hint+'. Open My Schedule.');
+  const description=shift?segments.map(item=>item.start+'–'+item.end+(item.break?' · '+item.break+'m break':'')).join(' / '):time.textContent;
+  node.setAttribute('aria-label',heading+' · '+$('dashDutyDate').textContent+' · '+description+'. '+hint+'. Open My Schedule.');
   node.title=description;
  }
- function setRoster(day,publication,unavailable=false) {
-  renderTomorrow(day,unavailable);
+ function setDutyWindow(window,publication) {
+  dutyWindow=window;
+  dutyReloadDate='';
+  renderDutyCard();
   const was=rosterPublication?.published_at;
   rosterPublication=publication||null;
   if(was!==rosterPublication?.published_at)noticeIndex=0;
   renderNotice();
  }
+
  function renderNotice() {
   const announcement=scheduleNotice(),ns=[...(announcement?[announcement]:[]),...(data?.notices||[])];
   if(!ns.length){$('dashNoticeContent').innerHTML='<span class="dash-eyebrow">NOTICE BOARD</span><h2>No new notices</h2><p>Management updates will appear here.</p>';$('dashNoticeControls').hidden=true;return;}
@@ -120,9 +166,9 @@
   await syncPushState();
  }catch(e){$('dashPushStatus').textContent=e.message;}finally{pushBusy=false;$('dashPushEnable').disabled=false;}}
  async function logout(){let sub;try{if(pushEnabled){const reg=await serviceWorker();sub=await reg.pushManager.getSubscription();if(sub)await rpc('goya_staff_push',{p_subscription:sub.toJSON(),p_enabled:false});}}catch{}finally{if(sub)try{await sub.unsubscribe();}catch{}stop();}}
- function stop(){data=null;window.GoyaRoster?.clearReminder();requestId++;loading=false;clearInterval(tickTimer);clearInterval(refreshTimer);clearInterval(noticeTimer);tickTimer=refreshTimer=noticeTimer=null;}
+ function stop(){data=null;offset=0;window.GoyaRoster?.clearReminder();requestId++;loading=false;clearInterval(tickTimer);clearInterval(refreshTimer);clearInterval(noticeTimer);tickTimer=refreshTimer=noticeTimer=null;}
  function startTimers(){if(noticeTimer!==null)return;noticeTimer=setInterval(()=>{if(visible()&&!paused&&!$('dashNotice').matches(':hover')&&!$('dashNotice').contains(document.activeElement))step(1);},5000);tickTimer=setInterval(()=>{if(visible())renderClock();},1000);refreshTimer=setInterval(()=>{if(visible())open(true);},90000);}
  function init(){if(!$('staffDashboard'))return;const content=$('dashNoticeContent');content.tabIndex=0;content.setAttribute('aria-label','Notice content. Scroll to read; use Pause to keep this notice.');content.addEventListener('pointerdown',e=>{if(e.pointerType==='touch'){paused=true;$('dashNoticePause').textContent='Play';$('dashNoticePause').setAttribute('aria-pressed','true');}});paused=!!window.matchMedia?.('(prefers-reduced-motion: reduce)').matches;startTimers();
   document.addEventListener('goya:attendance-updated',()=>{data=null;if(visible())open(true);});document.addEventListener('visibilitychange',()=>{if(visible()&&ctx().token)open(true);});}
- window.GoyaDashboard={open,go,setRoster,step,togglePause,togglePush,logout,stop};document.addEventListener('DOMContentLoaded',init);
+ window.GoyaDashboard={open,go,setDutyWindow,scheduleDate:()=>dutyNow().date,step,togglePause,togglePush,logout,stop};document.addEventListener('DOMContentLoaded',init);
 })();
