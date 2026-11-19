@@ -31,6 +31,7 @@
   background:var(--accent2);transform:rotate(-10deg);pointer-events:none;
 }
 .dash-duty-top,.dash-duty-body,.dash-duty-bottom {display:flex;align-items:center;justify-content:space-between;gap:12px;position:relative;z-index:1;min-width:0}
+.dash-duty-body {gap:6px}
 .dash-duty-top {justify-content:flex-start;flex-wrap:wrap;gap:8px 12px}
 .dash-duty-date {display:inline-flex;align-items:center;gap:5px;background:var(--accent2);border:1px solid var(--line);border-radius:9px;padding:5px 8px;white-space:nowrap;font-size:12px;font-weight:550}
 html[data-theme="dark"] #staffDashboard .dash-tomorrow {
@@ -45,32 +46,43 @@ html[data-theme="dark"] #staffDashboard .dash-tomorrow {
 .dash-duty-overnight {font-size:11px;color:var(--muted);font-weight:400}
 #dashTomorrowHint {font-size:13px;color:var(--muted);font-weight:400;line-height:1.4}
 .dash-duty-arrow {font-size:19px;line-height:1;border:1px solid var(--line);border-radius:12px;padding:1px 13px}
-.dash-duty-companion {display:block;position:relative;width:64px;height:56px;flex:none;overflow:hidden;pointer-events:none}
-.dash-companion-sprite {display:block;position:absolute;bottom:0;left:0;width:64px;height:64px;background:url("goya-companion.webp?v=1") 0 0 / 400% 200% no-repeat;animation:dash-companion-poses 32s steps(1,end) infinite,dash-companion-motion 32s ease-in-out infinite;transform-origin:50% 90%}
+.dash-duty-companion {display:block;position:relative;width:96px;height:96px;flex:none;overflow:hidden;pointer-events:none}
+.dash-companion-sprite {display:block;position:absolute;bottom:14px;left:0;width:96px;height:96px;background:url("goya-companion.webp?v=1") 0 0 / 400% 200% no-repeat;animation:dash-companion-wave 10s steps(1,end) infinite,dash-companion-greet 10s ease-in-out infinite;transform-origin:50% 90%}
+.dash-companion-message {position:absolute;bottom:0;left:0;right:0;text-align:center;font-size:10px;font-weight:550;line-height:1.4;color:var(--ink);white-space:nowrap}
 .dash-tomorrow:is([data-kind="off"],[data-kind="other"]) #dashTomorrowTime {font-size:20px}
-@keyframes dash-companion-poses {
-  0%,8%,14%,20% {background-position:0 0}
-  11%,17% {background-position:33.333333% 0}
-  26%,32% {background-position:66.666667% 0}
-  29%,35% {background-position:100% 0}
-  38% {background-position:0 100%}
-  44%,54% {background-position:100% 100%}
-  60%,68% {background-position:33.333333% 100%}
-  64%,72% {background-position:66.666667% 100%}
-  78%,86%,100% {background-position:0 0}
-  82% {background-position:33.333333% 0}
+.dash-tomorrow[data-activity="ready"] .dash-companion-sprite {animation-name:dash-companion-wave,dash-companion-ready;animation-duration:5s,1.5s}
+.dash-tomorrow[data-activity="work"] .dash-companion-sprite {animation-name:dash-companion-work,dash-companion-bob;animation-duration:12s,4s}
+.dash-tomorrow[data-activity="celebrate"] .dash-companion-sprite {animation-name:dash-companion-dance,dash-companion-dance-motion;animation-duration:3s,3s}
+.dash-tomorrow[data-activity="care"] .dash-companion-sprite {animation-name:dash-companion-care,dash-companion-bob;animation-duration:12s,6s}
+.dash-tomorrow[data-activity="rest"] .dash-companion-sprite {animation-name:dash-companion-rest,dash-companion-bob;animation-duration:12s,7s}
+@keyframes dash-companion-wave {
+  0%,24%,44%,64%,100% {background-position:0 0}
+  14%,34%,54% {background-position:33.333333% 0}
 }
-@keyframes dash-companion-motion {
-  0%,3%,97%,100% {transform:translateY(64px)}
-  6% {transform:translateY(25px)}
-  9%,22%,41%,57%,75%,89% {transform:translateY(0)}
-  26%,32% {transform:translateY(-2px) rotate(-7deg)}
-  29%,35% {transform:translateY(-4px) rotate(7deg)}
-  38% {transform:translateY(0) rotate(0)}
-  47%,54% {transform:translateY(3px)}
-  62%,70% {transform:translateX(-1px)}
-  66%,74% {transform:translateX(1px)}
-  93% {transform:translateY(25px)}
+@keyframes dash-companion-work {
+  0%,25%,75%,100% {background-position:0 0}
+  10% {background-position:33.333333% 0}
+  45% {background-position:66.666667% 0}
+  60% {background-position:100% 0}
+}
+@keyframes dash-companion-dance {
+  0%,40%,100% {background-position:66.666667% 0}
+  20%,60% {background-position:100% 0}
+  80% {background-position:0 100%}
+}
+@keyframes dash-companion-care {
+  0%,75%,100% {background-position:100% 100%}
+  50% {background-position:33.333333% 100%}
+  60% {background-position:66.666667% 100%}
+}
+@keyframes dash-companion-rest {0%,100% {background-position:100% 100%}}
+@keyframes dash-companion-greet {0%,70%,100% {transform:translateY(0)}20%,50% {transform:translateY(3px)}84%,90% {transform:translateY(35px)}}
+@keyframes dash-companion-bob {0%,100% {transform:translateY(0)}50% {transform:translateY(3px)}}
+@keyframes dash-companion-ready {0%,100% {transform:translateY(0)}50% {transform:translateY(-3px) rotate(-4deg)}}
+@keyframes dash-companion-dance-motion {
+  0%,40%,100% {transform:rotate(-6deg)}
+  20%,60% {transform:translateY(-3px) rotate(6deg)}
+  80% {transform:translateY(0)}
 }
 #staffDashboard.hidden .dash-companion-sprite {animation-play-state:paused}
 #staffDashboard #dashNotice {display:flex;flex-direction:column;height:246px;min-height:246px;max-height:246px;padding:16px 18px;gap:10px}

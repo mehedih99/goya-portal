@@ -73,6 +73,26 @@
   const hours=Number(hour);
   return (hours%12||12)+':'+minute+(hours>=12?' PM':' AM');
  }
+ function dutyActivity(now,today) {
+  if(!dutyWindow||dutyWindow.unavailable||dutyWindow.date!==now.date)return ['wave','Hi!'];
+  const attendance=data?.today,ss=attendance?.sessions||[];
+  if(ss.some(session=>!session.check_out_at)) {
+   const c=totals({...attendance.day,sessions:ss},attendance.rules,true);
+   if(c.target>0&&c.work>=c.target)return ['celebrate','Great work!'];
+   return c.target>0&&c.work>=c.target-15?['celebrate','Almost done!']:['work','You’ve got this!'];
+  }
+  const minute=value=>Number(value.slice(0,2))*60+Number(value.slice(3,5));
+  if(today?.kind==='Shift'&&(today.segments||[]).some(segment=>{
+   const remaining=minute(segment.start)-minute(now.time);
+   return remaining>=0&&remaining<=30;
+  }))return ['ready','Get ready!'];
+  if(today?.kind==='Weekly Off'&&now.time<'16:00')return ['celebrate','Enjoy your day!'];
+  if(today&&today.kind!=='Shift'&&today.kind!=='Weekly Off'&&now.time<'16:00')return ['care','Take care'];
+  if(attendance?.operational_date===now.date&&ss.length)return ['celebrate','Well done!'];
+  if(now.time>='22:00'||now.time<'06:00')return ['rest','Rest well'];
+  if(dutyWindow.tomorrow?.kind==='Weekly Off'&&today?.kind==='Shift'&&now.time>=today.segments?.[0]?.start)return ['celebrate','Day off next!'];
+  return ['wave',now.time<'12:00'?'Good morning!':now.time<'17:00'?'Hello!':'Good evening!'];
+ }
  function renderDutyCard() {
   const node=$('dashTomorrow');
   if(!node)return;
@@ -92,9 +112,13 @@
   const heading=off?period+'’s Day Off':day&&!shift?period+'’s Leave':period+'’s Duty';
   const hint=!dutyWindow?'Loading schedule…':unavailable?'Schedule unavailable. Open My Schedule to retry.':
    shift?'Be on time':off?'Enjoy your day':day?'Take care':'Schedule not published yet';
-  const key=JSON.stringify([selectedDate,heading,day,hint]);
+  const [activity,message]=dutyActivity(now,today);
+  const key=JSON.stringify([selectedDate,heading,day,hint,activity,message]);
   if(key===dutyRenderKey)return;
   dutyRenderKey=key;
+  node.dataset.activity=activity;
+  const companionMessage=node.querySelector('.dash-companion-message');
+  if(companionMessage)companionMessage.textContent=message;
   node.querySelector('.dash-clock-label').textContent=heading;
   $('dashDutyDate').textContent=dutyDateFormat.format(new Date(selectedDate+'T00:00:00Z'));
   const time=$('dashTomorrowTime');
