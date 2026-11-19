@@ -330,7 +330,7 @@
       const days=Math.round((Date.parse(to)-Date.parse(from))/86400000)+1;
       return '<article class="hr-request-card"><div class="hr-request-heading"><div><h3>'+escaped(r.name)+'</h3><p>'+escaped(r.kind)+'</p></div>'+leaveBadge(leaveStatus(r))+'</div>'+
         '<div class="hr-request-meta"><strong>'+escaped(resign?'Last Working Day: '+from:period(r))+'</strong>'+
-        (resign?'':'<span>'+days+' day'+(days===1?'':'s')+'</span>')+(r.payroll?'<span>'+escaped(r.payroll)+'</span>':'')+'</div><p>'+escaped(r.reason)+'</p>'+
+        (resign?'':'<span>'+days+' day'+(days===1?'':'s')+'</span>')+(r.payroll&&!resign?'<span>'+escaped(r.payroll)+'</span>':'')+'</div><p>'+escaped(r.reason)+'</p>'+
         (r.review_note&&r.review_note!==r.reason?'<p>'+escaped(r.review_note)+'</p>':'')+
         (/^[\w-]+$/.test(r.drive_file_id||'')?'<a target="_blank" rel="noopener noreferrer" href="https://drive.google.com/open?id='+r.drive_file_id+'">📎 View supporting document</a>':'')+
         (['Withdrawn','Recorded'].includes(r.state)?'':'<div class="toolbar"><button type="button" class="btn" data-review="'+i+'">'+(r.state==='Pending'?'Review · Approve / Reject':'Review / Edit')+'</button></div>')+
@@ -491,12 +491,12 @@
     const from = request.approved_from || request.requested_from;
     const to = request.approved_to || request.requested_to;
     const monthOnly = request.state === 'Recorded' && ['Cancelled Off','Attendance Note'].includes(request.kind);
-    const when = request.service_year && !from ? 'N/A · Service year ' + journeyDateFormat.format(journeyDate(request.service_year)) :
+    const when = request.kind==='Resignation' ? 'Last Working Day: '+journeyDateFormat.format(journeyDate(from)) : request.service_year && !from ? 'N/A · Service year ' + journeyDateFormat.format(journeyDate(request.service_year)) :
       monthOnly ? period(request) : journeyRange(from,to);
     return '<article class="hr-leave-card">' + journeyIcon(request.kind === 'Annual Leave' ? '🌴' : '📋') +
       '<div class="hr-leave-card-body"><strong>' + escaped(request.kind) + '</strong><p class="hr-leave-dates">' +
       escaped(when) + '</p>' +
-      (request.payroll ? '<p class="hr-leave-dates">' + escaped(request.payroll) + '</p>' : '') +
+      (request.payroll && request.kind!=='Resignation' ? '<p class="hr-leave-dates">' + escaped(request.payroll) + '</p>' : '') +
       (request.review_note ? '<p class="hr-leave-note">' + escaped(request.review_note) + '</p>' : '') + action +
       '</div>' + leaveBadge(leaveStatus(request,today)) + '</article>';
   }

@@ -110,7 +110,7 @@
   line('GOYA | Confidential Staff Record',17);line(member.name,14);line('Generated: '+new Date().toLocaleString('en-AE',{timeZone:'Asia/Dubai'})+' UAE');
   table('Employment',['Field','Details'],Object.entries(member.profile||{}).filter(([k])=>!['staff_id','updated_at'].includes(k)));
   line('Off Balance: '+(member.off_balance?.balance??'N/A'));if(member.resignation)line('Resignation: '+JSON.stringify(member.resignation));
-  table('Leave and requests',['Type','Requested','Approved','State','Payroll'],requests.filter(r=>r.staff_id===member.id).map(r=>[r.kind,r.requested_from+' to '+r.requested_to,(r.approved_from||'')+' to '+(r.approved_to||''),requestStatus(r),r.payroll]));
+  table('Leave and requests',['Type','Requested','Approved','State','Payroll'],requests.filter(r=>r.staff_id===member.id).map(r=>[r.kind,r.requested_from+' to '+r.requested_to,(r.approved_from||'')+' to '+(r.approved_to||''),requestStatus(r),r.kind==='Resignation'?'':r.payroll]));
   table('Management decision history',['When','By','Decision','Private note'],requests.filter(r=>r.staff_id===member.id).flatMap(r=>(r.management_history||[]).map(h=>[h.created_at,h.actor,h.after_data.state,h.note])));
   table('Live attendance',['Date','Classification','Sessions','Note'],(report.attendance||[]).map(r=>[r.operational_date,r.classification,(r.sessions||[]).map(s=>s.check_in_at+' / '+(s.check_out_at||'Open')).join('; '),r.classification_note]));
   table('Earlier attendance',['Date','In','Out','Note'],(report.legacy_attendance||[]).map(r=>[r.operational_date,r.punch_in,r.punch_out,r.note]));
