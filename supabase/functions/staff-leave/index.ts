@@ -215,12 +215,13 @@ Deno.serve(async req => {
     const driveId = file instanceof File && file.size ? await upload(file, employee.id, id, from, kind) : null;
     const record = await rpc("goya_hr_record_request", { p_staff: employee.id, p_id: id, p_kind: kind,
       p_from: from, p_to: to, p_reason: reason, p_drive: driveId });
+    const compose = ["Annual Leave","Resignation"].includes(record.kind);
     let email = record.email_state;
-    if (email !== "Sent" && (Date.now() - Date.parse(record.created_at)) < 23 * 60 * 60 * 1000) {
+    if (!compose && email !== "Sent" && (Date.now() - Date.parse(record.created_at)) < 23 * 60 * 60 * 1000) {
       email = await notify(record, employee.name).catch(() => "Failed");
       await rpc("goya_hr_email_state", { p_id: id, p_state: email }).catch(() => {});
     }
-    return reply(200, { id: record.id, email });
+    return reply(200, { id: record.id, email, compose });
   } catch (error) {
     return reply(400, { error: error instanceof Error ? error.message : "Unable to submit leave." });
   }

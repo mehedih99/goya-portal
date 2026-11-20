@@ -26,7 +26,7 @@
   const zone=document.createElement('div');zone.className='management-drop';input.before(zone);
   const text=document.createElement('span');text.textContent='⇧ Drag & drop a PDF, JPG or PNG here, or choose a file';zone.append(text,input);
   const feedback=document.createElement('small');zone.append(feedback);
-  const refresh=()=>{feedback.textContent=input.files?.[0]?.name||'Up to 5 MB · Uploaded files stay in Google Drive';};input.addEventListener('change',refresh);refresh();
+  const refresh=()=>{feedback.textContent=input.files?.[0]?.name||'Up to 5 MB per file';};input.addEventListener('change',refresh);refresh();
   for(const event of ['dragenter','dragover'])zone.addEventListener(event,e=>{if(input.disabled)return;e.preventDefault();zone.classList.add('drag-over');});
   zone.addEventListener('dragleave',()=>zone.classList.remove('drag-over'));
   zone.addEventListener('drop',e=>{e.preventDefault();zone.classList.remove('drag-over');if(input.disabled)return;
@@ -103,25 +103,25 @@
  function requestStatus(row){const today=new Intl.DateTimeFormat('sv-SE',{timeZone:'Asia/Dubai'}).format(new Date());return row.state!=='Approved'?row.state:row.approved_to<today?'Done':row.kind!=='Resignation'&&row.approved_from<=today?'In progress':'Approved';}
  async function staffPDF(member) {
   if(!window.jspdf)throw Error('PDF library unavailable. Reload and try again.');
-  const [report,requests]=await Promise.all([rpc('goya_management_report',{p_staff:member.id}),rpc('goya_management_requests',{p_month:null})]);
-  const pdf=new jspdf.jsPDF(),clean=v=>String(v??'').replace(/[^\x20-\x7e\n]/g,' ');let y=20;
-  const line=(text,size=10)=>{pdf.setFontSize(size);for(const row of pdf.splitTextToSize(clean(text),174)){if(y>278){pdf.addPage();y=18;}pdf.text(row,18,y);y+=size*0.48;}y+=3;};
-  const table=(title,head,body)=>{if(!body.length)return;line(title,13);pdf.autoTable({startY:y,head:[head],body:body.map(r=>r.map(clean)),margin:{left:18,right:18},styles:{fontSize:8},theme:'striped'});y=pdf.lastAutoTable.finalY+9;};
-  line('GOYA | Confidential Staff Record',17);line(member.name,14);line('Generated: '+new Date().toLocaleString('en-AE',{timeZone:'Asia/Dubai'})+' UAE');
-  table('Employment',['Field','Details'],Object.entries(member.profile||{}).filter(([k])=>!['staff_id','updated_at'].includes(k)));
-  line('Off Balance: '+(member.off_balance?.balance??'N/A'));if(member.resignation)line('Resignation: '+JSON.stringify(member.resignation));
-  table('Leave and requests',['Type','Requested','Approved','State','Payroll'],requests.filter(r=>r.staff_id===member.id).map(r=>[r.kind,r.requested_from+' to '+r.requested_to,(r.approved_from||'')+' to '+(r.approved_to||''),requestStatus(r),r.kind==='Resignation'?'':r.payroll]));
-  table('Management decision history',['When','By','Decision','Private note'],requests.filter(r=>r.staff_id===member.id).flatMap(r=>(r.management_history||[]).map(h=>[h.created_at,h.actor,h.after_data.state,h.note])));
-  table('Live attendance',['Date','Classification','Sessions','Note'],(report.attendance||[]).map(r=>[r.operational_date,r.classification,(r.sessions||[]).map(s=>s.check_in_at+' / '+(s.check_out_at||'Open')).join('; '),r.classification_note]));
-  table('Earlier attendance',['Date','In','Out','Note'],(report.legacy_attendance||[]).map(r=>[r.operational_date,r.punch_in,r.punch_out,r.note]));
-  table('Published roster history',['Week','Revision','Days'],(report.rosters||[]).map(r=>[r.week,r.revision,JSON.stringify(r.days)]));
-  table('Annual leave history',['Service year','From','To','Note'],(report.annual_history||[]).map(r=>[r.service_year,r.leave_from||'N/A',r.leave_to||'N/A',r.note]));
-  table('Excel archive',['Week','Shifts','Pending off','Private remarks'],(report.archive||[]).map(r=>[r.source_week,JSON.stringify(r.shifts),r.pending_off,r.private_remarks]));
-  table('Management activity',['When','Event','Details'],(member.history||[]).map(r=>[r.created_at,r.event,JSON.stringify(r.details)]));
-  line('Documents (private Google Drive links)',13);line('Links require existing Google Drive permission. No public access has been added.');
-  const files=[...(report.documents||[]),...requests.filter(r=>r.staff_id===member.id&&r.drive_file_id).map(r=>({title:r.kind+' attachment',file_name:r.id,uploaded_at:r.created_at,drive_file_id:r.drive_file_id}))];
-  for(const d of files){line((d.title||d.category)+' | '+d.file_name+' | '+d.uploaded_at);if(/^[\w-]+$/.test(d.drive_file_id||'')){if(y>275){pdf.addPage();y=20;}pdf.setTextColor(30,70,150);pdf.textWithLink('Open document in Google Drive',18,y,{url:'https://drive.google.com/open?id='+d.drive_file_id});pdf.setTextColor(0);y+=10;}}
-  pdf.save('GOYA-'+(member.profile?.employee_code||'Staff')+'-Record.pdf');
+  const [report,latest]=await Promise.all([rpc('goya_management_report',{p_staff:member.id}),rpc('goya_hr_admin_profile',{p_staff:member.id})]);
+  const p=latest||member.profile||{},pdf=new jspdf.jsPDF(),clean=v=>String(v??'').replace(/[^\x20-\x7e\n]/g,' ');let y=24;
+  const title=(text)=>{if(y>252){pdf.addPage();y=22;}pdf.setFont('helvetica','bold');pdf.setFontSize(12);pdf.text(clean(text),16,y);y+=7;};
+  const table=(rows)=>{pdf.autoTable({startY:y,body:rows.filter(([,v])=>v).map(r=>r.map(clean)),margin:{left:16,right:16},styles:{fontSize:9,cellPadding:3},columnStyles:{0:{cellWidth:47,fontStyle:'bold'}},theme:'striped'});y=pdf.lastAutoTable.finalY+12;};
+  pdf.setFont('helvetica','bold');pdf.setFontSize(18);pdf.text('GOYA | Staff Profile',16,y);y+=10;
+  pdf.setFontSize(14);pdf.text(pdf.splitTextToSize(clean(member.name),138),16,y);y+=10;
+  pdf.setFont('helvetica','normal');pdf.setFontSize(9);pdf.text(clean(p.employee_code||'')+' | Confidential',16,y);
+  try{const blob=await GoyaHR.profilePhoto(member.id);if(blob){const data=await new Promise((resolve,reject)=>{const f=new FileReader();f.onload=()=>resolve(f.result);f.onerror=reject;f.readAsDataURL(blob);});const info=pdf.getImageProperties(data),scale=Math.min(29/info.width,34/info.height);pdf.addImage(data,info.fileType,165+(29-info.width*scale)/2,17,info.width*scale,info.height*scale);}}catch{throw Error('Could not load the profile photo. Please retry the PDF download.');}
+  y=Math.max(y+13,62);title('Personal Details');
+  table([['Full name',member.name],['Mobile / WhatsApp',p.mobile],['Email',p.email],['Address',p.address],['Nationality',p.nationality],['Date of birth',p.date_of_birth]]);
+  title('Employment');table([['Staff ID',p.employee_code],['Position',p.position],['Section',(member.sections||[]).join(', ')],['Branch',p.branch||'GOYA'],['Employment type',p.employment_type],['Employment period',(p.joining_date||'Not recorded')+' to '+(p.last_day||member.resignation&&!member.resignation.cancelled_at&&member.resignation.last_working_day||'Present')],['Probation end date',p.probation_end]]);
+  if(p.emergency_name||p.emergency_phone){title('Emergency Contact');table([['Name',p.emergency_name],['Relationship',p.emergency_relationship],['Phone',p.emergency_phone]]);}
+  const names={'emirates-id':'Emirates ID',contract:'Employment Contract','food-safety':'Food Safety Certificate','health-card':'Food Handler Health Card','occupational-health-card':'Occupational Health Card',noc:'NOC','work-permit':'Work Permit / Labour Card','residence-visa':'Residence Visa','health-insurance':'Health Insurance Card','pic-certificate':'PIC Certificate'};
+  const unique=new Map();for(const d of report.documents||[])if(d.category!=='profile-photo'&&!unique.has(d.category))unique.set(d.category,d);
+  if(y>245){pdf.addPage();y=22;}title('Documents');
+  const files=[...unique.values()].filter(d=>/^[\w-]+$/.test(d.drive_file_id||''));
+  pdf.autoTable({startY:y,head:[['Document','Link']],body:files.length?files.map(d=>[clean(names[d.category]||d.title||'Document'),'Open Document']):[['No documents uploaded','']],margin:{left:16,right:16},styles:{fontSize:9,cellPadding:3.5},headStyles:{fillColor:[36,57,49]},columnStyles:{1:{cellWidth:43,textColor:[30,70,150]}},didDrawCell:data=>{if(data.section==='body'&&data.column.index===1&&files[data.row.index])pdf.link(data.cell.x,data.cell.y,data.cell.width,data.cell.height,{url:'https://drive.google.com/open?id='+files[data.row.index].drive_file_id});}});
+  const count=pdf.getNumberOfPages();for(let i=1;i<=count;i++){pdf.setPage(i);pdf.setFontSize(8);pdf.setTextColor(100);pdf.text('GOYA | Confidential | '+i+' / '+count,16,289);}
+  pdf.save('GOYA-'+String(member.name).trim().replace(/[^a-z0-9_-]+/gi,'-').replace(/^-|-$/g,'')+'-Staff-Profile.pdf');
  }
  function init(){
   $('staffDirectorySearch')?.addEventListener('input',renderDirectoryRows);$('staffDirectoryFilter')?.addEventListener('change',renderDirectoryRows);

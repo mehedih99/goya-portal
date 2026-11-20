@@ -208,7 +208,7 @@
   function renderStaff(){window.GoyaManagement?.renderDirectory(state.adminData.staff||[]);$('staffBody').innerHTML=(state.adminData.staff||[]).map(x=>`<tr><td>${esc(x.name)}</td><td><strong>${esc(x.pin_code||'Reset PIN')}</strong></td><td>${x.active?'Active':'Inactive'}</td><td>${x.can_order?'✓':'—'}</td><td>${x.can_production?'✓':'—'}</td><td>${x.can_wastage?'✓':'—'}</td><td>${x.can_inventory?'✓':'—'}</td><td>${esc((x.sections||[]).join(', '))}</td><td><div class="toolbar"><button class="btn secondary tiny" onclick="GoyaAdmin.editStaff('${x.id}')">Edit</button><button class="btn danger tiny" onclick="GoyaAdmin.deleteStaff('${x.id}')">Delete</button></div></td></tr>`).join('')||'<tr><td colspan="9" class="empty">No staff.</td></tr>';}
   let staffFormRevision=0, staffProfileReady=true, staffSaveBusy=false, staffProfile={};
   const staffProfileFields={employee_code:'staffEmployeeCode',position:'staffPosition',joining_date:'staffJoiningDate',
-    last_day:'staffLastDay',manager_notes:'staffManagerNotes'};
+    last_day:'staffLastDay',manager_notes:'staffManagerNotes',mobile:'staffMobile',email:'staffEmail',address:'staffAddress',nationality:'staffNationality',date_of_birth:'staffDOB',employment_type:'staffEmploymentType',probation_end:'staffProbationEnd',emergency_name:'staffEmergencyName',emergency_relationship:'staffEmergencyRelationship',emergency_phone:'staffEmergencyPhone'};
   function fillStaffProfile(profile={}) {
     staffProfile=profile;
     for (const [field,id] of Object.entries(staffProfileFields)) $(id).value=profile[field] || '';
@@ -224,6 +224,7 @@
     $('staffSave').disabled=true;
     $('staffProfileStatus').textContent='Loading employment profile…';
     fillStaffProfile();
+    window.GoyaPeople?.mode(false);
     $('staffId').value=id;
     $('staffName').value=employee.name;
     $('staffPinNew').value=employee.pin_code||'';
@@ -252,6 +253,7 @@
   function resetStaffForm(){
     if(document.getElementById("staffEditor"))document.getElementById("staffEditor").hidden=true;
     staffFormRevision++;
+    window.GoyaPeople?.mode(true);
     staffProfileReady=true;
     if ($('staffEmployeeCode')) {
       fillStaffProfile();
@@ -267,7 +269,7 @@
     setSectionsChecked('staffSection',[]);
   }
   async function saveStaff(){
-    if (!staffProfileReady || staffSaveBusy) return;
+    if (!staffProfileReady || staffSaveBusy || window.GoyaPeople && !GoyaPeople.validateAll()) return;
     const row={id:$('staffId').value||null,name:$('staffName').value.trim(),pin:$('staffPinNew').value.trim(),
       active:$('staffActive').checked,can_order:$('canOrder').checked,can_production:$('canProd').checked,
       can_wastage:$('canWaste').checked,can_inventory:$('canInv').checked,sections:sectionsChecked('staffSection')};
@@ -277,16 +279,21 @@
     if (profile.last_day && profile.last_day!==staffProfile.last_day &&
         !confirm('Record resignation and deactivate portal access for '+row.name+'?')) return;
     staffSaveBusy=true;
+    window.GoyaPeople?.freeze(true);
     $('staffSave').disabled=true;
     $('staffClear').disabled=true;
     try {
-      await rpc('goya_hr_save_staff',{p_token:state.token,p_row:row,p_profile:profile,p_expected:staffProfile.updated_at||null});
+      const saved=await rpc('goya_people_save_staff',{p_token:state.token,p_row:row,p_profile:profile,p_expected:staffProfile.updated_at||null});
+      $('staffId').value=saved.id;
+      staffProfile=saved.profile;
+      await window.GoyaPeople?.uploadPending(saved.id);
       resetStaffForm();
       await adminLoad();
       toast('Staff saved.');
-    } catch (error) {toast(error.message,true)}
+    } catch (error) {$('staffProfileStatus').textContent=error.message;toast(error.message,true)}
     finally {
       staffSaveBusy=false;
+      window.GoyaPeople?.freeze(false);
       $('staffSave').disabled=!staffProfileReady;
       $('staffClear').disabled=false;
     }
