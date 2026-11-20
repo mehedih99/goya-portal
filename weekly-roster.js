@@ -19,7 +19,7 @@
     day.segments.map(s=>time12(s.start)+'–'+time12(s.end)+(s.end<s.start?' (+1 day)':'')+(s.break?' · '+s.break+'m break':'')).join(' / ');
   const context = () => $('roster-admin') ? window.GoyaAttendance?._liveContext() : window.GoyaStaff?._liveContext();
   let client, revision=0, staff=[], schedule, activeWeek, request=0, busy=false;
-  let offBalances={},sectionFilter='';
+  let offBalances={},groupFilter='';
   const within=(member,i)=>{const d=add(activeWeek,i);return member.eligible_days?.[i]!==false&&(!member.joining_date||d>=member.joining_date)&&(!member.last_day||d<=member.last_day);};
   let dirty=false, publishedStaff=null, approvedLeave=[], staffWeeks=[], reminderRequest=0;
   async function rpc(name, args) {
@@ -104,24 +104,24 @@
     }
     return new Promise(resolve=>{
       const node=document.createElement('dialog');node.className='card management-dialog';
-      node.innerHTML='<h2>Review before publishing</h2><p>'+esc(weekLabel(activeWeek))+'</p><p>'+staff.length+' staff · '+counts.shifts+' shifts · '+counts.off+' weekly offs · '+counts.leave+' leave days · '+counts.blank+' blank days</p><p>Publishes all sections, including staff hidden by your current filter. Approved leave is kept automatically.</p><details><summary>Warnings ('+warnings.length+')</summary><p>'+warnings.map(esc).join('<br>')+'</p></details><div class="toolbar"><button class="btn" data-confirm>Publish roster</button><button class="btn secondary" data-cancel>Back to draft</button></div>';
+      node.innerHTML='<h2>Review before publishing</h2><p>'+esc(weekLabel(activeWeek))+'</p><p>'+staff.length+' staff · '+counts.shifts+' shifts · '+counts.off+' weekly offs · '+counts.leave+' leave days · '+counts.blank+' blank days</p><p>Publishes all staff in FOH and BOH, including unassigned staff and anyone hidden by your current filter. Approved leave is kept automatically.</p><details><summary>Warnings ('+warnings.length+')</summary><p>'+warnings.map(esc).join('<br>')+'</p></details><div class="toolbar"><button class="btn" data-confirm>Publish roster</button><button class="btn secondary" data-cancel>Back to draft</button></div>';
       let confirmed=false;node.querySelector('[data-confirm]').onclick=()=>{confirmed=true;node.close();};node.querySelector('[data-cancel]').onclick=()=>node.close();
       node.onclose=()=>{node.remove();resolve(confirmed);};document.body.append(node);node.showModal();
     });
   }
   function renderAdmin() {
-    const sections=['Bar','Kitchen','Pastry','Packaging','Unassigned'],grid=$('roster-grid');
-    const belongs=(m,group)=>group==='Unassigned'?!(m.sections||[]).length:(m.sections||[]).includes(group);
-    const groups=sectionFilter?[sectionFilter]:sections;
+    const teams=['FOH','BOH',''],grid=$('roster-grid');
+    const belongs=(m,group)=>(m.roster_group||'')===group;
+    const groups=groupFilter?[groupFilter]:teams;
     grid.innerHTML='<thead><tr><th>Staff</th>'+names.map((n,i)=>'<th>'+n.slice(0,3)+'<br>'+shortDate(add(activeWeek,i))+'</th>').join('')+'<th>Off Balance</th></tr></thead><tbody>'+groups.map(group=>{
       const members=staff.filter(m=>belongs(m,group));if(!members.length)return '';
-      return '<tr class="roster-section"><th colspan="9">'+esc(group)+' · '+members.length+' staff</th></tr>'+members.map(member=>'<tr><th scope="row">'+esc(member.name)+'</th>'+schedule.staff[member.id].map((day,i)=>{
+      return '<tr class="roster-section"><th colspan="9">'+esc(group||'Not assigned — select FOH / BOH in Admin → Staff')+' · '+members.length+' staff</th></tr>'+members.map(member=>'<tr><th scope="row">'+esc(member.name)+'</th>'+schedule.staff[member.id].map((day,i)=>{
         if(!within(member,i))return '<td class="roster-outside">'+(member.joining_date&&add(activeWeek,i)<member.joining_date?'Before joining':'After last day')+'</td>';
         const leave=approvedDay(member.id,i),text=describe(effectiveDay(member.id,i,day));
         return '<td><button type="button" class="btn secondary '+rosterColor(effectiveDay(member.id,i,day))+'" data-roster-staff="'+esc(member.id)+'" data-roster-day="'+i+'" aria-label="'+esc(member.name+' '+names[i]+': '+text)+'"'+(leave?' disabled title="Change approved dates in Staff Requests"':'')+'>'+esc(text).replace(' (+1 day)','<small>+1 day</small>')+'</button></td>';
       }).join('')+'<td><button class="btn secondary roster-off-balance" data-roster-balance="'+esc(member.id)+'">'+esc(offBalances[member.id]?.balance??0)+'</button></td></tr>').join('');
     }).join('')+'</tbody>';
-    if(!staff.some(m=>!sectionFilter||belongs(m,sectionFilter)))grid.querySelector('tbody').innerHTML='<tr><td colspan="9">No staff in this section.</td></tr>';
+    if(!staff.some(m=>!groupFilter||belongs(m,groupFilter)))grid.querySelector('tbody').innerHTML='<tr><td colspan="9">No staff in this roster group.</td></tr>';
   }
   async function save(publish) {
     if(busy || !schedule) return;
@@ -356,9 +356,9 @@
   const datesLabel = (week,day) => shortDate(add(week,day));
 
   function initAdmin() {
-    const tools=document.createElement('div');tools.className='roster-tools';tools.innerHTML='<label>Section<select id="roster-section"><option value="">All Sections</option><option>Bar</option><option>Kitchen</option><option>Pastry</option><option>Packaging</option><option>Unassigned</option></select></label><button class="btn secondary" type="button" id="roster-collapse" aria-pressed="false">Hide Sidebar</button><button class="btn secondary" type="button" id="roster-focus" aria-pressed="false">Expand Roster</button>';
+    const tools=document.createElement('div');tools.className='roster-tools';tools.innerHTML='<label>Roster Group<select id="roster-group"><option value="">All</option><option value="FOH">FOH</option><option value="BOH">BOH</option></select></label><button class="btn secondary" type="button" id="roster-collapse" aria-pressed="false">Hide Sidebar</button><button class="btn secondary" type="button" id="roster-focus" aria-pressed="false">Expand Roster</button>';
     $('roster-status').after(tools);
-    $('roster-section').onchange=e=>{sectionFilter=e.target.value;if(schedule)renderAdmin();};
+    $('roster-group').onchange=e=>{groupFilter=e.target.value;if(schedule)renderAdmin();};
     $('roster-collapse').onclick=()=>{const collapsed=document.body.classList.toggle('roster-sidebar-collapsed');$('roster-collapse').textContent=collapsed?'Show Sidebar':'Hide Sidebar';$('roster-collapse').setAttribute('aria-pressed',collapsed);};
     const focus=value=>{document.body.classList.toggle('roster-focus',value);$('roster-focus').textContent=value?'Exit Expanded View':'Expand Roster';$('roster-focus').setAttribute('aria-pressed',value);};
     $('roster-focus').onclick=()=>focus(!document.body.classList.contains('roster-focus'));

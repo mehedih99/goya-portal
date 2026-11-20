@@ -34,6 +34,7 @@
   const values = form => Object.fromEntries(new FormData(form));
   const empty = (pane, message) => content(pane).textContent = message;
   const documentCategories = [
+    ['passport','🛂','Passport'],
     ['emirates-id','🪪','Emirates ID'],
     ['contract','📄','Employment Contract'],
     ['food-safety','📋','Food Safety Certificate'],
@@ -673,7 +674,7 @@
     const extra = staff && !row ? '<label hidden data-custom-title>Document name<input name="title" maxlength="100"></label>' : '';
     const node = dialog(row ? 'Replace · ' + categoryTitle(row) : staff ? 'Upload Document' : 'Add Files',
       (row ? '' : '<label>Document type<select name="category" required><option value="">Choose a document type</option>' +
-        options + (staff ? '<option value="custom">Custom document</option>' : '') + '</select></label>') + extra +
+        options + (staff ? '<option value="custom">Custom document</option>' : '') + '</select></label><p class="small muted" data-document-completion>Checking submitted documents…</p>') + extra +
       '<label>File<input type="file" name="file" accept="' + documentTypes.join(',') + '" required></label>' +
       '<label>Expiry date (optional)<input type="date" name="expires" value="'+escaped(row?.expires_on||'')+'"></label><p class="small muted">PDF, JPG or PNG up to 5 MB per document. Profile photos must be JPG or PNG.</p>',
       async input => {
@@ -698,6 +699,7 @@
         if (current()) await loadDocuments(pane,staff);
       },'Upload');
     const form = node.querySelector('form');
+    if(!row){const select=form.elements.category,feedback=node.querySelector('[data-document-completion]');rpc('goya_hr_documents',{p_staff:staff}).then(files=>{if(!node.isConnected||!current())return;if(!Array.isArray(files))throw Error('Unavailable');const done=new Set(files.filter(file=>file.uploaded_at).map(file=>file.category));for(const option of select.options){const title=documentCategories.find(([key])=>key===option.value)?.[2];if(title)option.textContent=title+(done.has(option.value)?' — ✓ Done':'');}feedback.textContent='✓ Done means a document is already uploaded. You can still upload a newer version.';}).catch(()=>{if(node.isConnected&&current())feedback.textContent='Previous uploads could not be checked. You can still upload a document.';});}
     if(preferredTitle&&staff&&!row){form.elements.category.value='custom';form.elements.title.value=preferredTitle;form.elements.title.required=true;form.querySelector('[data-custom-title]').hidden=false;}
     form.onchange = () => {
       uploadId = crypto.randomUUID();

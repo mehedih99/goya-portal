@@ -10,7 +10,7 @@ const uuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 const driveId = /^[A-Za-z0-9_-]{10,}$/;
 // Route new types into related folders supported by the existing signed Drive bridge.
 const driveCategories = new Map([
-  ["emirates-id", "emirates-id"], ["contract", "contract"], ["food-safety", "food-safety"],
+  ["passport", "emirates-id"], ["emirates-id", "emirates-id"], ["contract", "contract"], ["food-safety", "food-safety"],
   ["health-card", "health-card"], ["work-permit", "contract"], ["residence-visa", "emirates-id"],
   ["occupational-health-card", "health-card"], ["noc", "contract"], ["profile-photo", "emirates-id"],
   ["health-insurance", "health-card"], ["pic-certificate", "food-safety"],
