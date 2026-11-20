@@ -15,8 +15,11 @@
   }
   const shortDate = date => new Date(date+'T00:00:00Z').toLocaleDateString('en-GB',{day:'numeric',month:'short',timeZone:'UTC'});
   const time12=value=>{const [h,m]=value.split(':').map(Number);return (h%12||12)+':'+String(m).padStart(2,'0')+' '+(h<12?'AM':'PM');};
+  const workingType = kind => ['Shift','EVENT','Custom'].includes(kind);
+  const editorKind = day => day?.kind==='Shift'&&day.label?(day.label==='EVENT'?'EVENT':'Custom'):day?.kind||'';
+  const shiftLabel = form => {const k=form.elements.kind.value,label=k==='EVENT'?'EVENT':k==='Custom'?form.elements.customLabel.value.trim():'';if(k==='Custom'&&(!label||label.length>60||/[\x00-\x1f\x7f]/.test(label)))throw Error('Enter a custom name (1–60 characters).');return label;};
   const describe = day => !day ? 'Not scheduled' : day.kind!=='Shift' ? day.kind :
-    day.segments.map(s=>time12(s.start)+'–'+time12(s.end)+(s.end<s.start?' (+1 day)':'')+(s.break?' · '+s.break+'m break':'')).join(' / ');
+    (day.label?day.label+' | ':'')+day.segments.map(s=>time12(s.start)+'–'+time12(s.end)+(s.end<s.start?' (+1 day)':'')+(s.break?' · '+s.break+'m break':'')).join(' / ');
   const context = () => $('roster-admin') ? window.GoyaAttendance?._liveContext() : window.GoyaStaff?._liveContext();
   let client, revision=0, staff=[], schedule, activeWeek, request=0, busy=false;
   let offBalances={},groupFilter='';
@@ -180,7 +183,7 @@
     } catch { return []; }
   }
   function daySegments(form) {
-    if (form.elements.kind.value !== 'Shift') return [];
+    if (!workingType(form.elements.kind.value)) return [];
     const segments = [];
     for (let i=0;i<2;i++) {
       const start=form.elements['start'+i].value, end=form.elements['end'+i].value;
@@ -210,7 +213,7 @@
     return String(value ?? '').match(/\b\d{4}-\d{2}-\d{2}\b/)?.[0] || '';
   }
   function importedDay(value) {
-    const text = String(value ?? '').trim().replace(/[–—]/g,'-').replace(/\u00a0/g,' ');
+    let text = String(value ?? '').trim().replace(/[–—]/g,'-').replace(/\u00a0/g,' ');let label='';const tagged=text.match(/^(.{1,60}?)\s+\|\s+(.+)$/);if(tagged){label=tagged[1].trim();text=tagged[2];if(/[\x00-\x1f\x7f]/.test(label))throw Error('Invalid custom name.');}
     if (!text || /^[-\s]+$/.test(text) || /^not scheduled$/i.test(text)) return null;
     const kind = kinds.slice(1).find(item=>item.toLowerCase()===text.toLowerCase())
       || ({'ext annual leave':'Annual Leave','on leave':'Other Leave','off':'Weekly Off'})[text.toLowerCase()];
@@ -230,7 +233,7 @@
       return {start:clock(...match.slice(1,4)),end:clock(...match.slice(4,7)),break:Number(match[7] || 0)};
     });
     validateSegments(segments);
-    return {kind:'Shift',segments,note:''};
+    return {kind:'Shift',segments,note:'',...(label?{label}:{})};
   }
   function parseRosterWorkbook(book, week, members) {
     const sheet = book.Sheets['Daily schedule'] || book.Sheets[book.SheetNames[0]];
@@ -376,7 +379,7 @@
     preset.onchange = () => {
       if (!preset.value) return;
       const selected = presets[Number(preset.value)];
-      form.elements.kind.value=selected.kind;
+      form.elements.kind.value=editorKind(selected);form.elements.customLabel.value=selected.label||'';
       for (let i=0;i<2;i++) {
         const segment=selected.segments[i];
         form.elements['start'+i].value=segment?.start || '';
@@ -387,14 +390,14 @@
     };
     $('roster-save-preset').onclick = () => {
       try {
-        if (form.elements.kind.value!=='Shift') throw Error('Choose Shift and enter the shift hours first.');
+        if (!workingType(form.elements.kind.value)) throw Error('Choose a working day type and enter its hours first.');
         const segments = daySegments(form);
         const name = prompt('Name this shift preset',describe({kind:'Shift',segments}))?.trim().slice(0,60);
         if (!name) return;
         const saved = savedPresets();
         const existing = saved.findIndex(item=>item.name.toLowerCase()===name.toLowerCase());
         if (existing>=0 && !confirm('Replace the preset named “'+name+'”?')) return;
-        const item = {name,kind:'Shift',segments};
+        const label=shiftLabel(form);const item = {name,kind:'Shift',segments,...(label?{label}:{})};
         if (existing>=0) saved[existing]=item;
         else saved.push(item);
         localStorage.setItem(presetKey,JSON.stringify(saved));
@@ -412,7 +415,7 @@
         ['GOYA Weekly Roster Template'],['Week starts Monday',activeWeek],
         ['Shift example','09:00-18:00'],['Closing example','16:00-01:00'],
         ['Split shift example','08:00-12:00 / 16:00-20:00'],['Day off','Weekly Off'],['Vacation','Annual Leave'],
-        ['Other leave','Sick Leave or Other Leave'],
+        ['Other leave','Sick Leave or Other Leave'],['Event example','EVENT | 16:00-01:00'],['Custom example','Training | 09:00-18:00'],
         ['Import','Select the same week in GOYA, choose Import Excel, Preview, then Apply to draft. Publish after review.'],
         ['Off Balance','Edit Off Balance directly in GOYA. This template changes shifts only.']
       ]),'Instructions');
@@ -441,7 +444,7 @@
       form.dataset.staff=id;
       form.dataset.day=index;
       $('roster-edit-title').textContent=staff.find(m=>m.id===id).name+' · '+names[index];
-      form.elements.kind.value=day?.kind || '';
+      form.elements.kind.value=editorKind(day);form.elements.customLabel.value=day?.label||'';
       form.elements.note.value=day?.note || '';
       (day?.segments||[]).forEach((s,i)=>{
         form.elements['start'+i].value=s.start;
@@ -452,7 +455,7 @@
       dialog.showModal();
     });
     function updateInputs() {
-      const isShift=form.elements.kind.value==='Shift';
+      const isShift=workingType(form.elements.kind.value);const custom=form.elements.kind.value==='Custom';$('roster-custom-label').hidden=!custom;form.elements.customLabel.disabled=!custom;form.elements.customLabel.required=custom;
       $('roster-times').hidden=!isShift;
       $('roster-times').disabled=!isShift;
     }
@@ -463,10 +466,10 @@
       event.preventDefault();
       const {staff:id,day:index}=form.dataset;
       const {kind,note}=form.elements;
-      let segments;
-      try { segments = daySegments(form); }
+      let segments,label;
+      try { segments = daySegments(form);label=shiftLabel(form); }
       catch (error) { $('roster-edit-status').textContent=error.message; return; }
-      schedule.staff[id][index]=kind.value?{kind:kind.value,segments,note:note.value.trim()}:null;
+      schedule.staff[id][index]=kind.value?{kind:workingType(kind.value)?'Shift':kind.value,segments,note:note.value.trim(),...(label?{label}:{})}:null;
       dirty=true;
       renderAdmin();
       dialog.close();
