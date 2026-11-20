@@ -505,17 +505,39 @@
       (request.review_note ? '<p class="hr-leave-note">' + escaped(request.review_note) + '</p>' : '') + action +
       '</div>' + leaveBadge(leaveStatus(request,today)) + '</article>';
   }
+  function journeySvg(key) {
+    const paths = {
+      calendar:'<rect x="3" y="5" width="18" height="16" rx="2"/><path d="M16 3v4M8 3v4M3 11h18M8 15h2M14 15h2"/>',
+      id:'<rect x="3" y="5" width="18" height="16" rx="2"/><path d="M9 5V3h6v2M14 11h4M14 15h4"/><circle cx="8" cy="11" r="2"/><path d="M5 17v-1a3 3 0 0 1 6 0v1"/>',
+      briefcase:'<rect x="3" y="7" width="18" height="14" rx="2"/><path d="M8 7V4h8v3M3 12a20 20 0 0 0 18 0M10 12h4v4h-4z"/>',
+      pin:'<path d="M20 10c0 6-8 12-8 12S4 16 4 10a8 8 0 1 1 16 0Z"/><circle cx="12" cy="10" r="3"/>',
+      phone:'<path d="m5 3 4 1 1 5-3 2a16 16 0 0 0 6 6l2-3 5 1 1 4c-1 5-9 1-13-3S0 4 5 3Z"/>',
+      mail:'<rect x="3" y="5" width="18" height="14" rx="2"/><path d="m3 6 9 7 9-7"/>',
+      home:'<path d="m3 10 9-8 9 8M5 9v12h5v-7h4v7h5V9"/>',
+      globe:'<circle cx="12" cy="12" r="9"/><ellipse cx="12" cy="12" rx="4" ry="9"/><path d="M3 12h18M5 6h14M5 18h14"/>',
+      cake:'<path d="M4 12h16v9H4zM4 16c3 3 5-3 8 0s5-3 8 0M8 12V8M12 12V8M16 12V8M8 5V3M12 5V3M16 5V3"/>',
+      clock:'<circle cx="12" cy="12" r="9"/><path d="M12 6v6l4 2"/>',
+      person:'<circle cx="12" cy="7" r="4"/><path d="M4 21v-2a8 8 0 0 1 16 0v2"/>',
+      sparkle:'<path d="m12 2 3 7 7 3-7 3-3 7-3-7-7-3 7-3Z"/>',
+      check:'<rect x="3" y="5" width="18" height="16" rx="2"/><path d="M16 3v4M8 3v4M3 11h18m-12 5 2 2 4-4"/>'
+    };
+    return '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">' + (paths[key] || paths.person) + '</svg>';
+  }
   function journeyMarkup(data) {
     const profile = data.profile || {};
     const today = date(), joined = profile.joining_date;
     const name = context()?.user?.name;
     const details = [
-      ['📅','Joining date',joined && journeyDateFormat.format(journeyDate(joined))],
-      ['🪪','Employee ID',profile.employee_code],
-      ['💼','Position',profile.position],
-      ['📍','Branch',profile.branch],...Object.entries({mobile:'Mobile / WhatsApp',email:'Email',address:'Address',nationality:'Nationality',date_of_birth:'Date of birth',employment_type:'Employment type',probation_end:'Probation end date',emergency_name:'Emergency contact',emergency_relationship:'Relationship',emergency_phone:'Emergency phone'}).filter(([key])=>profile[key]).map(([key,label])=>['',label,profile[key]]),
+      ['calendar','Joining date',joined && journeyDateFormat.format(journeyDate(joined))],
+      ['id','Employee ID',profile.employee_code],
+      ['briefcase','Position',profile.position],
+      ['pin','Branch',profile.branch],...Object.entries({mobile:'Mobile / WhatsApp',email:'Email',address:'Address',nationality:'Nationality',date_of_birth:'Date of birth',employment_type:'Employment type',probation_end:'Probation end date',emergency_name:'Emergency contact',emergency_relationship:'Relationship',emergency_phone:'Emergency phone'}).filter(([key])=>profile[key]).map(([key,label])=>[({mobile:'phone',email:'mail',address:'home',nationality:'globe',date_of_birth:'cake',employment_type:'clock',probation_end:'calendar',emergency_name:'person',emergency_relationship:'person',emergency_phone:'phone'})[key],label,profile[key]]),
     ];
-    let markup = '<img class="staff-profile-photo hr-profile-photo" alt="Profile photo" data-profile-photo hidden><div class="hr-service">' + journeyIcon('✦') + '<div>';
+    const initials = (name || 'GOYA').trim().split(/\s+/).slice(0,2).map(part=>Array.from(part)[0]).join('').toUpperCase();
+    let markup = '<div class="hr-journey-profile"><div class="hr-journey-identity"><h3>' + escaped(name || 'Staff profile') +
+      '</h3><p>' + escaped(profile.position || 'N/A') + '</p><span>' + escaped(profile.employee_code || 'N/A') +
+      '</span></div><div class="hr-journey-photo"><span aria-hidden="true">' + escaped(initials) +
+      '</span><img alt="Profile photo" data-profile-photo hidden></div></div><div class="hr-service">' + journeyIcon(journeySvg('sparkle')) + '<div>';
     if (joined && joined <= today) {
       markup += '<p>Congratulations' + (name ? ', ' + escaped(name) : '') +
         '! You’ve been part of GOYA for <strong>' + serviceLength(joined,today) + '</strong></p>';
@@ -523,9 +545,9 @@
       markup += '<span class="small">Time at GOYA</span><strong>' + (joined ? 'Upcoming' : 'N/A') + '</strong>';
     }
     markup += '</div></div><dl class="hr-journey-details">' + details.map(([icon,label,value]) =>
-      '<div><dt>' + journeyIcon(icon) + label + '</dt><dd>' + escaped(value || 'N/A') + '</dd></div>').join('') + '</dl>';
+      '<div' + (['Mobile / WhatsApp','Email','Address','Employment type','Emergency contact','Emergency phone'].includes(label) ? ' class="hr-journey-detail-wide"' : '') + '><dt>' + journeyIcon(journeySvg(icon)) + '<span>' + label + '</span></dt><dd>' + escaped(value || 'N/A') + '</dd></div>').join('') + '</dl>';
     const pending = data.off_balance ? {value:data.off_balance.balance,week:(data.off_balance.updated_at||data.off_balance.source_week||'').slice(0,10)} : data.archived_pending_off;
-    markup += '<div class="hr-pending-off">' + journeyIcon('🗓️') +
+    markup += '<div class="hr-pending-off">' + journeyIcon(journeySvg('check')) +
       '<div><h3>'+(Number(pending?.value)<0?'Advance Day Off':'Pending Day Off')+'</h3><p>'+(Number(pending?.value)<0?'Advance off taken':'PH/PO') +
       (pending?.week ? ' · As of ' + escaped(journeyDateFormat.format(journeyDate(pending.week))) : '') +
       '</p></div><strong>' + escaped(pending?.value ?? 'N/A') + '</strong></div>';
@@ -731,8 +753,8 @@
           (row.version_rank===1 && (staff || !row.custom_title) ? button('replace','Replace') : '') +
           button('download','Download') + '</div></details>';
         return '<article class="hr-document-card hr-file-card"><div><h3><span aria-hidden="true">' +
-          icon + '</span> ' + escaped(title) + '</h3>' + name + '<small>' + version + date + '</small></div>' +
-          (row.expires_on?'<small>Expires: '+escaped(row.expires_on)+'</small>':'')+'<div class="hr-document-actions">' + button('view','View') + menu + '</div></article>';
+          icon + '</span> ' + escaped(title) + '</h3>' + name + '<small>' + version + date + '</small>' +
+          (row.expires_on?'<small class="hr-document-expiry">Expires: '+escaped(row.expires_on)+'</small>':'')+'</div><div class="hr-document-actions">' + button('view','View') + menu + '</div></article>';
       }).join('') || '<p class="small muted">No documents uploaded.</p>';
       list.querySelectorAll('[data-file-mode]').forEach(button => {
         const row = rows[button.dataset.fileIndex];
