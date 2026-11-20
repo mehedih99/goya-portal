@@ -42,6 +42,9 @@
     ['residence-visa','🛂','Residence Visa'],
     ['health-insurance','➕','Health Insurance Card'],
     ['pic-certificate','📋','PIC Certificate'],
+    ['occupational-health-card','➕','Occupational Health Card'],
+    ['noc','📄','NOC'],
+    ['profile-photo','👤','Profile Photo'],
   ];
   const documentTypes = ['application/pdf','image/jpeg','image/png'];
   const uploadDate = new Intl.DateTimeFormat('en-AE',{timeZone:'Asia/Dubai',dateStyle:'medium',timeStyle:'short'});
@@ -181,10 +184,10 @@
     content(pane).innerHTML = items.map((member, i) => {
       const profile = member.profile || {};
       const fields = [['Employee ID',profile.employee_code],['Position',profile.position],['Branch',profile.branch],
-        ['Joining date',profile.joining_date],['Last working day',profile.last_day]];
+        ['Joining date',profile.joining_date],['Last working day',profile.last_day || 'Present'],...Object.entries(window.GoyaPeople?.labels || {mobile:'Mobile / WhatsApp',email:'Email',address:'Address',nationality:'Nationality',date_of_birth:'Date of birth',employment_type:'Employment type',probation_end:'Probation end date',emergency_name:'Emergency contact',emergency_relationship:'Relationship',emergency_phone:'Emergency phone'}).map(([k,l])=>[l,profile[k]])];
       return '<details class="hr-staff-card" data-staff-record="' + i + '" data-staff-id="' + escaped(member.id) + '"><summary><strong>' + escaped(member.name) +
         '</strong><span>' + escaped([profile.employee_code,stateOf(member)].filter(Boolean).join(' · ')) + '</span></summary>' +
-        '<div class="hr-staff-card-body"><div class="toolbar"><button class="btn secondary" type="button" data-staff-pdf>⬇ Staff PDF</button><button class="btn secondary" type="button" data-balance>Edit Off Balance: ' + escaped(member.off_balance?.balance ?? 'N/A') + '</button></div><dl class="hr-journey-details">' + fields.map(([label,value]) =>
+        '<div class="hr-staff-card-body"><img class="staff-profile-photo hr-profile-photo" alt="Profile photo" data-profile-photo hidden><div class="toolbar"><button class="btn secondary" type="button" data-staff-pdf>⬇ Staff PDF</button><button class="btn secondary" type="button" data-balance>Edit Off Balance: ' + escaped(member.off_balance?.balance ?? 'N/A') + '</button></div><dl class="hr-journey-details">' + fields.map(([label,value]) =>
           '<div><dt>' + label + '</dt><dd>' + escaped(value || 'N/A') + '</dd></div>').join('') + '</dl>' +
         (member.history || []).map(item => '<p class="small muted">' + escaped(item.event) + ' · ' +
           escaped(item.details.rejoined_on || item.details.last_day) + '</p>').join('') +
@@ -212,6 +215,7 @@
       details.ontoggle = () => {
         if (!details.open) return;
         void loadDocuments(documents,member.id);
+        void showProfilePhoto(details.querySelector('[data-profile-photo]'),member.id);
         void loadAnnualHistory(annual,member);
       };
     });
@@ -508,9 +512,9 @@
       ['📅','Joining date',joined && journeyDateFormat.format(journeyDate(joined))],
       ['🪪','Employee ID',profile.employee_code],
       ['💼','Position',profile.position],
-      ['📍','Branch',profile.branch],
+      ['📍','Branch',profile.branch],...Object.entries({mobile:'Mobile / WhatsApp',email:'Email',address:'Address',nationality:'Nationality',date_of_birth:'Date of birth',employment_type:'Employment type',probation_end:'Probation end date',emergency_name:'Emergency contact',emergency_relationship:'Relationship',emergency_phone:'Emergency phone'}).filter(([key])=>profile[key]).map(([key,label])=>['',label,profile[key]]),
     ];
-    let markup = '<div class="hr-service">' + journeyIcon('✦') + '<div>';
+    let markup = '<img class="staff-profile-photo hr-profile-photo" alt="Profile photo" data-profile-photo hidden><div class="hr-service">' + journeyIcon('✦') + '<div>';
     if (joined && joined <= today) {
       markup += '<p>Congratulations' + (name ? ', ' + escaped(name) : '') +
         '! You’ve been part of GOYA for <strong>' + serviceLength(joined,today) + '</strong></p>';
@@ -558,8 +562,9 @@
   function showMyRequests(pane, items) {
     const today = date();
     content(pane).innerHTML = items.length ? '<div class="hr-leave-list">' + items.map((request,i) =>
-      leaveCard(request,today,request.state === 'Pending' ? '<button type="button" class="btn secondary" data-withdraw="' + i +
-        '">Withdraw</button>' : '')).join('') + '</div>' : 'No requests yet.';
+      leaveCard(request,today,(['Annual Leave','Resignation'].includes(request.kind)&&!['Withdrawn','Declined'].includes(request.state)?'<button type="button" class="btn secondary" data-open-email="'+i+'">Open Email</button>':'')+(request.state === 'Pending' ? '<button type="button" class="btn secondary" data-withdraw="' + i +
+        '">Withdraw</button>' : ''))).join('') + '</div>' : 'No requests yet.';
+    content(pane).querySelectorAll('[data-open-email]').forEach(b=>b.onclick=()=>openRequestEmail(items[b.dataset.openEmail].id,b));
     content(pane).querySelectorAll('[data-withdraw]').forEach(button => {
       button.onclick = async () => {
         if (!confirm('Withdraw this leave request?')) return;
@@ -605,6 +610,7 @@
       updateRequestFields();
       if (name === 'journey') {
         content(pane).innerHTML = journeyMarkup({...data,annual_history:Array.isArray(annual) ? annual : []});
+        void showProfilePhoto(pane.querySelector('[data-profile-photo]'),null);
         if (annual instanceof Error) renderStatus(pane,'Additional annual leave history could not be loaded. Reopen My Journey to retry.');
         else renderStatus(pane,'');
       } else showMyRequests(pane,data.requests);
@@ -669,7 +675,7 @@
       (row ? '' : '<label>Document type<select name="category" required><option value="">Choose a document type</option>' +
         options + (staff ? '<option value="custom">Custom document</option>' : '') + '</select></label>') + extra +
       '<label>File<input type="file" name="file" accept="' + documentTypes.join(',') + '" required></label>' +
-      '<p class="small muted">PDF, JPG or PNG up to 5 MB per document.</p>',
+      '<label>Expiry date (optional)<input type="date" name="expires" value="'+escaped(row?.expires_on||'')+'"></label><p class="small muted">PDF, JPG or PNG up to 5 MB per document. Profile photos must be JPG or PNG.</p>',
       async input => {
         if (!current() || !token) throw Error('Sign in again and reopen this page.');
         const file = input.file;
@@ -679,14 +685,16 @@
         if (!documentTypes.includes(file?.type) || !file.size || file.size > 5000000) {
           throw Error('Choose a PDF, JPG or PNG up to 5 MB.');
         }
-        renderStatus(node,'Uploading to Google Drive…');
+        renderStatus(node,'Uploading…');
         const body = new FormData();
         body.set('id',uploadId);
         body.set('category',category);
         if (staff) body.set('staff',staff);
         if (title) body.set('title',title);
         body.set('file',file);
+        if(category==='profile-photo'&&!['image/jpeg','image/png'].includes(file.type))throw Error('Choose a JPG or PNG profile photo.');
         await documentRequest(token,body);
+        await rpc('goya_people_document_expiry',{p_id:uploadId,p_staff:staff,p_expires:input.expires||null});
         if (current()) await loadDocuments(pane,staff);
       },'Upload');
     const form = node.querySelector('form');
@@ -722,7 +730,7 @@
           button('download','Download') + '</div></details>';
         return '<article class="hr-document-card hr-file-card"><div><h3><span aria-hidden="true">' +
           icon + '</span> ' + escaped(title) + '</h3>' + name + '<small>' + version + date + '</small></div>' +
-          '<div class="hr-document-actions">' + button('view','View') + menu + '</div></article>';
+          (row.expires_on?'<small>Expires: '+escaped(row.expires_on)+'</small>':'')+'<div class="hr-document-actions">' + button('view','View') + menu + '</div></article>';
       }).join('') || '<p class="small muted">No documents uploaded.</p>';
       list.querySelectorAll('[data-file-mode]').forEach(button => {
         const row = rows[button.dataset.fileIndex];
@@ -736,6 +744,31 @@
       if (current()) status.textContent = error.message;
     }
   }
+
+  async function profilePhoto(staff){
+    const token=context()?.token,rows=await rpc('goya_hr_documents',{p_staff:staff});
+    const photo=rows.find(r=>r.category==='profile-photo'&&Number(r.version_rank)===1);if(!photo)return null;
+    const response=await documentRequest(token,{id:photo.id,staff},true),blob=await response.blob();
+    if(context()?.token!==token)throw Error('Session changed.');return blob;
+  }
+  async function showProfilePhoto(img,staff){if(!img||img.dataset.loading)return;img.dataset.loading='1';try{const blob=await profilePhoto(staff);if(!blob||!img.isConnected)return;const url=URL.createObjectURL(blob);img.src=url;img.hidden=false;img.onload=()=>URL.revokeObjectURL(url);}catch{}finally{delete img.dataset.loading;}}
+  async function openRequestEmail(id,button){
+    const pane=$('hr-leave'),status=pane?.querySelector('[role=status]');if(button)button.disabled=true;
+    try{const data=await rpc('goya_people_email_draft',{p_request:id}),r=data.request,s=data.staff;
+      const valid=v=>typeof v==='string'&&/^[^\s@,;<>]+@[^\s@,;<>]+\.[^\s@,;<>]+$/.test(v);
+      if(!valid(data.owner)||!valid(data.hr))throw Error('Request saved. Management needs to set both Owner and HR email addresses.');
+      const to=[...new Set([data.owner,data.hr])],cc=valid(data.manager)&&!to.includes(data.manager)?data.manager:'';
+      const dates=r.kind==='Resignation'?'Last Working Day: '+r.requested_from:r.requested_from+' to '+r.requested_to;
+      const subject='GOYA '+r.kind+' - '+s.name+' - '+dates;
+      const body=['Dear Owner and HR,','',r.kind==='Resignation'?'Please accept my resignation request.':'I would like to request annual leave.','',
+       'Name: '+s.name,'Staff ID: '+(s.code||''),'Position: '+(s.position||''),'Mobile: '+(s.mobile||''),dates,'',
+       'Reason / message:',r.reason,'','Request reference: '+r.id,'This request is also saved in the GOYA portal.','',
+       'Regards,',s.name].join('\n');
+      const link=document.createElement('a');link.href='mailto:'+to.map(encodeURIComponent).join(',')+'?'+(cc?'cc='+encodeURIComponent(cc)+'&':'')+'subject='+encodeURIComponent(subject)+'&body='+encodeURIComponent(body);document.body.append(link);link.click();link.remove();
+      if(status)status.textContent='Request saved. Review the draft in your email app and press Send. Attach supporting files manually if needed.';
+    }catch(e){if(status)status.textContent=e.message;}finally{if(button)button.disabled=false;}
+  }
+
   async function submitLeave(event) {
     event.preventDefault();
     const form = event.currentTarget, button = form.querySelector('button[type=submit]');
@@ -760,7 +793,7 @@
       updateRequestFields();
       submissionId = null;
       if (!$('hr-leave').hidden) await openStaffTab('leave');
-      renderStatus(form,result.email === 'Sent' ? 'Request saved. Email sent.' : 'Request saved. Email could not be sent.');
+      renderStatus(form,result.compose ? 'Request saved. Select Open Email below to review your draft and send it to Owner and HR.' : result.email === 'Sent' ? 'Request saved. Email sent.' : 'Request saved. Email notification is unavailable.');
     } catch (error) { if (context()?.token === token) renderStatus(form,error.message); }
     finally { button.disabled = false; fields.forEach(field=>field.disabled = false); }
   }
@@ -811,7 +844,7 @@
       $('hr-staff-archive-month').onchange = () => showArchive(false);
     }
   }
-  window.GoyaHR = {documentEditor,openRecords,openRequests,openStaffTab,resetStaff,openEmailSettings,openRejoin:rejoinEditor};
+  window.GoyaHR = {profilePhoto,uploadDocument:body=>documentRequest(context()?.token,body),openRequestEmail,documentEditor,openRecords,openRequests,openStaffTab,resetStaff,openEmailSettings,openRejoin:rejoinEditor};
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded',init,{once:true});
   else init();
 })();

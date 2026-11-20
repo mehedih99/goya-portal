@@ -12,6 +12,7 @@ const driveId = /^[A-Za-z0-9_-]{10,}$/;
 const driveCategories = new Map([
   ["emirates-id", "emirates-id"], ["contract", "contract"], ["food-safety", "food-safety"],
   ["health-card", "health-card"], ["work-permit", "contract"], ["residence-visa", "emirates-id"],
+  ["occupational-health-card", "health-card"], ["noc", "contract"], ["profile-photo", "emirates-id"],
   ["health-insurance", "health-card"], ["pic-certificate", "food-safety"],
 ]);
 const isCustom = (category: string) => category.startsWith("custom-") && uuid.test(category.slice(7));
@@ -80,6 +81,7 @@ async function upload(req: Request, token: string) {
     if (!employee) return json(401,{error:"Sign in again."});
   }
   const file = form.get("file");
+  if (category === "profile-photo" && file instanceof File && !["image/jpeg","image/png"].includes(file.type)) return json(400,{error:"Choose a JPG or PNG profile photo."});
   const type = file instanceof File ? types.get(file.type) : undefined;
   if (!uuid.test(id) || !folderCategory || !(file instanceof File) || !type || !file.size || file.size > limit) {
     return json(400,{error:"Choose a PDF, JPG or PNG up to 5 MB."});
@@ -136,6 +138,6 @@ Deno.serve(async req => {
     }
     return json(400,{error:"Invalid document request."});
   } catch {
-    return json(502,{error:"Unable to complete the Google Drive request. Please try again."});
+    return json(502,{error:"Unable to complete the upload request. Please try again."});
   }
 });
