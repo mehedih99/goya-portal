@@ -135,3 +135,28 @@
 .hr-file-card small {display:block;margin-top:.2rem;color:var(--muted)}
 .hr-file-card .hr-document-actions {margin:0}
 .hr-documents [data-add-document] {margin-bottom:.75rem}
+
+/* Journey profile: identity left, private profile photo right. */
+.hr-journey-profile {display:grid;grid-template-columns:minmax(0,1fr) auto;align-items:center;gap:1rem;padding:1rem;border:1px solid var(--line);border-radius:.9rem;background:var(--panel,var(--card));margin-bottom:.85rem}
+.hr-journey-identity {min-width:0;overflow-wrap:anywhere}
+.hr-journey-profile .hr-journey-identity h3 {margin:0;font-size:1.2rem;line-height:1.3}
+.hr-journey-identity p {margin:.3rem 0;font-size:.95rem}
+.hr-journey-identity > span {color:var(--muted);font-size:.85rem}
+.hr-journey-photo {position:relative;width:5rem;height:5rem;border:1px solid var(--line);border-radius:1rem;background:var(--soft);color:var(--ink);overflow:hidden}
+.hr-journey-photo > span {position:absolute;inset:0;display:grid;place-items:center;font-size:1.6rem;font-weight:700}
+.hr-journey-photo > img {position:absolute;inset:0;width:100%;height:100%;object-fit:cover;background:var(--panel,var(--card));border:0;border-radius:0;margin:0;float:none}
+.hr-journey-photo > img[hidden] {display:none!important}
+.hr-journey-icon svg {width:1.2rem;height:1.2rem;display:block}
+.hr-journey-card .hr-content .hr-journey-details {grid-template-columns:repeat(2,minmax(0,1fr))}
+.hr-journey-details > .hr-journey-detail-wide {grid-column:1/-1}
+.hr-journey-details dt > span:last-child {min-width:0}
+.hr-journey-details dd {margin-left:2.15rem;line-height:1.4}
+.hr-file-card {display:grid;grid-template-columns:minmax(0,1fr) auto;align-items:center}
+.hr-file-card > div:first-child {min-width:0}
+.hr-file-card .hr-document-actions {flex-wrap:nowrap;justify-self:end}
+@media(max-width:370px) {
+  .hr-journey-details > div {padding:.6rem}
+  .hr-journey-details dt {font-size:.76rem;gap:.3rem}
+  .hr-journey-details dd {margin-left:0;font-size:.9rem}
+  .hr-file-card {padding:.7rem;gap:.4rem}
+}

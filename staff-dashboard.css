@@ -108,3 +108,7 @@ html[data-theme="dark"] #staffDashboard .dash-tomorrow {
   .dash-clock-label {font-size:15px}
 }
 @media(prefers-reduced-motion:reduce) {#staffDashboard .dash-companion-sprite {animation:none;transform:none;background-position:0 0}}
+
+@media(min-width:981px) {
+  #staffDashboard .dash-tomorrow {max-width:none}
+}
