@@ -370,13 +370,32 @@
     const picker=$('roster-week'), dialog=$('roster-edit'), form=$('roster-day-form');
     const preset = form.elements.preset;
     let presets = [];
+    const deletePreset = document.createElement('button');
+    deletePreset.type='button';deletePreset.className='btn secondary';deletePreset.textContent='Delete selected preset';deletePreset.disabled=true;
+    $('roster-save-preset').after(deletePreset);
+    const updatePresetDelete = () => {deletePreset.disabled=!presets[Number(preset.value)]?.savedValue || preset.value==='';};
+    deletePreset.onclick = () => {
+      const selected = preset.value!=='' && presets[Number(preset.value)];
+      if (!selected?.savedValue) return;
+      if (!confirm('Delete the saved preset “'+selected.name+'”? Existing roster shifts will stay unchanged.')) return;
+      try {
+        const saved=savedPresets(), index=saved.findIndex(item=>JSON.stringify(item)===selected.savedValue);
+        if (index<0) {refreshPresets();throw Error('This preset has changed. Select it again.');}
+        saved.splice(index,1);
+        localStorage.setItem(presetKey,JSON.stringify(saved));
+        refreshPresets();
+        $('roster-edit-status').textContent='Saved preset deleted. Existing roster shifts are unchanged.';
+      } catch(error) {$('roster-edit-status').textContent=error.message;}
+    };
     function refreshPresets() {
       presets = [...defaultShifts.map(([start,end])=>({kind:'Shift',segments:[{start,end,break:0}],
         name:describe({kind:'Shift',segments:[{start,end,break:0}]})})),
-        ...kinds.slice(1).map(kind=>({kind,name:kind,segments:[]})),...savedPresets()];
+        ...kinds.slice(1).map(kind=>({kind,name:kind,segments:[]})),...savedPresets().map(item=>({...item,savedValue:JSON.stringify(item)}))];
       preset.replaceChildren(new Option('Custom / edit manually',''),...presets.map((item,i)=>new Option(item.name,String(i))));
+      updatePresetDelete();
     }
     preset.onchange = () => {
+      updatePresetDelete();
       if (!preset.value) return;
       const selected = presets[Number(preset.value)];
       form.elements.kind.value=editorKind(selected);form.elements.customLabel.value=selected.label||'';
@@ -459,8 +478,8 @@
       $('roster-times').hidden=!isShift;
       $('roster-times').disabled=!isShift;
     }
-    form.elements.kind.addEventListener('change',()=>{preset.value='';updateInputs();});
-    $('roster-times').addEventListener('input',()=>{preset.value='';});
+    form.elements.kind.addEventListener('change',()=>{preset.value='';updatePresetDelete();updateInputs();});
+    $('roster-times').addEventListener('input',()=>{preset.value='';updatePresetDelete();});
     $('roster-cancel').addEventListener('click',()=>dialog.close());
     form.addEventListener('submit',event=>{
       event.preventDefault();
