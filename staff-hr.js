@@ -292,7 +292,8 @@
   function filteredRequests() {
     const filter = $('hr-request-filter').value;
     const search=$('hr-request-search')?.value.trim().toLowerCase()||'';
-    return requests.filter(request => (!search||request.name.toLowerCase().includes(search)) && (filter === 'All requests' || (filter==='Approved'?request.state==='Approved':leaveStatus(request)===filter)));
+    const type=$('hr-request-type')?.value||'';
+    return requests.filter(request => (!type||request.kind===type) && (!search||request.name.toLowerCase().includes(search)) && (filter === 'All requests' || (filter==='Approved'?request.state==='Approved':leaveStatus(request)===filter)));
   }
   function review(request) {
     const resign=request.kind==='Resignation';
@@ -345,7 +346,7 @@
     content(pane).querySelectorAll('[data-review]').forEach(button=>button.onclick=()=>review(items[button.dataset.review]));
   }
   async function openRequests(keepFilter=false) {
-    if(keepFilter!==true){$('hr-request-filter').value='Pending';$('hr-request-month').value='';}
+    if(keepFilter!==true){$('hr-request-filter').value='Pending';$('hr-request-month').value='';if($('hr-request-type'))$('hr-request-type').value='';}
     const pane = $('hr-requests'), generation = ++requestGeneration;
     requests = [];
     empty(pane,'');
@@ -585,7 +586,7 @@
   function showMyRequests(pane, items) {
     const today = date();
     content(pane).innerHTML = items.length ? '<div class="hr-leave-list">' + items.map((request,i) =>
-      leaveCard(request,today,(['Annual Leave','Resignation'].includes(request.kind)&&!['Withdrawn','Declined'].includes(request.state)?'<button type="button" class="btn secondary" data-open-email="'+i+'">Open Email</button>':'')+(request.state === 'Pending' ? '<button type="button" class="btn secondary" data-withdraw="' + i +
+      leaveCard(request,today,(['Annual Leave','Resignation'].includes(request.kind)&&request.state==='Pending'?'<button type="button" class="btn secondary" data-open-email="'+i+'">Open Email</button>':'')+(request.state === 'Pending' ? '<button type="button" class="btn secondary" data-withdraw="' + i +
         '">Withdraw</button>' : ''))).join('') + '</div>' : 'No requests yet.';
     content(pane).querySelectorAll('[data-open-email]').forEach(b=>b.onclick=()=>openRequestEmail(items[b.dataset.openEmail].id,b));
     content(pane).querySelectorAll('[data-withdraw]').forEach(button => {
@@ -782,12 +783,27 @@
       const valid=v=>typeof v==='string'&&/^[^\s@,;<>]+@[^\s@,;<>]+\.[^\s@,;<>]+$/.test(v);
       if(!valid(data.owner)||!valid(data.hr))throw Error('Request saved. Management needs to set both Owner and HR email addresses.');
       const to=[...new Set([data.owner,data.hr])],cc=valid(data.manager)&&!to.includes(data.manager)?data.manager:'';
-      const dates=r.kind==='Resignation'?'Last Working Day: '+r.requested_from:r.requested_from+' to '+r.requested_to;
-      const subject='GOYA '+r.kind+' - '+s.name+' - '+dates;
-      const body=['Dear Owner and HR,','',r.kind==='Resignation'?'Please accept my resignation request.':'I would like to request annual leave.','',
-       'Name: '+s.name,'Staff ID: '+(s.code||''),'Position: '+(s.position||''),'Mobile: '+(s.mobile||''),dates,'',
-       'Reason / message:',r.reason,'','Request reference: '+r.id,'This request is also saved in the GOYA portal.','',
-       'Regards,',s.name].join('\n');
+      if(!['Annual Leave','Resignation'].includes(r.kind))throw Error('Email drafts are available for annual leave and resignation requests only.');
+      if(r.state && r.state!=='Pending')throw Error('Email drafts are available for pending requests only.');
+      const formatDate=(value,month='short')=>{
+        const stamp=new Date(String(value).slice(0,10)+'T00:00:00Z');
+        return Number.isNaN(stamp.getTime())?String(value||''):new Intl.DateTimeFormat('en-GB',{day:'2-digit',month,year:'numeric',timeZone:'UTC'}).format(stamp);
+      };
+      const resign=r.kind==='Resignation';
+      const dates=resign?'Last Working Day: '+formatDate(r.requested_from):formatDate(r.requested_from)+' to '+formatDate(r.requested_to);
+      const subject='GOYA '+r.kind+' Request – '+s.name+' – '+dates;
+      const details=['Employee Details','Name: '+s.name,'Staff ID: '+(s.code||''),'Position: '+(s.position||''),'Mobile: '+(s.mobile||'')];
+      const reason=typeof r.reason==='string'?r.reason.trim():'';
+      const body=['Dear Management and HR Team,','',
+        resign?'Please accept this email as formal notice of my resignation from my position as '+(s.position||'a staff member')+' at GOYA. My proposed last working day is '+formatDate(r.requested_from,'long')+', subject to confirmation of the applicable notice period.':
+          'I am writing to request approval for my annual leave from '+formatDate(r.requested_from,'long')+' to '+formatDate(r.requested_to,'long')+'.',
+        '',...details,'',...(resign?['Last Working Day: '+formatDate(r.requested_from,'long')]:
+          ['Leave Details','Start Date: '+formatDate(r.requested_from,'long'),'End Date: '+formatDate(r.requested_to,'long')]),
+        ...(reason?['',resign?'Reason for Resignation:':'Reason for Leave:',reason]:[]),'',
+        ...(resign?['Thank you for the opportunities and support provided during my employment. I will cooperate with the handover process to help ensure a smooth transition.','',
+          'Kindly acknowledge receipt of my resignation and confirm my last working day and any required exit formalities.']:
+          ['I would appreciate your review and approval of this request. Please let me know if any further information is required.','','Thank you for your consideration.']),
+        '','Kind regards,',s.name,[s.position,s.code].filter(Boolean).join(' | ')].join('\n');
       const link=document.createElement('a');link.href='mailto:'+to.map(encodeURIComponent).join(',')+'?'+(cc?'cc='+encodeURIComponent(cc)+'&':'')+'subject='+encodeURIComponent(subject)+'&body='+encodeURIComponent(body);document.body.append(link);link.click();link.remove();
       if(status)status.textContent='Request saved. Review the draft in your email app and press Send. Attach supporting files manually if needed.';
     }catch(e){if(status)status.textContent=e.message;}finally{if(button)button.disabled=false;}
@@ -851,6 +867,7 @@
       $('hr-pending-tab').onclick=()=>{$('hr-request-filter').value='Pending';renderRequests();};
       $('hr-all-tab').onclick=()=>{$('hr-request-filter').value='All requests';renderRequests();};
       $('hr-request-filter').onchange = renderRequests;
+      if($('hr-request-type'))$('hr-request-type').onchange=renderRequests;
       $('hr-record-export').onclick = () => download('GOYA-Staff-Records.csv',
         [['Name','Status','Employee ID','Position','Branch','Joining Date','Last Day'], ...filteredProfiles().map(member =>
           [member.name,stateOf(member),member.profile?.employee_code,member.profile?.position,member.profile?.branch,
