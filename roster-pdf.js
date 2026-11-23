@@ -1,7 +1,7 @@
 (() => {
   'use strict';
   const $=id=>document.getElementById(id);
-  const colors={ink:[21,44,76],line:[160,181,202],group:[216,233,250],morning:[220,234,245],closing:[117,66,45],off:[213,242,224],annual:[255,235,173],leave:[247,220,224],white:[255,255,255]};
+  const colors={ink:[21,44,76],line:[160,181,202],group:[216,233,250],morning:[220,234,245],closing:[214,242,224],off:[117,66,45],annual:[255,235,173],leave:[247,220,224],white:[255,255,255]};
   const days=['MON','TUE','WED','THU','FRI','SAT','SUN'];
   const add=(date,n)=>{const d=new Date(date+'T00:00:00Z');d.setUTCDate(d.getUTCDate()+n);return d.toISOString().slice(0,10);};
   const monday=date=>add(date,-((new Date(date+'T00:00:00Z').getUTCDay()+6)%7));
@@ -23,7 +23,7 @@
     const PDF=window.jspdf?.jsPDF;
     if(!PDF)throw Error('PDF tools are still loading. Please try again.');
     let doc=new PDF({orientation:'landscape',unit:'mm',format:'a4',compress:true});
-    const width=297,margin=8,tableWidth=281,nameWidth=45,dayWidth=(tableWidth-nameWidth)/7;
+    const width=297,margin=8,tableWidth=281,nameWidth=45,pendingWidth=16,dayWidth=(tableWidth-nameWidth-pendingWidth)/7;
     const people=new Map(data.staff.map(p=>[p.id,p]));
     const teams=['FOH','BOH',''];
     const rows=[];
@@ -33,7 +33,11 @@
         .sort((a,b)=>a.name.localeCompare(b.name));
       if(!members.length)continue;
       rows.push({group:group==='FOH'?'FRONT OF HOUSE - FOH':group==='BOH'?'BACK OF HOUSE - BOH':'OTHER STAFF',count:members.length});
-      for(const p of members)rows.push({name:clean(p.name),days:data.schedule.staff[p.id]});
+      for(const p of members){
+        const balance=data.off_balances?.[p.id]?.balance;
+        const pending=balance!==null&&balance!==undefined&&Number.isFinite(Number(balance))?String(Number(balance)):'-';
+        rows.push({name:clean(p.name),days:data.schedule.staff[p.id],pending});
+      }
     }
     const notes=[clean(data.schedule.notes).trim()];
     for(const row of rows)if(row.days)row.days.forEach((d,i)=>{if(d?.note?.trim())notes.push(row.name+' - '+label(add(data.week,i))+': '+clean(d.note).trim());});
@@ -73,7 +77,7 @@
     const plan=()=>{
       const lh=font*.3528*1.12;
       layout=rows.map(row=>row.group?{...row,height:6.2}:{
-        ...row,lines:[wrap(row.name,nameWidth-4,font,true),...Array.from({length:7},(_,i)=>wrap(content(row.days[i]),dayWidth-3,font,true))],
+        ...row,lines:[wrap(row.name,nameWidth-4,font,true),...Array.from({length:7},(_,i)=>wrap(content(row.days[i]),dayWidth-3,font,true)),wrap(row.pending,pendingWidth-2,font,true)],
         height:0
       });
       for(const row of layout)if(!row.group)row.height=Math.max(font*.65+1,Math.max(...row.lines.map(x=>x.length))*lh+2.4);
@@ -91,12 +95,14 @@
     doc.addImage(logo,'PNG',margin,8+(12-logoHeight)/2,33,logoHeight);
     doc.line(44,8,44,22);draw('WEEKLY DUTY ROSTER',49,13.8,18,true);
     draw(label(data.week)+' - '+label(add(data.week,6))+' '+add(data.week,6).slice(0,4),49,21,10.5);
-    doc.setFillColor(...colors.off);doc.roundedRect(254,8,35,7,2,2,'F');draw('PUBLISHED',271.5,12.8,9,true,[28,91,57],'center');
+    doc.setFillColor(213,242,224);doc.roundedRect(254,8,35,7,2,2,'F');draw('PUBLISHED',271.5,12.8,9,true,[28,91,57],'center');
     draw(Object.keys(data.schedule.staff).length+' STAFF',289,21,10,true,colors.ink,'right');
     let y=27;
     doc.setFillColor(...colors.ink);doc.rect(margin,y,tableWidth,9,'F');
     draw('STAFF',margin+3,y+6,9.5,true,colors.white);
     for(let i=0;i<7;i++){const x=margin+nameWidth+i*dayWidth;draw(days[i]+' '+label(add(data.week,i)).toUpperCase(),x+dayWidth/2,y+6,8,true,colors.white,'center');}
+    draw('PENDING',width-margin-pendingWidth/2,y+3.7,6.5,true,colors.white,'center');
+    draw('OFF',width-margin-pendingWidth/2,y+7,6.5,true,colors.white,'center');
     y+=9;
     const lh=font*.3528*1.12;
     for(const row of layout){
@@ -106,9 +112,9 @@
       }
       let x=margin;
       row.lines.forEach((lines,i)=>{
-        const w=i?dayWidth:nameWidth,fill=i?color(row.days[i-1]):colors.white;
+        const w=i===8?pendingWidth:i?dayWidth:nameWidth,fill=i===8?colors.group:i?color(row.days[i-1]):colors.white;
         doc.setFillColor(...fill);doc.rect(x,y,w,row.height,'FD');
-        const ink=fill===colors.closing?colors.white:colors.ink;
+        const ink=fill===colors.off?colors.white:colors.ink;
         const top=y+(row.height-lines.length*lh)/2+font*.3528*.85;
         lines.forEach((line,j)=>draw(line,i?x+w/2:x+2,top+j*lh,font,true,ink,i?'center':'left'));
         x+=w;
@@ -145,8 +151,13 @@
       if(!/^\d{4}-\d{2}-\d{2}$/.test(value))throw Error('Select a roster week first.');
       const week=monday(value),cfg=window.GOYA_CONFIG;
       const client=window.supabase.createClient(cfg.SUPABASE_URL,cfg.SUPABASE_ANON_KEY,{auth:{persistSession:false,autoRefreshToken:false}});
-      const {data,error}=await client.rpc('goya_roster_published_export',{p_token:ctx.token,p_week:week});
-      if(error)throw Error(error.message);
+      const [published,balances]=await Promise.all([
+        client.rpc('goya_roster_published_export',{p_token:ctx.token,p_week:week}),
+        client.rpc('goya_management_balances',{p_token:ctx.token})
+      ]);
+      if(published.error)throw Error(published.error.message);
+      if(balances.error)throw Error(balances.error.message);
+      const data=published.data?{...published.data,off_balances:balances.data}:null;
       if(window.GoyaAttendance?._liveContext()?.token!==ctx.token)return;
       const logo=window.GoyaRosterPdfLogo;
       if(!logo)throw Error('The roster logo is still loading. Please refresh and try again.');
