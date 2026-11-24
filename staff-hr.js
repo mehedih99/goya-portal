@@ -791,7 +791,7 @@
       };
       const resign=r.kind==='Resignation';
       const dates=resign?'Last Working Day: '+formatDate(r.requested_from):formatDate(r.requested_from)+' to '+formatDate(r.requested_to);
-      const subject='GOYA '+r.kind+' Request – '+s.name+' – '+dates;
+      const subject='GOYA '+r.kind+' Request - '+s.name+' - '+dates;
       const details=['Employee Details','Name: '+s.name,'Staff ID: '+(s.code||''),'Position: '+(s.position||''),'Mobile: '+(s.mobile||'')];
       const reason=typeof r.reason==='string'?r.reason.trim():'';
       const body=['Dear Management and HR Team,','',
