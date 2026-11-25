@@ -160,3 +160,8 @@
   .hr-journey-details dd {margin-left:0;font-size:.9rem}
   .hr-file-card {padding:.7rem;gap:.4rem}
 }
+
+/* Keep staff-visible rejection reasons distinct from private management notes. */
+.hr-dialog .hr-reject-button {background:#9e3b3b;color:#fff;border-color:#9e3b3b}
+.hr-leave-badge[data-status="Declined"] {background:#f8e2e2;color:#8a2929}
+[data-theme="dark"] .hr-leave-badge[data-status="Declined"] {background:#522b32;color:#ffd5d9}
