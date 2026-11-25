@@ -300,22 +300,33 @@
     const prior=request.management_history?.[0];
     const node=dialog('Review · '+request.name,
       '<p>'+escaped(request.kind)+' · '+escaped(period(request))+'</p><label>Decision<select name="decision"><option value="Approved">Approve</option><option value="Declined">Reject</option></select></label>'+
-      '<div class="hr-fields"><label>'+(resign?'Last Working Day':'Approved from')+'<input name="from" type="date" value="'+escaped(request.approved_from||request.requested_from)+'"></label>'+
+      '<div class="hr-fields" data-approval-fields><label>'+(resign?'Last Working Day':'Approved from')+'<input name="from" type="date" value="'+escaped(request.approved_from||request.requested_from)+'"></label>'+
       (resign?'':'<label>Approved to<input name="to" type="date" value="'+escaped(request.approved_to||request.requested_to)+'"></label><label>Payroll outcome<select name="payroll"></select></label>')+'</div>'+
-      '<div class="hr-overlap-warning small"></div>'+GoyaManagement.identity()+
+      '<div class="hr-overlap-warning small"></div>'+
+      '<label><span data-public-note-label>Message to staff (optional)</span><textarea name="public_note" maxlength="2000">'+escaped(request.review_note||'')+'</textarea></label>'+
+      '<p class="small muted" data-public-note-help>This message will be visible to the staff member.</p>'+GoyaManagement.identity()+
       '<label>Private management note<textarea name="private_note" maxlength="2000">'+escaped(prior?.note||'')+'</textarea></label><p class="small muted">Management name, decision history and this note are not visible to staff.</p>',
       async input=>{
+        if(input.decision==='Declined'&&!input.public_note?.trim())throw Error('Enter a reason for rejection that the staff member can read.');
         await rpc('goya_management_review',{p_id:request.id,p_expected:request.updated_at,p_state:input.decision,
-          p_from:input.from||null,p_to:(resign?input.from:input.to)||null,p_payroll:resign?'Unpaid':input.payroll||null,
-          p_note:request.review_note||'',p_actor:input.actor,p_private_note:input.private_note});
+          p_from:input.decision==='Approved'?(input.from||null):null,p_to:input.decision==='Approved'?((resign?input.from:input.to)||null):null,p_payroll:input.decision==='Approved'?(resign?'Unpaid':input.payroll||null):null,
+          p_note:(input.public_note||'').trim(),p_actor:input.actor,p_private_note:input.private_note});
         await openRequests(true);
       });
-    const form=node.querySelector('form'),{decision,from,to,payroll,private_note:note}=form.elements;
+    const form=node.querySelector('form'),{decision,from,to,payroll,public_note:publicNote}=form.elements;
     if(request.state==='Declined')decision.value='Declined';
     const update=preferred=>{
-      const approved=decision.value==='Approved';from.disabled=!approved;from.required=approved;
+      const approved=decision.value==='Approved';
+      node.querySelector('[data-approval-fields]').hidden=!approved;
+      node.querySelector('.hr-overlap-warning').hidden=!approved;
+      node.querySelector('[data-public-note-label]').textContent=approved?'Message to staff (optional)':'Reason for rejection';
+      node.querySelector('[data-public-note-help]').textContent=approved?'This message will be visible to the staff member.':'This reason will be visible to the staff member.';
+      const submit=form.querySelector('button[type=submit]');submit.textContent=approved?'Confirm Approval':'Confirm Rejection';submit.classList.toggle('hr-reject-button',!approved);
+      publicNote.required=!approved;
+      publicNote.setCustomValidity('');
+      from.disabled=!approved;from.required=approved;
       if(to){to.disabled=!approved;to.required=approved;}
-      note.required=!approved;
+      if(payroll)payroll.disabled=!approved;
       if(payroll){const choices=approved?(request.kind==='Sick Leave'&&!request.drive_file_id?['Unpaid']:['Paid','Unpaid']):(request.kind==='Sick Leave'?['','Absent']:['']);
         payroll.replaceChildren(...choices.map(item=>new Option(item||'No payroll decision',item)));if(choices.includes(preferred))payroll.value=preferred;}
       const overlaps=requests.filter(r=>r.id!==request.id&&r.state==='Approved'&&r.kind!=='Resignation'&&
@@ -337,7 +348,7 @@
       return '<article class="hr-request-card"><div class="hr-request-heading"><div><h3>'+escaped(r.name)+'</h3><p>'+escaped(r.kind)+'</p></div>'+leaveBadge(leaveStatus(r))+'</div>'+
         '<div class="hr-request-meta"><strong>'+escaped(resign?'Last Working Day: '+from:period(r))+'</strong>'+
         (resign?'':'<span>'+days+' day'+(days===1?'':'s')+'</span>')+(r.payroll&&!resign?'<span>'+escaped(r.payroll)+'</span>':'')+'</div><p>'+escaped(r.reason)+'</p>'+
-        (r.review_note&&r.review_note!==r.reason?'<p>'+escaped(r.review_note)+'</p>':'')+
+        (r.review_note&&r.review_note!==r.reason?'<p>'+(r.state==='Declined'?'<strong>Reason for rejection</strong><br>':'')+escaped(r.review_note)+'</p>':'')+
         (/^[\w-]+$/.test(r.drive_file_id||'')?'<a target="_blank" rel="noopener noreferrer" href="https://drive.google.com/open?id='+r.drive_file_id+'">📎 View supporting document</a>':'')+
         (['Withdrawn','Recorded'].includes(r.state)?'':'<div class="toolbar"><button type="button" class="btn" data-review="'+i+'">'+(r.state==='Pending'?'Review · Approve / Reject':'Review / Edit')+'</button></div>')+
         '<details class="hr-management-history"><summary>🔒 Management-only decision history</summary>'+
@@ -492,7 +503,7 @@
   const journeyDate = value => new Date(value + 'T00:00:00Z');
   const journeyIcon = icon => '<span class="hr-journey-icon" aria-hidden="true">' + icon + '</span>';
   const journeyRange = (from,to) => journeyDateFormat.formatRange(journeyDate(from),journeyDate(to));
-  const leaveBadge = status => '<span class="hr-leave-badge" data-status="' + escaped(status) + '">' + escaped(status) + '</span>';
+  const leaveBadge = status => '<span class="hr-leave-badge" data-status="' + escaped(status) + '">' + escaped(status==='Declined'?'Rejected':status) + '</span>';
   function leaveCard(request, today, action = '') {
     const from = request.approved_from || request.requested_from;
     const to = request.approved_to || request.requested_to;
@@ -503,7 +514,7 @@
       '<div class="hr-leave-card-body"><strong>' + escaped(request.kind) + '</strong><p class="hr-leave-dates">' +
       escaped(when) + '</p>' +
       (request.payroll && request.kind!=='Resignation' ? '<p class="hr-leave-dates">' + escaped(request.payroll) + '</p>' : '') +
-      (request.review_note ? '<p class="hr-leave-note">' + escaped(request.review_note) + '</p>' : '') + action +
+      (request.review_note ? '<p class="hr-leave-note">' + (request.state==='Declined'?'<strong>Reason for rejection</strong><br>':'') + escaped(request.review_note) + '</p>' : '') + action +
       '</div>' + leaveBadge(leaveStatus(request,today)) + '</article>';
   }
   function journeySvg(key) {
