@@ -188,7 +188,7 @@
         ['Joining date',profile.joining_date],['Last working day',profile.last_day || 'Present'],...Object.entries(window.GoyaPeople?.labels || {mobile:'Mobile / WhatsApp',email:'Email',address:'Address',nationality:'Nationality',date_of_birth:'Date of birth',employment_type:'Employment type',probation_end:'Probation end date',emergency_name:'Emergency contact',emergency_relationship:'Relationship',emergency_phone:'Emergency phone'}).map(([k,l])=>[l,profile[k]])];
       return '<details class="hr-staff-card" data-staff-record="' + i + '" data-staff-id="' + escaped(member.id) + '"><summary><strong>' + escaped(member.name) +
         '</strong><span>' + escaped([profile.employee_code,stateOf(member)].filter(Boolean).join(' · ')) + '</span></summary>' +
-        '<div class="hr-staff-card-body"><img class="staff-profile-photo hr-profile-photo" alt="Profile photo" data-profile-photo hidden><div class="toolbar"><button class="btn secondary" type="button" data-staff-pdf>⬇ Staff PDF</button><button class="btn secondary" type="button" data-balance>Edit Off Balance: ' + escaped(member.off_balance?.balance ?? 'N/A') + '</button></div><dl class="hr-journey-details">' + fields.map(([label,value]) =>
+        '<div class="hr-staff-card-body"><img class="staff-profile-photo hr-profile-photo" alt="Profile photo" data-profile-photo hidden><div class="toolbar"><button class="btn secondary" type="button" data-staff-pdf>⬇ Staff File</button><button class="btn secondary" type="button" data-balance>Edit Off Balance: ' + escaped(member.off_balance?.balance ?? 'N/A') + '</button></div><dl class="hr-journey-details">' + fields.map(([label,value]) =>
           '<div><dt>' + label + '</dt><dd>' + escaped(value || 'N/A') + '</dd></div>').join('') + '</dl>' +
         (member.history || []).map(item => '<p class="small muted">' + escaped(item.event) + ' · ' +
           escaped(item.details.rejoined_on || item.details.last_day) + '</p>').join('') +
@@ -209,7 +209,7 @@
       const annual = details.querySelector('[data-annual-history]');
       const activity=details.querySelector('[data-record-activity]');
       activity.ontoggle=()=>{if(activity.open)GoyaManagement.renderRecordActivity(activity,member);};
-      details.querySelector('[data-staff-pdf]').onclick=async()=>{try{renderStatus(documents,'Preparing PDF…');await GoyaManagement.staffPDF(member);renderStatus(documents,'');}catch(e){renderStatus(documents,e.message);}};
+      details.querySelector('[data-staff-pdf]').onclick=async event=>{const button=event.currentTarget;if(button.disabled)return;button.disabled=true;try{renderStatus(documents,'Preparing Staff File…');await GoyaStaffFile.download(member,message=>renderStatus(documents,message));renderStatus(documents,'Staff File downloaded. Extract the ZIP to view offline.');}catch(e){renderStatus(documents,e.message);}finally{button.disabled=false;}};
       details.querySelector('[data-balance]').onclick=()=>GoyaManagement.editBalance(member,openRecords);
       documents.querySelector('[data-add-document]').onclick = () => documentEditor(documents,member.id);
       annual.querySelector('[data-add-annual]').onclick = () => annualEditor(annual,member);
@@ -659,11 +659,11 @@
       } else showMyRequests(pane,data.requests);
     } catch (error) { if (generation === staffGeneration) empty(pane,error.message); }
   }
-  async function documentRequest(token, body, json = false) {
+  async function documentRequest(token, body, json = false, signal) {
     const headers = {'x-goya-session':token};
     if (json) headers['Content-Type'] = 'application/json';
     const response = await fetch(config().SUPABASE_URL + '/functions/v1/staff-documents',{
-      method:'POST',headers,body:json ? JSON.stringify(body) : body,cache:'no-store',
+      method:'POST',headers,body:json ? JSON.stringify(body) : body,cache:'no-store',signal,
     });
     if (!response.ok) {
       const result = await response.json().catch(()=>null);
@@ -905,7 +905,7 @@
     }
   }
   if(location.hash==='#staff-requests' && document.getElementById('hr-requests')){let attempts=0;const jump=setInterval(()=>{if(++attempts>120){clearInterval(jump);return;}if(!context()?.token)return;clearInterval(jump);window.GoyaAttendance.nav(null,'hr-requests');openRequests(true);},1000);}
-  window.GoyaHR = {profilePhoto,uploadDocument:body=>documentRequest(context()?.token,body),openRequestEmail,documentEditor,openRecords,openRequests,openStaffTab,resetStaff,openEmailSettings,openRejoin:rejoinEditor};
+  window.GoyaHR = {documentBlob:async(row,staff)=>{const token=context()?.token;if(!token)throw Error('Sign in again.');const response=await documentRequest(token,{id:row.id,staff},true,AbortSignal.timeout(45000)),blob=await response.blob();if(context()?.token!==token)throw Error('Session changed. Please retry the Staff File download.');if(row.byte_size&&blob.size!==Number(row.byte_size))throw Error('A document download was incomplete. Please retry.');return blob;},profilePhoto,uploadDocument:body=>documentRequest(context()?.token,body),openRequestEmail,documentEditor,openRecords,openRequests,openStaffTab,resetStaff,openEmailSettings,openRejoin:rejoinEditor};
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded',init,{once:true});
   else init();
 })();

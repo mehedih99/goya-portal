@@ -101,7 +101,7 @@
   }catch(e){if(pane.isConnected)feedback.textContent=e.message;}
  }
  function requestStatus(row){const today=new Intl.DateTimeFormat('sv-SE',{timeZone:'Asia/Dubai'}).format(new Date());return row.state!=='Approved'?row.state:row.approved_to<today?'Done':row.kind!=='Resignation'&&row.approved_from<=today?'In progress':'Approved';}
- async function staffPDF(member) {
+ async function staffPDF(member,options={}) {
   if(!window.jspdf)throw Error('PDF library unavailable. Reload and try again.');
   const [report,latest]=await Promise.all([rpc('goya_management_report',{p_staff:member.id}),rpc('goya_hr_admin_profile',{p_staff:member.id})]);
   const p=latest||member.profile||{},pdf=new jspdf.jsPDF(),clean=v=>String(v??'').replace(/[^\x20-\x7e\n]/g,' ');let y=24;
@@ -118,9 +118,11 @@
   const names={passport:'Passport','emirates-id':'Emirates ID',contract:'Employment Contract','food-safety':'Food Safety Certificate','health-card':'Food Handler Health Card','occupational-health-card':'Occupational Health Card',noc:'NOC','work-permit':'Work Permit / Labour Card','residence-visa':'Residence Visa','health-insurance':'Health Insurance Card','pic-certificate':'PIC Certificate'};
   const unique=new Map();for(const d of report.documents||[])if(d.category!=='profile-photo'&&!unique.has(d.category))unique.set(d.category,d);
   if(y>245){pdf.addPage();y=22;}title('Documents');
-  const files=[...unique.values()].filter(d=>/^[\w-]+$/.test(d.drive_file_id||''));
-  pdf.autoTable({startY:y,head:[['Document','Link']],body:files.length?files.map(d=>[clean(names[d.category]||d.title||'Document'),'Open Document']):[['No documents uploaded','']],margin:{left:16,right:16},styles:{fontSize:9,cellPadding:3.5},headStyles:{fillColor:[36,57,49]},columnStyles:{1:{cellWidth:43,textColor:[30,70,150]}},didDrawCell:data=>{if(data.section==='body'&&data.column.index===1&&files[data.row.index])pdf.link(data.cell.x,data.cell.y,data.cell.width,data.cell.height,{url:'https://drive.google.com/open?id='+files[data.row.index].drive_file_id});}});
+  const files=options.documents||[...unique.values()].filter(d=>/^[\w-]+$/.test(d.drive_file_id||''));
+  pdf.autoTable({startY:y,head:[['Document','Link']],body:files.length?files.map(d=>[clean(names[d.category]||d.title||'Document')+(d.local_path?'\n'+d.local_path:''),d.local_path?'Open File':'Open Document']):[['No documents uploaded','']],margin:{left:16,right:16},styles:{fontSize:9,cellPadding:3.5},headStyles:{fillColor:[36,57,49]},columnStyles:{1:{cellWidth:43,textColor:[30,70,150]}},didDrawCell:data=>{if(data.section==='body'&&data.column.index===1&&files[data.row.index])(files[data.row.index].local_path?GoyaStaffFile.localLink(pdf,data.cell.x,data.cell.y,data.cell.width,data.cell.height,files[data.row.index].local_path):pdf.link(data.cell.x,data.cell.y,data.cell.width,data.cell.height,{url:'https://drive.google.com/open?id='+files[data.row.index].drive_file_id}));}});
+  if(options.documents){y=pdf.lastAutoTable.finalY+8;if(y>265){pdf.addPage();y=22;}pdf.setFontSize(9);pdf.setTextColor(60);pdf.text(pdf.splitTextToSize('Extract the full ZIP first. Keep this PDF beside the Documents folder. If a link is blocked by your PDF viewer, open the filename shown above from the Documents folder.',178),16,y);}
   const count=pdf.getNumberOfPages();for(let i=1;i<=count;i++){pdf.setPage(i);pdf.setFontSize(8);pdf.setTextColor(100);pdf.text('GOYA | Confidential | '+i+' / '+count,16,289);}
+  if(options.returnPDF)return pdf;
   pdf.save('GOYA-'+String(member.name).trim().replace(/[^a-z0-9_-]+/gi,'-').replace(/^-|-$/g,'')+'-Staff-Profile.pdf');
  }
  function init(){
