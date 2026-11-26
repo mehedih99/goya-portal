@@ -11,6 +11,7 @@
   let working=false;
   function content(day){
     if(!day)return '-';
+    if(day.off_source)return day.off_source==='advance'?'Advance Off':'Paid Off';
     if(day.kind!=='Shift')return clean(day.kind);
     return [day.label,...(day.segments||[]).map(s=>clock(s.start)+'-'+clock(s.end)+(s.end<s.start?'*':'')+(s.break?' | '+s.break+'m break':''))].filter(Boolean).join('\n');
   }

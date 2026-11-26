@@ -16,14 +16,15 @@
   const shortDate = date => new Date(date+'T00:00:00Z').toLocaleDateString('en-GB',{day:'numeric',month:'short',timeZone:'UTC'});
   const time12=value=>{const [h,m]=value.split(':').map(Number);return (h%12||12)+':'+String(m).padStart(2,'0')+' '+(h<12?'AM':'PM');};
   const workingType = kind => ['Shift','EVENT','Custom'].includes(kind);
-  const editorKind = day => day?.kind==='Shift'&&day.label?(day.label==='EVENT'?'EVENT':'Custom'):day?.kind||'';
+  const editorKind = day => day?.off_source==='balance'?'Paid Off':day?.off_source==='advance'?'Advance Off': day?.kind==='Shift'&&day.label?(day.label==='EVENT'?'EVENT':'Custom'):day?.kind||'';
   const shiftLabel = form => {const k=form.elements.kind.value,label=k==='EVENT'?'EVENT':k==='Custom'?form.elements.customLabel.value.trim():'';if(k==='Custom'&&(!label||label.length>60||/[\x00-\x1f\x7f]/.test(label)))throw Error('Enter a custom name (1–60 characters).');return label;};
-  const describe = day => !day ? 'Not scheduled' : day.kind!=='Shift' ? day.kind :
+  const describe = day => !day ? 'Not scheduled' : day.off_source ? (day.off_source==='advance'?'Advance Off · 1 day':'Paid Off · 1 day') : day.kind!=='Shift' ? day.kind :
     (day.label?day.label+' | ':'')+day.segments.map(s=>time12(s.start)+'–'+time12(s.end)+(s.end<s.start?' (+1 day)':'')+(s.break?' · '+s.break+'m break':'')).join(' / ');
   const context = () => $('roster-admin') ? window.GoyaAttendance?._liveContext() : window.GoyaStaff?._liveContext();
   let client, revision=0, staff=[], schedule, activeWeek, request=0, busy=false;
   let offBalances={},groupFilter='';
   const within=(member,i)=>{const d=add(activeWeek,i);return member.eligible_days?.[i]!==false&&(!member.joining_date||d>=member.joining_date)&&(!member.last_day||d<=member.last_day);};
+  let publishActor='';
   let dirty=false, publishedStaff=null, approvedLeave=[], staffWeeks=[], reminderRequest=0;
   async function rpc(name, args) {
     const token=context()?.token;
@@ -36,7 +37,8 @@
     return data;
   }
   function status(message) { $('roster-status').textContent=message; }
-  function weekLabel(week) {return shortDate(week)+' – '+shortDate(add(week,6))+' '+week.slice(0,4);}
+  function updateWeekLabel(){const current=monday(dubaiDate()),next=add(current,7);let label=activeWeek===current?'Current Week Schedule':activeWeek===next?'Upcoming Week Schedule':activeWeek>current?'Future Week Schedule':'Past Week Schedule';const box=$('roster-week-label');if(box)box.textContent=label+' · '+weekLabel(activeWeek);}
+  function weekLabel(week) {const end=add(week,6);return shortDate(week)+(week.slice(0,4)!==end.slice(0,4)?' '+week.slice(0,4):'')+' – '+shortDate(end)+' '+end.slice(0,4);}
   function resetEditor() {
     $('roster-edit').close();
     $('roster-import-dialog')?.close();
@@ -80,7 +82,7 @@
         item.textContent='Revision '+entry.revision+' · '+new Date(entry.published_at).toLocaleString('en-AE',{timeZone:'Asia/Dubai'});
         return item;
       }));
-      renderAdmin();
+      renderAdmin();updateWeekLabel();
       $('roster-actions').hidden=false;
       status(data.draft?.published_revision===revision?'Published':revision?'Saved draft':'New draft');
     } catch(error) { if(id===request) status(error.message); }
@@ -91,12 +93,12 @@
   }
   function effectiveDay(id,index,day) {
     const leave=approvedDay(id,index);
-    return leave ? {kind:leave.kind,segments:[],note:''} : day;
+    return leave ? {kind:leave.kind,segments:[],note:'',...(leave.paid_request?{off_source:'request'}:{})} : day;
   }
   function rosterColor(day) {
     return !day?'':day.kind==='Weekly Off'?'roster-shift-off':day.kind==='Annual Leave'?'roster-shift-annual':day.kind!=='Shift'?'roster-shift-leave':day.segments?.[0]?.start<'12:00'?'roster-shift-morning':'roster-shift-closing';
   }
-  function publishPreview() {
+  async function publishPreview() {
     const warnings=[],counts={shifts:0,off:0,leave:0,blank:0};
     for(const member of staff)for(let i=0;i<7;i++) {
       if(!within(member,i))continue;
@@ -105,10 +107,15 @@
       if(!day)warnings.push(member.name+' · '+add(activeWeek,i)+' · Not scheduled');
       if(approvedDay(member.id,i)&&raw?.kind==='Shift')warnings.push(member.name+' · '+add(activeWeek,i)+' · Approved leave replaces draft duty');
     }
+    const effective={staff:Object.fromEntries(staff.map(m=>[m.id,schedule.staff[m.id].map((d,i)=>within(m,i)?effectiveDay(m.id,i,d):null)])),notes:schedule.notes||''};
+    const money=await rpc('goya_off_roster_preview',{p_week:activeWeek,p_schedule:effective});
+    const balanceRows=money.filter(r=>r.debit||r.refund),hasChanges=balanceRows.length>0;
     return new Promise(resolve=>{
       const node=document.createElement('dialog');node.className='card management-dialog';
       node.innerHTML='<h2>Review before publishing</h2><p>'+esc(weekLabel(activeWeek))+'</p><p>'+staff.length+' staff · '+counts.shifts+' shifts · '+counts.off+' weekly offs · '+counts.leave+' leave days · '+counts.blank+' blank days</p><p>Publishes all staff in FOH and BOH, including unassigned staff and anyone hidden by your current filter. Approved leave is kept automatically.</p><details><summary>Warnings ('+warnings.length+')</summary><p>'+warnings.map(esc).join('<br>')+'</p></details><div class="toolbar"><button class="btn" data-confirm>Publish roster</button><button class="btn secondary" data-cancel>Back to draft</button></div>';
-      let confirmed=false;node.querySelector('[data-confirm]').onclick=()=>{confirmed=true;node.close();};node.querySelector('[data-cancel]').onclick=()=>node.close();
+      if(hasChanges){const box=document.createElement('div');box.innerHTML='<h3>Paid Off balance changes</h3><table><thead><tr><th>Staff</th><th>Current</th><th>Use</th><th>Return</th><th>After publish</th></tr></thead><tbody>'+balanceRows.map(r=>'<tr><td>'+esc(r.name)+'</td><td>'+r.balance+'</td><td>'+r.debit+'</td><td>'+r.refund+'</td><td>'+r.projected+'</td></tr>').join('')+'</tbody></table><p>Weekly Off does not use balance. Advance Off may make a balance negative.</p><label>Management name (private)<input data-paid-actor maxlength="100" required></label><p role="status"></p>';node.querySelector('.toolbar').before(box);}
+      if(balanceRows.some(r=>r.insufficient)){node.querySelector('[data-confirm]').disabled=true;node.querySelector('[role=status]').textContent='Insufficient Paid Off balance. Return to the draft and choose Advance Off explicitly, or correct the balance.';}
+      let confirmed=false;node.querySelector('[data-confirm]').onclick=()=>{const actor=node.querySelector('[data-paid-actor]');if(actor&&!actor.value.trim()){actor.reportValidity();return;}publishActor=actor?.value.trim()||'';confirmed=true;node.close();};node.querySelector('[data-cancel]').onclick=()=>node.close();
       node.onclose=()=>{node.remove();resolve(confirmed);};document.body.append(node);node.showModal();
     });
   }
@@ -138,7 +145,7 @@
       if(publish && former.length && !confirm('Exclude inactive staff from this publication? Earlier publications will be kept.')) return;
       schedule.notes=$('roster-notes').value.trim();
       const submitted=publish?{...schedule,staff:Object.fromEntries(Object.entries(schedule.staff).filter(([id])=>activeStaff.has(id)))}:schedule;
-      const saved=await rpc('goya_roster_save',{p_week:activeWeek,p_expected:revision,p_schedule:submitted,p_publish:publish});
+      const saved=await rpc('goya_roster_save',{p_week:activeWeek,p_expected:revision,p_schedule:{...submitted,...(publish?{approval_actor:publishActor}:{})},p_publish:publish});
       schedule=submitted;
       revision=saved;
       dirty=false;
@@ -146,6 +153,7 @@
       if(publish) {
         publishedStaff=Object.fromEntries(Object.entries(submitted.staff).map(([id,days])=>
           [id,days.map((day,i)=>within(staff.find(m=>m.id===id),i)?effectiveDay(id,i,day):null)]));
+        offBalances=await rpc('goya_management_balances',{});renderAdmin();
         $('roster-download').disabled=false;
         const item=document.createElement('li');
         item.textContent='Revision '+saved+' · Published';
@@ -167,10 +175,10 @@
       const previousStaff=previous.draft?.published_staff;
       if(!previousStaff) throw Error('No published roster was found for last week.');
       for(const member of staff) schedule.staff[member.id]=(previousStaff[member.id] || Array(7).fill(null)).map(day=>
-        day && ['Shift','Weekly Off'].includes(day.kind)?{...day,note:''}:null);
+        day && !day.off_source && ['Shift','Weekly Off'].includes(day.kind)?{...day,note:''}:null);
       dirty=true;
       renderAdmin();
-      status('Last week’s shifts and weekly offs copied. Review before publishing.');
+      status('Last week’s shifts and weekly offs copied. Paid Off entries were not copied. Review before publishing.');
     } catch(error) {status(error.message);}
     finally {busy=false;$('roster-actions').disabled=false;$('roster-week').disabled=false;}
   }
@@ -214,6 +222,8 @@
   }
   function importedDay(value) {
     let text = String(value ?? '').trim().replace(/[–—]/g,'-').replace(/\u00a0/g,' ');let label='';const tagged=text.match(/^(.{1,60}?)\s+\|\s+(.+)$/);if(tagged){label=tagged[1].trim();text=tagged[2];if(/[\x00-\x1f\x7f]/.test(label))throw Error('Invalid custom name.');}
+    if(/^paid off$/i.test(text))return {kind:'Weekly Off',off_source:'balance',segments:[],note:''};
+    if(/^advance off$/i.test(text))return {kind:'Weekly Off',off_source:'advance',segments:[],note:''};
     if (!text || /^[-\s]+$/.test(text) || /^not scheduled$/i.test(text)) return null;
     const kind = kinds.slice(1).find(item=>item.toLowerCase()===text.toLowerCase())
       || ({'ext annual leave':'Annual Leave','on leave':'Other Leave','off':'Weekly Off'})[text.toLowerCase()];
@@ -349,6 +359,8 @@
   function initAdmin() {
     const tools=document.createElement('div');tools.className='roster-tools';tools.innerHTML='<label>Roster Group<select id="roster-group"><option value="">All</option><option value="FOH">FOH</option><option value="BOH">BOH</option></select></label><button class="btn secondary" type="button" id="roster-collapse" aria-pressed="false">Hide Sidebar</button><button class="btn secondary" type="button" id="roster-focus" aria-pressed="false">Expand Roster</button>';
     $('roster-status').after(tools);
+    const weekBox=document.createElement('p');weekBox.id='roster-week-label';weekBox.className='roster-week-label';$('roster-status').before(weekBox);
+    for(const [label,fn] of [['Bulk Add Paid Off','bulk'],['Paid Off Credit History','history']]){const button=document.createElement('button');button.type='button';button.className='btn secondary';button.textContent=label;button.onclick=()=>GoyaPaidOff[fn](async()=>{offBalances=await rpc('goya_management_balances',{});renderAdmin();}).catch(e=>status(e.message));tools.append(button);}
     $('roster-group').onchange=e=>{groupFilter=e.target.value;if(schedule)renderAdmin();};
     $('roster-collapse').onclick=()=>{const collapsed=document.body.classList.toggle('roster-sidebar-collapsed');$('roster-collapse').textContent=collapsed?'Show Sidebar':'Hide Sidebar';$('roster-collapse').setAttribute('aria-pressed',collapsed);};
     const focus=value=>{document.body.classList.toggle('roster-focus',value);$('roster-focus').textContent=value?'Exit Expanded View':'Expand Roster';$('roster-focus').setAttribute('aria-pressed',value);};
@@ -356,6 +368,8 @@
     document.addEventListener('keydown',e=>{if(e.key==='Escape')focus(false);});
 
     const picker=$('roster-week'), dialog=$('roster-edit'), form=$('roster-day-form');
+    for(const [value,label] of [['Paid Off','Paid Off — Use Balance'],['Advance Off','Advance Off — Use in Advance']])form.elements.kind.add(new Option(label,value));
+    const balanceHint=document.createElement('p');balanceHint.className='small';balanceHint.id='roster-paid-hint';form.elements.kind.parentElement.after(balanceHint);
     const preset = form.elements.preset;
     let presets = [];
     const deletePreset = document.createElement('button');
@@ -470,6 +484,8 @@
     });
     function updateInputs() {
       const isShift=workingType(form.elements.kind.value);const custom=form.elements.kind.value==='Custom';$('roster-custom-label').hidden=!custom;form.elements.customLabel.disabled=!custom;form.elements.customLabel.required=custom;
+      const kind=form.elements.kind.value,paid=kind==='Paid Off'||kind==='Advance Off',available=Number(offBalances[form.dataset.staff]?.balance??0);
+      balanceHint.hidden=!paid;balanceHint.textContent=paid?'Available balance: '+available+' days · Uses 1 day on publish · '+(kind==='Advance Off'?'Advance balance allowed.':'Insufficient balance will block publishing.') : '';
       $('roster-times').hidden=!isShift;
       $('roster-times').disabled=!isShift;
     }
@@ -483,7 +499,7 @@
       let segments,label;
       try { segments = daySegments(form);label=shiftLabel(form); }
       catch (error) { $('roster-edit-status').textContent=error.message; return; }
-      schedule.staff[id][index]=kind.value?{kind:workingType(kind.value)?'Shift':kind.value,segments,note:note.value.trim(),...(label?{label}:{})}:null;
+      schedule.staff[id][index]=kind.value?{kind:workingType(kind.value)?'Shift':['Paid Off','Advance Off'].includes(kind.value)?'Weekly Off':kind.value,...(kind.value==='Paid Off'?{off_source:'balance'}:kind.value==='Advance Off'?{off_source:'advance'}:{}),segments,note:note.value.trim(),...(label?{label}:{})}:null;
       dirty=true;
       renderAdmin();
       dialog.close();
