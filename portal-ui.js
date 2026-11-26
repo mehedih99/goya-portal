@@ -7,7 +7,7 @@ const system=matchMedia('(prefers-color-scheme: dark)');let choice=read(key)||'a
 const standalone=()=>matchMedia('(display-mode: standalone)').matches||matchMedia('(display-mode: minimal-ui)').matches||navigator.standalone===true;
 function apply(){root.dataset.theme=choice==='auto'?(system.matches?'dark':'light'):choice;root.style.colorScheme=root.dataset.theme;document.querySelector('meta[name="theme-color"]')?.setAttribute('content',root.dataset.theme==='dark'?'#0c1624':'#f2f5f6');}
 if(!['auto','light','dark'].includes(choice))choice='auto';apply();system.addEventListener?.('change',()=>{if(choice==='auto')apply()});
-window.addEventListener('storage',e=>{if(e.key===key){choice=['auto','dark','light'].includes(e.newValue)?e.newValue:'auto';apply();document.querySelectorAll('.portal-theme').forEach(x=>x.value=choice)}});
+window.addEventListener('storage',e=>{if(e.key===key&&!(document.body?.dataset.page==='staff'&&window.GoyaStaff?._liveContext?.().token)){choice=['auto','dark','light'].includes(e.newValue)?e.newValue:'auto';apply();document.querySelectorAll('.portal-theme').forEach(x=>x.value=choice)}});
 function updateInstall(){document.querySelectorAll('.portal-install').forEach(b=>b.hidden=installed||standalone());}
 window.addEventListener('beforeinstallprompt',e=>{e.preventDefault();promptEvent=e;updateInstall()});
 window.addEventListener('appinstalled',()=>{installed=true;write(installedKey,'yes');promptEvent=null;updateInstall()});
@@ -16,7 +16,7 @@ async function install(){if(standalone()||installed)return;if(promptEvent){const
 function showHelp(){const dialog=document.getElementById('portalInstallHelp');dialog.hidden=false;dialog.querySelector('button').focus();}
 function begin(label='Loading…'){pending++;const bar=document.getElementById('portalLoading');if(bar){bar.hidden=false;bar.querySelector('span:last-child').textContent=label;}let done=false;return()=>{if(done)return;done=true;pending=Math.max(0,pending-1);if(!pending&&bar)bar.hidden=true;};}
 async function task(fn,label){const end=begin(label);try{return await fn()}finally{end()}}
-window.GoyaUI={begin,task};
+window.GoyaUI={begin,task,getTheme:()=>choice,setTheme:value=>{choice=['auto','light','dark'].includes(value)?value:'auto';apply();document.querySelectorAll('.portal-theme').forEach(x=>x.value=choice);}};
 document.addEventListener('DOMContentLoaded',()=>{
 const tools=document.createElement('div');tools.className='portal-tools';tools.innerHTML='<label class="portal-theme-label"><span>Theme</span><select class="portal-theme" aria-label="Color theme"><option value="auto">◐ Auto</option><option value="light">☀ Light</option><option value="dark">☾ Dark</option></select></label><button type="button" class="portal-install">↓ Install App</button>';
 const header=document.querySelector('.topbar');(header||document.body).appendChild(tools);if(header){const loginTools=tools.cloneNode(true);loginTools.classList.add('portal-login-tools');document.querySelector('.login-card')?.appendChild(loginTools);}
