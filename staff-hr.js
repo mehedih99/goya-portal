@@ -772,7 +772,7 @@
           '">⋯</summary><div>' +
           (row.version_rank===1 && (staff || !row.custom_title) ? button('replace','Replace') : '') +
           button('download','Download') + '</div></details>';
-        return '<article class="hr-document-card hr-file-card"><div><h3><span aria-hidden="true">' +
+        return '<article class="hr-document-card hr-file-card" data-document-id="'+escaped(row.id)+'" data-document-category="'+escaped(row.category)+'"><div><h3><span aria-hidden="true">' +
           icon + '</span> ' + escaped(title) + '</h3>' + name + '<small>' + version + date + '</small>' +
           (row.expires_on?'<small class="hr-document-expiry">Expires: '+escaped(row.expires_on)+'</small>':'')+'</div><div class="hr-document-actions">' + button('view','View') + menu + '</div></article>';
       }).join('') || '<p class="small muted">No documents uploaded.</p>';
@@ -905,7 +905,7 @@
     }
   }
   if(location.hash==='#staff-requests' && document.getElementById('hr-requests')){let attempts=0;const jump=setInterval(()=>{if(++attempts>120){clearInterval(jump);return;}if(!context()?.token)return;clearInterval(jump);window.GoyaAttendance.nav(null,'hr-requests');openRequests(true);},1000);}
-  window.GoyaHR = {documentBlob:async(row,staff)=>{const token=context()?.token;if(!token)throw Error('Sign in again.');const response=await documentRequest(token,{id:row.id,staff},true,AbortSignal.timeout(45000)),blob=await response.blob();if(context()?.token!==token)throw Error('Session changed. Please retry the Staff File download.');if(row.byte_size&&blob.size!==Number(row.byte_size))throw Error('A document download was incomplete. Please retry.');return blob;},profilePhoto,uploadDocument:body=>documentRequest(context()?.token,body),openRequestEmail,documentEditor,openRecords,openRequests,openStaffTab,resetStaff,openEmailSettings,openRejoin:rejoinEditor};
+  window.GoyaHR = {focusDocument:async(id,category)=>{const expected=context()?.token;await openStaffTab('journey');if(context()?.token!==expected)return;const pane=$('hr-journey').querySelector('[data-hr-documents]');await loadDocuments(pane);if(context()?.token!==expected)return;const card=pane.querySelector('[data-document-id="'+CSS.escape(String(id))+'"]')||pane.querySelector('[data-document-category="'+CSS.escape(String(category))+'"]');if(card){card.classList.add('staff-notification-focus');card.scrollIntoView({block:'center'});}else pane.scrollIntoView({block:'center'});},documentBlob:async(row,staff)=>{const token=context()?.token;if(!token)throw Error('Sign in again.');const response=await documentRequest(token,{id:row.id,staff},true,AbortSignal.timeout(45000)),blob=await response.blob();if(context()?.token!==token)throw Error('Session changed. Please retry the Staff File download.');if(row.byte_size&&blob.size!==Number(row.byte_size))throw Error('A document download was incomplete. Please retry.');return blob;},profilePhoto,uploadDocument:body=>documentRequest(context()?.token,body),openRequestEmail,documentEditor,openRecords,openRequests,openStaffTab,resetStaff,openEmailSettings,openRejoin:rejoinEditor};
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded',init,{once:true});
   else init();
 })();

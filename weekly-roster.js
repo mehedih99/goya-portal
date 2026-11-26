@@ -541,7 +541,7 @@
       $('roster-next').textContent=index<0?'':'Next scheduled shift in this week: '+names[index]+' · '+describe(roster.days[index]);
       $('roster-days').innerHTML=names.map((name,i)=>{
         const date=add(week,i), day=roster.days[i];
-        return '<div class="card"><strong>'+name+' '+shortDate(date)+'</strong><p>'+esc(describe(day))+'</p>'+
+        return '<div class="card" data-schedule-date="'+date+'"><strong>'+name+' '+shortDate(date)+'</strong><p>'+esc(describe(day))+'</p>'+
           (day?.note?'<small>'+esc(day.note)+'</small>':'')+'</div>';
       }).join('');
       $('roster-week-note').textContent=roster.notes || '';
@@ -597,7 +597,7 @@
       status('No published weeks in this month.');
     });
   }
-  window.GoyaRoster={
+  window.GoyaRoster={openWeek:async week=>{if(admin||!/^\d{4}-\d{2}-\d{2}$/.test(week||''))return;await window.GoyaHR?.openStaffTab('schedule');if($('roster-filter-month'))$('roster-filter-month').value='';return loadStaff(monday(week));},
     open:()=>{
       if(admin) return loadAdmin($('roster-week').value || monday(dubaiDate()));
       window.GoyaHR?.openStaffTab('schedule');
