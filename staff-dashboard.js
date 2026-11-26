@@ -154,8 +154,10 @@
   renderNotice();
  }
 
+ let noticeOrder='';
  function renderNotice() {
-  const announcement=scheduleNotice(),ns=[...(announcement?[announcement]:[]),...(data?.notices||[])];
+  const announcement=scheduleNotice(),ns=[...(announcement?[announcement]:[]),...(data?.notices||[])].sort((a,b)=>(Date.parse(b.published_at||b.created_at||b.updated_at)||0)-(Date.parse(a.published_at||a.created_at||a.updated_at)||0));
+  const order=ns.map(n=>String(n.id||n.title)+':'+(n.published_at||n.created_at||n.updated_at||'')).join('|');if(order!==noticeOrder){noticeIndex=0;noticeOrder=order;}
   if(!ns.length){$('dashNoticeContent').innerHTML='<span class="dash-eyebrow">NOTICE BOARD</span><h2>No new notices</h2><p>Management updates will appear here.</p>';$('dashNoticeControls').hidden=true;return;}
   noticeIndex=((noticeIndex%ns.length)+ns.length)%ns.length;
   const n=ns[noticeIndex];
