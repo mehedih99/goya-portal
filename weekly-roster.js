@@ -235,59 +235,46 @@
     validateSegments(segments);
     return {kind:'Shift',segments,note:'',...(label?{label}:{})};
   }
-  function parseRosterWorkbook(book, week, members) {
-    const sheet = book.Sheets['Daily schedule'] || book.Sheets[book.SheetNames[0]];
-    if (!sheet?.['!ref']) throw Error('The workbook contains no roster cells.');
-    const range = XLSX.utils.decode_range(sheet['!ref']);
-    if (range.e.r>5000 || range.e.c>100) throw Error('Use a roster workbook with up to 5,001 rows and 101 columns.');
-    const grid = XLSX.utils.sheet_to_json(sheet,{header:1,range:0,defval:null,blankrows:true});
-    const dates = Array.from({length:7},(_,index)=>add(week,index));
-    const date1904 = book.Workbook?.WBProps?.date1904 === true;
-    const normalize = value => String(value ?? '').trim().toLowerCase().replace(/\s+/g,' ');
-    const aliases = new Map([['alvinne','alvine'],['shafi','safi'],['chef sayd','chef farrukh']]);
-    const changes = new Map(), issues = new Set(), conflicts = new Set();
-    const daysFound = new Set();
-    let columns = [], nameCol = 1;
+  function parseRosterWorkbook(book,week,members) {
+    const sheet=book.Sheets['Weekly roster']||book.Sheets['Daily schedule']||book.Sheets[book.SheetNames[0]];
+    if(!sheet?.['!ref'])throw Error('The workbook contains no roster cells.');
+    const range=XLSX.utils.decode_range(sheet['!ref']);if(range.e.r>5000||range.e.c>100)throw Error('Use up to 5,001 rows and 101 columns.');
+    const grid=XLSX.utils.sheet_to_json(sheet,{header:1,range:0,defval:null,blankrows:true});
+    const dates=Array.from({length:7},(_,i)=>add(week,i)),date1904=book.Workbook?.WBProps?.date1904===true;
+    const norm=v=>String(v??'').trim().toLowerCase().replace(/\s+/g,' ');
+    const aliases=new Map([['alvinne','alvine'],['shafi','safi'],['chef sayd','chef farrukh']]);
+    const changes=new Map(),issues=[],errors=[],found=new Set(),seen=new Set();let columns=[],nameCol=0,idCol=-1;
+    const issue=(row,col,message,fatal=true)=>{const text=XLSX.utils.encode_cell({r:row,c:Math.max(0,col)})+' · '+message;issues.push(text);if(fatal)errors.push(text);};
     grid.forEach((row,index)=>{
-      if (normalize(row[1])==='week of:') {
-        nameCol = 1;
-        columns = (grid[index+1] || []).slice(2,9).map((value,i)=>[i+2,dates.indexOf(rosterWorkbookDate(value,date1904))]);
-        columns.forEach(([,day])=>{if(day>=0) daysFound.add(day);});
-        return;
+      if(norm(row[1])==='week of:'){
+        nameCol=1;idCol=-1;columns=(grid[index+1]||[]).slice(2,9).map((v,i)=>[i+2,dates.indexOf(rosterWorkbookDate(v,date1904))]);columns.forEach(([,d])=>{if(d>=0)found.add(d);});return;
       }
-      if (normalize(row[0])==='staff') {
-        nameCol = 0;
-        columns = row.slice(1,8).map((value,i)=>[i+1,dates.indexOf(rosterWorkbookDate(value,date1904))]);
-        columns.forEach(([,day])=>{if(day>=0) daysFound.add(day);});
-        return;
-      }
-      const name = String(row[nameCol] ?? '').trim();
-      if (!name || ['weekly schedule','total'].includes(normalize(name))) return;
-      const cells = columns.filter(([column,day])=>day>=0 && String(row[column] ?? '').trim());
-      if(!cells.length) return;
-      const key = aliases.get(normalize(name)) || normalize(name);
-      const matches = members.filter(member=>normalize(member.name)===key);
-      if (matches.length!==1) { issues.add(name + ' · Staff match unavailable.'); return; }
+      const header=row.findIndex(v=>norm(v)==='staff'||norm(v)==='staff name');
+      if(header>=0){nameCol=header;idCol=row.findIndex(v=>['staff id','employee id','employee code'].includes(norm(v)));columns=row.map((v,c)=>[c,dates.indexOf(rosterWorkbookDate(v,date1904))]).filter(([,d])=>d>=0);columns.forEach(([,d])=>found.add(d));return;}
+      if(!columns.length)return;
+      const name=String(row[nameCol]??'').trim(),code=idCol>=0?String(row[idCol]??'').trim():'';
+      if(!name&&!code)return;
+      if(/^(foh|boh|not assigned)(\b|\s*·)/i.test(name)&&!code&&!columns.some(([c])=>String(row[c]??'').trim()))return;
+      if(['weekly schedule','total','weekly note','notes'].includes(norm(name)))return;
+      const cells=columns.filter(([c])=>String(row[c]??'').trim());if(!cells.length)return;
+      const key=aliases.get(norm(name))||norm(name);
+      const matches=code?members.filter(m=>[m.employee_code,m.id].some(v=>v&&norm(v)===norm(code))):members.filter(m=>norm(m.name)===key);
+      if(matches.length!==1){issue(index,idCol>=0?idCol:nameCol,(name||code)+' · '+(code?'Staff ID':'Staff name')+' must match exactly one current staff member.');return;}
       const member=matches[0];
-      for (const [column,day] of cells) {
-        if (approvedDay(member.id,day)) {issues.add(name + ' · ' + dates[day] + ' · Approved leave kept.');continue;}
-        const id=member.id+':'+day;
-        try {
-          const shift=importedDay(row[column]);
-          if (!shift) continue;
-          const existing=changes.get(id);
-          if (existing && JSON.stringify(existing.shift)!==JSON.stringify(shift)) {
-            conflicts.add(id);
-            issues.add(name+' · '+dates[day]+' · Conflicting Excel shifts.');
-          }
-          changes.set(id,{member,day,shift});
-        } catch (error) { issues.add(name+' · '+dates[day]+' · '+error.message+' ('+String(row[column]).slice(0,60)+')'); }
+      if(code&&name&&key!==norm(member.name)){issue(index,nameCol,'Staff ID and name do not match. Expected '+member.name+'.');return;}
+      if(seen.has(member.id)){issue(index,nameCol,member.name+' appears more than once. Keep one row per staff member.');return;}seen.add(member.id);
+      for(const [column,day] of cells){
+        if(approvedDay(member.id,day)){issue(index,column,member.name+' · Approved leave kept.',false);continue;}
+        if(member.eligible_days?.[day]===false||(member.joining_date&&dates[day]<member.joining_date)||(member.last_day&&dates[day]>member.last_day)){issue(index,column,member.name+' · Date is outside employment dates.');continue;}
+        try{const value=String(row[column]).trim();if(/^[-\s]+$/.test(value))continue;const shift=importedDay(value);if(!shift&&!/^not scheduled$/i.test(value))continue;changes.set(member.id+':'+day,{member,day,shift});}
+        catch(e){issue(index,column,member.name+' · '+dates[day]+' · '+e.message);}
       }
     });
-    if (!daysFound.size) throw Error('No dated columns matched '+weekLabel(week)+'. Use Daily schedule or a sheet headed Staff and seven dated columns.');
-    return {changes:[...changes].filter(([id])=>!conflicts.has(id)).map(([,change])=>change),
-      issues:[...issues],missing:dates.filter((_,day)=>!daysFound.has(day))};
+    if(!found.size)throw Error('No dated columns matched '+weekLabel(week)+'. Select the workbook’s week before importing.');
+    const missing=dates.filter((_,i)=>!found.has(i));if(missing.length){const text='Missing date columns: '+missing.join(', ');issues.push(text);errors.push(text);}
+    return {changes:[...changes.values()],issues,errors,missing,matched:seen.size};
   }
+
   function initRosterImport() {
     const dialog = $('roster-import-dialog'), form = $('roster-import-form');
     const feedback = $('roster-import-status'), preview = $('roster-import-preview'), apply = $('roster-apply-import');
@@ -323,7 +310,7 @@
         const book = XLSX.read(bytes,{cellFormula:false});
         const result = parseRosterWorkbook(book,week,staff);
         pending={...result,week,token};
-        feedback.textContent=result.changes.length+' valid entries · '+result.issues.length+' skipped items. Blank cells keep the current draft.';
+        feedback.textContent=result.changes.length+' valid entries · '+result.matched+' staff matched · '+result.issues.length+' issues. Blank cells keep the current draft.';
         if (result.missing.length) feedback.textContent+=' Dates missing from workbook: '+result.missing.join(', ')+'.';
         if (result.changes.length) {
           preview.innerHTML='<div class="roster-import-scroll"><table><thead><tr><th>Staff</th><th>Date</th><th>Current draft</th><th>Excel</th></tr></thead><tbody>'+
@@ -332,18 +319,19 @@
         }
         if (result.issues.length) {
           const issues=document.createElement('details');
-          issues.innerHTML='<summary>Skipped items</summary><ul>'+result.issues.map(issue=>'<li>'+esc(issue)+'</li>').join('')+'</ul>';
+          issues.innerHTML='<summary>Import issues — correct errors before applying</summary><ul>'+result.issues.map(issue=>'<li>'+esc(issue)+'</li>').join('')+'</ul>';
           preview.append(issues);
           issues.open=true;
         }
-        apply.disabled=!result.changes.length;
+        apply.disabled=!result.changes.length||result.errors.length>0;
       } catch(error) {if (current===generation) feedback.textContent=error.message;}
       finally {if (current===generation) previewButton.disabled=false;}
     };
     apply.onclick = () => {
-      if (!pending || busy || !schedule || activeWeek!==pending.week || context()?.token!==pending.token) return;
+      if (!pending || pending.errors.length || busy || !schedule || activeWeek!==pending.week || context()?.token!==pending.token) return;
       for (const {member,day,shift} of pending.changes) {
         const existing = schedule.staff[member.id][day];
+        if(!shift){schedule.staff[member.id][day]=null;continue;}
         schedule.staff[member.id][day]={...shift,note:existing?.note || '',segments:shift.segments.map((segment,index)=>{
           const previous = existing?.segments?.[index];
           return !segment.break && previous?.start===segment.start && previous.end===segment.end
@@ -426,20 +414,27 @@
     };
     $('roster-template').onclick=()=>{
       if(!activeWeek||!window.XLSX)return;
-      const rows=[['Staff',...names.map((name,i)=>add(activeWeek,i))],...staff.map(m=>[m.name,...Array(7).fill('')])];
+      const ordered=['FOH','BOH',''].flatMap(group=>staff.filter(m=>(m.roster_group||'')===group));
+      const rows=[['Staff ID','Staff',...names.map((_,i)=>add(activeWeek,i))]],merges=[];let previous;
+      for(const m of ordered){const group=m.roster_group||'Not assigned';if(group!==previous){merges.push({s:{r:rows.length,c:1},e:{r:rows.length,c:8}});rows.push(['',group]);previous=group;}
+        rows.push([m.employee_code||m.id,m.name,...Array(7).fill('')]);}
       const book=XLSX.utils.book_new(),sheet=XLSX.utils.aoa_to_sheet(rows);
-      sheet['!cols']=[{wch:24},...Array(7).fill({wch:22})];
+      sheet['!cols']=[{wch:16},{wch:26},...Array.from({length:7},()=>({wch:26}))];sheet['!merges']=merges;
       XLSX.utils.book_append_sheet(book,sheet,'Weekly roster');
-      XLSX.utils.book_append_sheet(book,XLSX.utils.aoa_to_sheet([
-        ['GOYA Weekly Roster Template'],['Week starts Monday',activeWeek],
-        ['Shift example','09:00-18:00'],['Closing example','16:00-01:00'],
-        ['Split shift example','08:00-12:00 / 16:00-20:00'],['Day off','Weekly Off'],['Vacation','Annual Leave'],
-        ['Other leave','Sick Leave or Other Leave'],['Event example','EVENT | 16:00-01:00'],['Custom example','Training | 09:00-18:00'],
-        ['Import','Select the same week in GOYA, choose Import Excel, Preview, then Apply to draft. Publish after review.'],
-        ['Off Balance','Edit Off Balance directly in GOYA. This template changes shifts only.']
-      ]),'Instructions');
+      const instructions=[['GOYA Weekly Roster Template'],['Week starts Monday',activeWeek],
+        ['Staff order','FOH, BOH and Not assigned, in the same staff order as the roster page.'],
+        ['Staff ID','Keep Staff ID and name unchanged. ID is checked first; a mismatched ID/name blocks import.'],
+        ['Blank cell','Keeps the current draft shift. It does not delete anything.'],
+        ['Clear one day','Type Not scheduled to explicitly clear a draft shift. Approved leave stays protected.'],
+        ['Shift','09:00-18:00'],['Closing shift — next day','16:00-01:00'],['Break','09:00-18:00 · 60m break'],
+        ['Split shift','08:00-12:00 / 16:00-20:00'],['Weekly off','Weekly Off'],['Annual leave','Annual Leave'],['Sick leave','Sick Leave'],['Other leave','Other Leave'],
+        ['Custom shift','Training | 09:00-18:00'],['Import','Choose the same week, Import Excel, Preview, correct all errors, then Apply to draft.'],
+        ['Publish','Applying does not publish or save. Review the draft, Save Draft or Publish separately.'],
+        ['Approved leave','Approved dates take priority and cannot be overwritten by Excel.'],['Notes and balances','Existing shift notes, weekly notes and off balances are preserved. Edit these in the portal.']];
+      const help=XLSX.utils.aoa_to_sheet(instructions);help['!cols']=[{wch:28},{wch:110}];XLSX.utils.book_append_sheet(book,help,'Instructions');
       XLSX.writeFile(book,'GOYA-roster-template-'+activeWeek+'.xlsx');
     };
+
     $('roster-grid').addEventListener('click',event=>{
       const button=event.target.closest('[data-roster-balance]');if(!button||busy)return;
       const member=staff.find(m=>m.id===button.dataset.rosterBalance);if(!member)return;
