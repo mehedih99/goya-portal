@@ -510,7 +510,7 @@
     const monthOnly = request.state === 'Recorded' && ['Cancelled Off','Attendance Note'].includes(request.kind);
     const when = request.kind==='Resignation' ? 'Last Working Day: '+journeyDateFormat.format(journeyDate(from)) : request.service_year && !from ? 'N/A · Service year ' + journeyDateFormat.format(journeyDate(request.service_year)) :
       monthOnly ? period(request) : journeyRange(from,to);
-    return '<article class="hr-leave-card">' + journeyIcon(request.kind === 'Annual Leave' ? '🌴' : '📋') +
+    return '<article class="hr-leave-card" data-request-id="'+escaped(request.id||'')+'">' + journeyIcon(request.kind === 'Annual Leave' ? '🌴' : '📋') +
       '<div class="hr-leave-card-body"><strong>' + escaped(request.kind) + '</strong><p class="hr-leave-dates">' +
       escaped(when) + '</p>' +
       (request.payroll && request.kind!=='Resignation' ? '<p class="hr-leave-dates">' + escaped(request.payroll) + '</p>' : '') +
@@ -596,9 +596,17 @@
   }
   function showMyRequests(pane, items) {
     const today = date();
+    const holder=content(pane),previousType=holder.querySelector('[data-my-request-type]')?.value||'',previousStatus=holder.querySelector('[data-my-request-status]')?.value||'';
+    const filterBar=document.createElement('div');filterBar.className='toolbar hr-my-request-filters';
+    filterBar.innerHTML='<label>Leave type<select data-my-request-type><option value="">All types</option>'+[...new Set(items.map(r=>r.kind))].map(k=>'<option>'+escaped(k)+'</option>').join('')+'</select></label><label>Status<select data-my-request-status><option value="">All statuses</option>'+['Pending','Approved','In progress','Done','Declined','Withdrawn','Recorded'].map(k=>'<option value="'+k+'">'+(k==='Declined'?'Rejected':k)+'</option>').join('')+'</select></label><span class="small" data-my-request-count></span>';
     content(pane).innerHTML = items.length ? '<div class="hr-leave-list">' + items.map((request,i) =>
       leaveCard(request,today,(['Annual Leave','Resignation'].includes(request.kind)&&request.state==='Pending'?'<button type="button" class="btn secondary" data-open-email="'+i+'">Open Email</button>':'')+(request.state === 'Pending' ? '<button type="button" class="btn secondary" data-withdraw="' + i +
         '">Withdraw</button>' : ''))).join('') + '</div>' : 'No requests yet.';
+    holder.prepend(filterBar);
+    const type=filterBar.querySelector('[data-my-request-type]'),status=filterBar.querySelector('[data-my-request-status]');
+    type.value=previousType;status.value=previousStatus;
+    const filter=()=>{let count=0;holder.querySelectorAll('.hr-leave-card').forEach((card,i)=>{const r=items[i],show=(!type.value||type.value===r.kind)&&(!status.value||status.value===leaveStatus(r,today));card.hidden=!show;if(show)count++;});filterBar.querySelector('[data-my-request-count]').textContent=count+' of '+items.length+' requests';};
+    type.onchange=status.onchange=filter;filter();
     content(pane).querySelectorAll('[data-open-email]').forEach(b=>b.onclick=()=>openRequestEmail(items[b.dataset.openEmail].id,b));
     content(pane).querySelectorAll('[data-withdraw]').forEach(button => {
       button.onclick = async () => {
@@ -896,6 +904,7 @@
       $('hr-staff-archive-month').onchange = () => showArchive(false);
     }
   }
+  if(location.hash==='#staff-requests' && document.getElementById('hr-requests')){let attempts=0;const jump=setInterval(()=>{if(++attempts>120){clearInterval(jump);return;}if(!context()?.token)return;clearInterval(jump);window.GoyaAttendance.nav(null,'hr-requests');openRequests(true);},1000);}
   window.GoyaHR = {profilePhoto,uploadDocument:body=>documentRequest(context()?.token,body),openRequestEmail,documentEditor,openRecords,openRequests,openStaffTab,resetStaff,openEmailSettings,openRejoin:rejoinEditor};
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded',init,{once:true});
   else init();
