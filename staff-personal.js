@@ -37,8 +37,8 @@
  function init(){if(document.body.dataset.page!=='staff')return;const tools=document.querySelector('#staffApp .topbar .portal-tools')||document.querySelector('#staffApp .topbar');document.querySelector('#staffApp .topbar .portal-theme-label')?.remove();$('staffPortalAlerts')?.remove();
   const bell=document.createElement('button');bell.id='staffNotificationBell';bell.className='btn secondary staff-notification-bell';bell.type='button';bell.hidden=true;bell.setAttribute('aria-label','Notifications');bell.innerHTML='<svg viewBox="0 0 24 24" width="24" height="24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M18 8a6 6 0 0 0-12 0c0 7-3 7-3 9h18c0-2-3-2-3-9M10 21h4"/></svg><span data-count hidden></span>';bell.onclick=openInbox;tools.prepend(bell);
   const entry=document.createElement('button');entry.id='staffAppearance';entry.type='button';entry.className='staff-appearance-entry';entry.innerHTML='<span>◐ Appearance</span><small id="staffAppearanceSummary">System · GOYA Default</small>';entry.onclick=openAppearance;$('sidebar').append(entry);
-  setInterval(()=>{session();if(token&&!document.hidden)refresh().catch(()=>{});},1500);document.addEventListener('visibilitychange',()=>{if(!document.hidden)refresh(true).catch(()=>{});});session();refresh().catch(()=>{});
+  setInterval(()=>{session();if(token&&!document.hidden)refresh().catch(()=>{});},1500);document.addEventListener('visibilitychange',()=>{if(!document.hidden)refresh(true).catch(()=>{});});session();apply(settings.value);badge();refresh().catch(()=>{});
  }
  window.GoyaStaffInbox={refresh:()=>refresh(true),open:openInbox};window.GoyaStaffAppearance={open:openAppearance};
- if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',init,{once:true});else init();
+ if(document.readyState!=='complete')document.addEventListener('DOMContentLoaded',init,{once:true});else init();
 })();
