@@ -40,5 +40,17 @@ body[data-page=staff][data-staff-accent]:not([data-staff-accent=default]) #sideb
 body[data-page=staff][data-staff-text=large] :is(.content p,.content label,.nav button,.staff-appearance-entry,.staff-personal-dialog p,.staff-personal-dialog label,.staff-personal-dialog button){font-size:17px!important}
 body[data-page=staff][data-staff-text=large] .content :is(input,select,textarea,.btn){font-size:17px!important}
 @media(max-width:600px){.staff-personal-dialog{padding:16px}.staff-personal-dialog h2{font-size:21px}body[data-page=staff] .staff-notification-bell{width:44px;height:44px;min-width:44px}.staff-colour-preset{font-size:13px;padding:10px}.staff-personal-dialog .toolbar .btn{min-height:44px}.staff-inbox-tools .btn{font-size:12px;min-height:44px}.staff-inbox-meta{line-height:1.6}}
-@media(max-width:600px){body[data-page=staff] #staffApp .topbar{flex-wrap:nowrap}body[data-page=staff] #staffApp .topbar>.right{display:none}body[data-page=staff] #staffApp .topbar h2{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;flex:1}body[data-page=staff] #staffApp .topbar .portal-tools{margin-left:auto;flex-shrink:0}}
+@media(max-width:600px){body[data-page=staff] #staffApp .topbar{flex-wrap:nowrap}body[data-page=staff] #staffApp .topbar>.right{display:inline-flex;flex-shrink:0;font-size:10px;white-space:nowrap;margin-left:0}body[data-page=staff] #staffApp .topbar h2{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;flex:1}body[data-page=staff] #staffApp .topbar .portal-tools{margin-left:auto;flex-shrink:0}}
 @media print{.staff-appearance-entry,.staff-notification-bell,.staff-personal-dialog{display:none!important}}
+/* Background scenes affect the page canvas only. Existing readable cards and status colours remain intact. */
+html[data-theme=light] body[data-page=staff][data-staff-background=ocean]{--staff-scene:linear-gradient(145deg,#d9eafa 0%,#eff8fc 48%,#d9f0ed 100%)}
+html[data-theme=light] body[data-page=staff][data-staff-background=forest]{--staff-scene:linear-gradient(145deg,#dceee3 0%,#f1f7ed 48%,#d8eee9 100%)}
+html[data-theme=light] body[data-page=staff][data-staff-background=lavender]{--staff-scene:linear-gradient(145deg,#e9dff5 0%,#f6f2fc 48%,#dfe9fa 100%)}
+html[data-theme=light] body[data-page=staff][data-staff-background=sand]{--staff-scene:linear-gradient(145deg,#f2e4d4 0%,#fbf5eb 48%,#eee0d9 100%)}
+html[data-theme=dark] body[data-page=staff][data-staff-background=ocean]{--staff-scene:linear-gradient(145deg,#071320 0%,#102a40 48%,#123735 100%)}
+html[data-theme=dark] body[data-page=staff][data-staff-background=forest]{--staff-scene:linear-gradient(145deg,#091710 0%,#172e24 48%,#103331 100%)}
+html[data-theme=dark] body[data-page=staff][data-staff-background=lavender]{--staff-scene:linear-gradient(145deg,#130e22 0%,#29203f 48%,#172a43 100%)}
+html[data-theme=dark] body[data-page=staff][data-staff-background=sand]{--staff-scene:linear-gradient(145deg,#1b1411 0%,#35271e 48%,#30232b 100%)}
+html[data-theme] body[data-page=staff][data-staff-background]:not([data-staff-background=default]),
+html[data-theme] body[data-page=staff][data-staff-background]:not([data-staff-background=default])::before{background:var(--staff-scene)!important}
+@media print{html[data-theme] body[data-page=staff][data-staff-background]:not([data-staff-background=default]),html[data-theme] body[data-page=staff][data-staff-background]:not([data-staff-background=default])::before{background:#fff!important}}
