@@ -60,7 +60,7 @@
     return [...by.values()].sort((a,b)=>a.name.localeCompare(b.name));
   }
   async function downloadMonth(){
-    try{
+    try{await window.GoyaBranches?.fresh();
       const month=$('mgmtMonth').value;if(!month)return toast('Select month first.',true);
       const d=await rpc('attendance_live_public_month',{p_month:month+'-01'});state.rules=d.rules||state.rules;state.serverOffset=new Date(d.server_now).getTime()-Date.now();const data=summary(d.rows||[]);if(!data.length)return toast('No attendance for selected month.',true);if(!window.jspdf?.jsPDF)return toast('PDF library is still loading.',true);
       const {jsPDF}=window.jspdf,doc=new jsPDF({orientation:'landscape'}),total=data.reduce((a,x)=>a+x.ot,0);doc.setFontSize(19);doc.text((window.GoyaBranches?.current().name||'GOYA')+' - Management Monthly Attendance',14,17);doc.setFontSize(10);doc.text(`Period: ${month}   Staff: ${data.length}   Total OT: ${mins(total)}`,14,25);doc.autoTable({startY:31,head:[['Staff','Duty Days','Off / Leave','Working','Net','OT','Late Days','Split Shifts']],body:data.map(x=>[x.name,x.duty,x.off,mins(x.work),mins(x.net),x.ot?mins(x.ot):'0',x.late,x.split]),styles:{fontSize:9,cellPadding:2.6},headStyles:{fillColor:[39,45,48]},alternateRowStyles:{fillColor:[246,247,247]}});doc.save(window.GoyaBranches?.filename(`Goya_Live_Management_${month}.pdf`)||`Goya_Live_Management_${month}.pdf`);
