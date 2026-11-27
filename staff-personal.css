@@ -54,3 +54,14 @@ html[data-theme=dark] body[data-page=staff][data-staff-background=sand]{--staff-
 html[data-theme] body[data-page=staff][data-staff-background]:not([data-staff-background=default]),
 html[data-theme] body[data-page=staff][data-staff-background]:not([data-staff-background=default])::before{background:var(--staff-scene)!important}
 @media print{html[data-theme] body[data-page=staff][data-staff-background]:not([data-staff-background=default]),html[data-theme] body[data-page=staff][data-staff-background]:not([data-staff-background=default])::before{background:#fff!important}}
+.staff-settings-row{display:flex;align-items:center;gap:8px;margin-top:auto;padding:6px;border:1px solid var(--line);border-radius:15px;background:var(--soft);flex-shrink:0}
+body[data-page=staff] #staffSettingsRow .staff-appearance-entry{flex:1;min-width:0;width:auto;margin:0;padding:9px 10px;border:0;background:transparent;font-size:14px}
+body[data-page=staff] #staffSettingsRow .staff-quick-mode{width:42px;height:42px;min-width:42px;padding:0;display:flex;align-items:center;justify-content:center;border-radius:11px;font-size:23px;flex-shrink:0}
+.staff-settings-tabs{display:flex;gap:8px;flex-wrap:wrap}.staff-settings-tabs [aria-pressed=true]{outline:2px solid var(--staff-accent,var(--accent));outline-offset:1px}
+.staff-personal-dialog :is([data-settings-theme],[data-settings-sound]){display:grid;gap:16px;min-width:0}
+.staff-personal-dialog [hidden]{display:none!important}
+.staff-personal-dialog .staff-sound-switch{display:flex;align-items:center;gap:12px;padding:12px;border:1px solid var(--line);border-radius:12px;background:var(--card)}
+.staff-sound-switch input{width:22px;height:22px;min-height:22px;margin:0;accent-color:var(--staff-accent,var(--accent));flex-shrink:0}
+.staff-personal-dialog input[type=range]{width:100%;accent-color:var(--staff-accent,var(--accent))}
+.staff-settings-row small{overflow-wrap:anywhere}
+@media print{.staff-settings-row{display:none!important}}
