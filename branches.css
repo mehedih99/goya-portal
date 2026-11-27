@@ -1,1 +1,30 @@
 .operation-branch{display:flex;align-items:flex-end;gap:8px;max-width:100%;margin-left:auto}.operation-branch label{display:flex;flex-direction:column;gap:3px;font-size:11px;letter-spacing:.02em}.operation-branch select{max-width:240px;min-height:38px;padding:6px 28px 6px 10px;font-size:14px}.operation-branch [hidden]{display:none!important}.branch-manager{width:min(760px,calc(100vw - 28px));max-height:88svh;overflow:auto;box-sizing:border-box;color:var(--ink,#203651);background:var(--card,#f9fbfd);border:1px solid var(--line,#cad7e6);border-radius:20px;padding:22px}.branch-manager::backdrop{background:#101b2d99}.branch-list-row{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:12px 0;border-bottom:1px solid var(--line,#cad7e6)}.branch-list-row small{display:block;opacity:.75;margin-top:4px}.branch-manager [data-new]{margin:16px 0}.branch-manager label{display:flex;flex-direction:column;gap:6px}.branch-manager input,.branch-manager select,.branch-manager textarea{box-sizing:border-box;max-width:100%;width:100%}.branch-wide{grid-column:1/-1}.branch-members{display:grid;grid-template-columns:1fr 1fr;gap:10px;max-height:220px;overflow:auto;margin-top:12px}.branch-manager .branch-members label,.branch-manager .branch-archive{display:flex;flex-direction:row;align-items:center}.branch-manager input[type=checkbox]{width:18px;height:18px;flex-shrink:0}.branch-archive{margin:16px 0}.branch-manager [role=status]{color:#b34d3e;white-space:pre-wrap}#branchOrderContext{margin-bottom:14px}@media(max-width:600px){.operation-branch{width:100%;margin-left:0}.operation-branch label{flex:1;min-width:0}.operation-branch select{width:100%;max-width:100%}.mgmt-head{flex-wrap:wrap}.branch-members{grid-template-columns:1fr}.branch-manager{padding:16px}.branch-manager .form-grid{grid-template-columns:1fr}}@media print{.operation-branch{display:none!important}}
+/* Compact workspace control: the same visual treatment in all five portals. */
+#operationBranch{--operation-ink:var(--ink,#263d50);--operation-muted:var(--muted,#647b8d);--operation-fill:var(--soft,#edf3fa);--operation-line:var(--line,#d6e1ee);display:flex;align-items:flex-end;gap:8px;flex:0 1 290px;min-width:180px;max-width:330px;margin-left:auto}
+#operationBranch>label{display:flex;flex-direction:column;gap:5px;min-width:0;flex:1}
+#operationBranch .operation-caption{color:var(--operation-muted);font-size:9px;font-weight:750;letter-spacing:.13em;text-transform:uppercase;line-height:1;padding-left:3px}
+#operationBranch .operation-control{position:relative;display:flex;align-items:center;height:44px;min-width:0;border:1px solid var(--operation-line);border-radius:14px;background:var(--operation-fill);box-shadow:0 3px 10px #20395806;transition:border-color .18s,box-shadow .18s}
+#operationBranch .operation-control:focus-within{border-color:var(--accent,#3572ad);box-shadow:0 0 0 3px #6e9bcd24}
+#operationBranch .operation-icon{display:grid;place-items:center;position:absolute;left:10px;width:28px;height:28px;border-radius:9px;background:var(--card,#fff);color:var(--operation-ink);pointer-events:none}
+#operationBranch svg{width:18px;height:18px;flex-shrink:0}
+#operationBranch select{appearance:none;-webkit-appearance:none;box-sizing:border-box;width:100%;max-width:none;min-width:0;height:42px;min-height:42px;border:0!important;border-radius:13px!important;outline-offset:3px;background:transparent!important;box-shadow:none!important;padding:0 32px 0 48px!important;margin:0;color:var(--operation-ink)!important;font-family:inherit;font-size:14px!important;font-weight:650;line-height:normal;cursor:pointer;text-overflow:ellipsis}
+#operationBranch select option{background:var(--card,#fff);color:var(--operation-ink)}
+#operationBranch .operation-chevron{position:absolute;right:11px;width:17px;height:17px;color:var(--operation-muted);pointer-events:none}
+#operationBranch [data-branch-manage]{display:flex;align-items:center;justify-content:center;gap:6px;height:44px;min-height:44px;padding:0 10px;border:1px solid var(--operation-line);border-radius:13px;background:var(--operation-fill);color:var(--operation-ink);font-size:12px}
+#operationBranch [data-branch-manage][hidden]{display:none!important}
+.mgmt-head #operationBranch{--operation-ink:#263d38;--operation-muted:#64756e;--operation-fill:#f1f5f0;--operation-line:#dce5db}
+@media(max-width:700px){
+ .topbar #operationBranch,.mgmt-head #operationBranch{flex-basis:100%;width:100%;max-width:none;margin:3px 0 0;grid-column:1/-1;order:10}
+ #operationBranch select{font-size:16px!important}
+ #operationBranch [data-branch-manage]{width:44px;padding:0;flex-shrink:0}
+ #operationBranch [data-branch-manage]>span{display:none}
+ body[data-page=staff] #staffApp .topbar{display:grid!important;grid-template-columns:40px minmax(0,1fr) auto auto;gap:8px 9px;align-items:center;padding:12px 16px!important;box-sizing:border-box}
+ body[data-page=staff] #staffApp .topbar .mobile-menu{grid-column:1;width:40px;min-width:40px;min-height:40px;margin:0;padding:0}
+ body[data-page=staff] #staffApp .topbar h2{grid-column:2;min-width:0;max-width:100%;margin:0;font-size:14px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+ body[data-page=staff] #staffApp .topbar>.right{grid-column:3;margin:0!important;font-size:10px;white-space:nowrap}
+ body[data-page=staff] #staffApp .topbar .portal-tools{grid-column:4;margin:0!important}
+ body[data-page=staff] #staffApp .topbar #staffNotificationBell{width:40px;min-width:40px;min-height:40px;height:40px;border-radius:12px}
+}
+@media(prefers-reduced-motion:reduce){#operationBranch .operation-control{transition:none}}
+
+@media print{#operationBranch{display:none!important}}
