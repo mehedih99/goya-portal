@@ -163,7 +163,7 @@
       const logo=window.GoyaRosterPdfLogo;
       if(!logo)throw Error('The roster logo is still loading. Please refresh and try again.');
       const doc=build(data,logo);
-      doc.save('GOYA-Weekly-Roster-'+week+'-to-'+add(week,6)+'.pdf');
+      window.GoyaBranches.savePdf(doc,'GOYA-Weekly-Roster-'+week+'-to-'+add(week,6)+'.pdf');
       status.textContent='Published roster PDF downloaded.';
     }catch(error){status.textContent=error.message||'Unable to download the roster PDF.';}
     finally{working=false;button.disabled=$('roster-download').disabled;}

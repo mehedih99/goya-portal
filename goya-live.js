@@ -48,7 +48,7 @@
 
   async function load(){
     try{
-      const date=$('mgmtDate').value||null;
+      await window.GoyaBranches?.ready();const date=$('mgmtDate').value||null;
       const d=await rpc('attendance_live_public_dashboard',{p_date:date});
       state.data=d; if(!$('mgmtDate').value)$('mgmtDate').value=d.operational_date; state.rules=d.rules||{}; state.serverOffset=new Date(d.server_now).getTime()-Date.now(); state.rows=group(d); render(); clearInterval(state.timer); state.timer=setInterval(render,1000);
     }catch(e){ $('mgmtList').innerHTML=`<div class="empty-state error">${escapeHtml(e.message)}</div>`; toast(e.message,true); }
@@ -63,7 +63,7 @@
     try{
       const month=$('mgmtMonth').value;if(!month)return toast('Select month first.',true);
       const d=await rpc('attendance_live_public_month',{p_month:month+'-01'});state.rules=d.rules||state.rules;state.serverOffset=new Date(d.server_now).getTime()-Date.now();const data=summary(d.rows||[]);if(!data.length)return toast('No attendance for selected month.',true);if(!window.jspdf?.jsPDF)return toast('PDF library is still loading.',true);
-      const {jsPDF}=window.jspdf,doc=new jsPDF({orientation:'landscape'}),total=data.reduce((a,x)=>a+x.ot,0);doc.setFontSize(19);doc.text('GOYA LIVE - Management Monthly Attendance',14,17);doc.setFontSize(10);doc.text(`Period: ${month}   Staff: ${data.length}   Total OT: ${mins(total)}`,14,25);doc.autoTable({startY:31,head:[['Staff','Duty Days','Off / Leave','Working','Net','OT','Late Days','Split Shifts']],body:data.map(x=>[x.name,x.duty,x.off,mins(x.work),mins(x.net),x.ot?mins(x.ot):'0',x.late,x.split]),styles:{fontSize:9,cellPadding:2.6},headStyles:{fillColor:[39,45,48]},alternateRowStyles:{fillColor:[246,247,247]}});doc.save(`Goya_Live_Management_${month}.pdf`);
+      const {jsPDF}=window.jspdf,doc=new jsPDF({orientation:'landscape'}),total=data.reduce((a,x)=>a+x.ot,0);doc.setFontSize(19);doc.text((window.GoyaBranches?.current().name||'GOYA')+' - Management Monthly Attendance',14,17);doc.setFontSize(10);doc.text(`Period: ${month}   Staff: ${data.length}   Total OT: ${mins(total)}`,14,25);doc.autoTable({startY:31,head:[['Staff','Duty Days','Off / Leave','Working','Net','OT','Late Days','Split Shifts']],body:data.map(x=>[x.name,x.duty,x.off,mins(x.work),mins(x.net),x.ot?mins(x.ot):'0',x.late,x.split]),styles:{fontSize:9,cellPadding:2.6},headStyles:{fillColor:[39,45,48]},alternateRowStyles:{fillColor:[246,247,247]}});doc.save(window.GoyaBranches?.filename(`Goya_Live_Management_${month}.pdf`)||`Goya_Live_Management_${month}.pdf`);
     }catch(e){toast(e.message,true)}
   }
   async function init(){
@@ -74,3 +74,4 @@
   }
   window.addEventListener('DOMContentLoaded',init);
 })();
+

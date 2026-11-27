@@ -597,6 +597,7 @@
       status('No published weeks in this month.');
     });
   }
+  window.GoyaBranches?.guard(async()=>{if(admin&&dirty){await save(false);if(dirty)throw Error('Save the roster draft before switching branches.');}});
   window.GoyaRoster={openWeek:async week=>{if(admin||!/^\d{4}-\d{2}-\d{2}$/.test(week||''))return;await window.GoyaHR?.openStaffTab('schedule');if($('roster-filter-month'))$('roster-filter-month').value='';return loadStaff(monday(week));},
     open:()=>{
       if(admin) return loadAdmin($('roster-week').value || monday(dubaiDate()));
