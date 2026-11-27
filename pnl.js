@@ -25,7 +25,8 @@
   sessionStorage.removeItem('goya-pnl-handoff');
   let db;
   const settings=$('report-settings');
-  const settingsKey='goya-pnl-settings-v1';
+  const operationId=new URLSearchParams(location.search).get('branch')||'00000000-0000-0000-0000-000000000001';
+  const settingsKey='goya-pnl-settings-v1'+(operationId==='00000000-0000-0000-0000-000000000001'?'':':'+operationId);
   const clean=v=>({branch:String(v?.branch||'GOYA').trim().slice(0,60)||'GOYA',
     location:String(v?.location||'Jarir Bookstore').trim().slice(0,60)||'Jarir Bookstore',
     manager:String(v?.manager??'Md mehedi hasan, Cafe Manager').trim().slice(0,100)||'Md mehedi hasan, Cafe Manager',
@@ -577,7 +578,7 @@
     db ||= window.supabase.createClient(GOYA_CONFIG.SUPABASE_URL,GOYA_CONFIG.SUPABASE_ANON_KEY,{auth:{persistSession:false,autoRefreshToken:false}});
     return db;
   }
-  async function unlock(){
+  async function unlock(){await window.GoyaBranches?.ready(token);defaults={...defaults,branch:GoyaBranches.current().name,location:GoyaBranches.current().address||(GoyaBranches.current().id==='00000000-0000-0000-0000-000000000001'?defaults.location:'Location shared separately')};
     await refresh();
     $('pnl-login').hidden=true;
     $('workspace').hidden=false;
@@ -601,3 +602,4 @@
     await unlock();
   });
 })();
+
