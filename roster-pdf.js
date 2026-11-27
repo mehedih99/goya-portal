@@ -90,7 +90,7 @@
     // Keep all staff and notes on one page, extending the sheet only for unusually large teams/notes.
     const height=Math.max(210,Math.ceil(total));
     if(height>210)doc=new PDF({orientation:width>height?'landscape':'portrait',unit:'mm',format:[width,height],compress:true});
-    doc.setProperties({title:'GOYA Weekly Duty Roster - '+data.week,subject:'Published roster revision '+data.revision,creator:'GOYA'});
+    doc.setProperties({title:(window.GoyaBranches?.current().name||'GOYA')+' Weekly Duty Roster - '+data.week,subject:'Published roster revision '+data.revision,creator:'GOYA'});
     doc.setLineWidth(.18);doc.setDrawColor(...colors.line);
     const logoInfo=doc.getImageProperties(logo),logoHeight=33*logoInfo.height/logoInfo.width;
     doc.addImage(logo,'PNG',margin,8+(12-logoHeight)/2,33,logoHeight);
@@ -150,7 +150,7 @@
     try{
       const value=$('roster-week').value;
       if(!/^\d{4}-\d{2}-\d{2}$/.test(value))throw Error('Select a roster week first.');
-      const week=monday(value),cfg=window.GOYA_CONFIG;
+      await window.GoyaBranches?.fresh(ctx.token);const week=monday(value),cfg=window.GOYA_CONFIG;
       const client=window.supabase.createClient(cfg.SUPABASE_URL,cfg.SUPABASE_ANON_KEY,{auth:{persistSession:false,autoRefreshToken:false}});
       const [published,balances]=await Promise.all([
         client.rpc('goya_roster_published_export',{p_token:ctx.token,p_week:week}),
