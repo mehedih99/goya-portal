@@ -15,14 +15,15 @@
   }
   const shortDate = date => new Date(date+'T00:00:00Z').toLocaleDateString('en-GB',{day:'numeric',month:'short',timeZone:'UTC'});
   const time12=value=>{const [h,m]=value.split(':').map(Number);return (h%12||12)+':'+String(m).padStart(2,'0')+' '+(h<12?'AM':'PM');};
-  const workingType = kind => ['Shift','EVENT','Custom'].includes(kind);
-  const editorKind = day => day?.off_source==='balance'?'Paid Off':day?.off_source==='advance'?'Advance Off': day?.kind==='Shift'&&day.label?(day.label==='EVENT'?'EVENT':'Custom'):day?.kind||'';
+  const workingType = kind => ['Shift','Custom'].includes(kind);
+  const eventDay = day => day?.kind==='Event'||day?.kind==='Shift'&&day.label==='EVENT';
+  const editorKind = day => day?.kind==='Event'?'EVENT':day?.off_source==='balance'?'Paid Off':day?.off_source==='advance'?'Advance Off': day?.kind==='Shift'&&day.label?(day.label==='EVENT'?'EVENT':'Custom'):day?.kind||'';
   const shiftLabel = form => {const k=form.elements.kind.value,label=k==='EVENT'?'EVENT':k==='Custom'?form.elements.customLabel.value.trim():'';if(k==='Custom'&&(!label||label.length>60||/[\x00-\x1f\x7f]/.test(label)))throw Error('Enter a custom name (1–60 characters).');return label;};
-  const describe = day => !day ? 'Not scheduled' : day.off_source ? (day.off_source==='advance'?'Advance Off · 1 day':'Paid Off · 1 day') : day.kind!=='Shift' ? day.kind :
+  const describe = day => !day ? 'Not scheduled' : eventDay(day)?'EVENT':day.off_source ? (day.off_source==='advance'?'Advance Off · 1 day':'Paid Off · 1 day') : day.kind!=='Shift' ? day.kind :
     (day.label?day.label+' | ':'')+day.segments.map(s=>time12(s.start)+'–'+time12(s.end)+(s.end<s.start?' (+1 day)':'')+(s.break?' · '+s.break+'m break':'')).join(' / ');
   const context = () => $('roster-admin') ? window.GoyaAttendance?._liveContext() : window.GoyaStaff?._liveContext();
   let client, revision=0, staff=[], schedule, activeWeek, request=0, busy=false;
-  let offBalances={},groupFilter='';
+  let offBalances={},eventTargets={},groupFilter='';
   const within=(member,i)=>{const d=add(activeWeek,i);return member.eligible_days?.[i]!==false&&(!member.joining_date||d>=member.joining_date)&&(!member.last_day||d<=member.last_day);};
   let publishActor='';
   let dirty=false, publishedStaff=null, approvedLeave=[], staffWeeks=[], reminderRequest=0;
@@ -71,7 +72,7 @@
       revision=data.draft?.revision || 0;
       schedule=data.draft?.draft || {staff:{},notes:''};
       staff=data.staff;
-      offBalances=data.off_balances || {};
+      offBalances=data.off_balances || {};eventTargets=data.event_targets||{};
       approvedLeave=data.approved_leave || [];
       publishedStaff=data.draft?.published_staff || null;
       $('roster-download').disabled=!publishedStaff;
@@ -96,14 +97,14 @@
     return leave ? {kind:leave.kind,segments:[],note:'',...(leave.paid_request?{off_source:'request'}:{})} : day;
   }
   function rosterColor(day) {
-    return !day?'':day.kind==='Weekly Off'?'roster-shift-off':day.kind==='Annual Leave'?'roster-shift-annual':day.kind!=='Shift'?'roster-shift-leave':day.segments?.[0]?.start<'12:00'?'roster-shift-morning':'roster-shift-closing';
+    return !day?'':eventDay(day)?'roster-shift-event':day.kind==='Weekly Off'?'roster-shift-off':day.kind==='Annual Leave'?'roster-shift-annual':day.kind!=='Shift'?'roster-shift-leave':day.segments?.[0]?.start<'12:00'?'roster-shift-morning':'roster-shift-closing';
   }
   async function publishPreview() {
-    const warnings=[],counts={shifts:0,off:0,leave:0,blank:0};
+    const warnings=[],counts={shifts:0,event:0,off:0,leave:0,blank:0};
     for(const member of staff)for(let i=0;i<7;i++) {
       if(!within(member,i))continue;
       const raw=schedule.staff[member.id]?.[i],day=effectiveDay(member.id,i,raw);
-      counts[!day?'blank':day.kind==='Shift'?'shifts':day.kind==='Weekly Off'?'off':'leave']++;
+      counts[!day?'blank':eventDay(day)?'event':day.kind==='Shift'?'shifts':day.kind==='Weekly Off'?'off':'leave']++;
       if(!day)warnings.push(member.name+' · '+add(activeWeek,i)+' · Not scheduled');
       if(approvedDay(member.id,i)&&raw?.kind==='Shift')warnings.push(member.name+' · '+add(activeWeek,i)+' · Approved leave replaces draft duty');
     }
@@ -112,7 +113,7 @@
     const balanceRows=money.filter(r=>r.debit||r.refund),hasChanges=balanceRows.length>0;
     return new Promise(resolve=>{
       const node=document.createElement('dialog');node.className='card management-dialog';
-      node.innerHTML='<h2>Review before publishing</h2><p>'+esc(weekLabel(activeWeek))+'</p><p>'+staff.length+' staff · '+counts.shifts+' shifts · '+counts.off+' weekly offs · '+counts.leave+' leave days · '+counts.blank+' blank days</p><p>Publishes all staff in FOH and BOH, including unassigned staff and anyone hidden by your current filter. Approved leave is kept automatically.</p><details><summary>Warnings ('+warnings.length+')</summary><p>'+warnings.map(esc).join('<br>')+'</p></details><div class="toolbar"><button class="btn" data-confirm>Publish roster</button><button class="btn secondary" data-cancel>Back to draft</button></div>';
+      node.innerHTML='<h2>Review before publishing</h2><p>'+esc(weekLabel(activeWeek))+'</p><p>'+staff.length+' staff · '+counts.shifts+' shifts · '+counts.event+' Event assignments · '+counts.off+' weekly offs · '+counts.leave+' leave days · '+counts.blank+' blank days</p><p>Publishes all staff in FOH and BOH, including unassigned staff and anyone hidden by your current filter. Approved leave is kept automatically.</p><details><summary>Warnings ('+warnings.length+')</summary><p>'+warnings.map(esc).join('<br>')+'</p></details><div class="toolbar"><button class="btn" data-confirm>Publish roster</button><button class="btn secondary" data-cancel>Back to draft</button></div>';
       if(hasChanges){const box=document.createElement('div');box.innerHTML='<h3>Paid Off balance changes</h3><table><thead><tr><th>Staff</th><th>Current</th><th>Use</th><th>Return</th><th>After publish</th></tr></thead><tbody>'+balanceRows.map(r=>'<tr><td>'+esc(r.name)+'</td><td>'+r.balance+'</td><td>'+r.debit+'</td><td>'+r.refund+'</td><td>'+r.projected+'</td></tr>').join('')+'</tbody></table><p>Weekly Off does not use balance. Advance Off may make a balance negative.</p><label>Management name (private)<input data-paid-actor maxlength="100" required></label><p role="status"></p>';node.querySelector('.toolbar').before(box);}
       if(balanceRows.some(r=>r.insufficient)){node.querySelector('[data-confirm]').disabled=true;node.querySelector('[role=status]').textContent='Insufficient Paid Off balance. Return to the draft and choose Advance Off explicitly, or correct the balance.';}
       let confirmed=false;node.querySelector('[data-confirm]').onclick=()=>{const actor=node.querySelector('[data-paid-actor]');if(actor&&!actor.value.trim()){actor.reportValidity();return;}publishActor=actor?.value.trim()||'';confirmed=true;node.close();};node.querySelector('[data-cancel]').onclick=()=>node.close();
@@ -175,7 +176,7 @@
       const previousStaff=previous.draft?.published_staff;
       if(!previousStaff) throw Error('No published roster was found for last week.');
       for(const member of staff) schedule.staff[member.id]=(previousStaff[member.id] || Array(7).fill(null)).map(day=>
-        day && !day.off_source && ['Shift','Weekly Off'].includes(day.kind)?{...day,note:''}:null);
+        day && !day.off_source && ['Shift','Event','Weekly Off'].includes(day.kind)?{...day,note:''}:null);
       dirty=true;
       renderAdmin();
       status('Last week’s shifts and weekly offs copied. Paid Off entries were not copied. Review before publishing.');
@@ -222,6 +223,7 @@
   }
   function importedDay(value) {
     let text = String(value ?? '').trim().replace(/[–—]/g,'-').replace(/\u00a0/g,' ');let label='';const tagged=text.match(/^(.{1,60}?)\s+\|\s+(.+)$/);if(tagged){label=tagged[1].trim();text=tagged[2];if(/[\x00-\x1f\x7f]/.test(label))throw Error('Invalid custom name.');}
+    if(/^event$/i.test(text)&&!label)return {kind:'Event',segments:[],note:''};
     if(/^paid off$/i.test(text))return {kind:'Weekly Off',off_source:'balance',segments:[],note:''};
     if(/^advance off$/i.test(text))return {kind:'Weekly Off',off_source:'advance',segments:[],note:''};
     if (!text || /^[-\s]+$/.test(text) || /^not scheduled$/i.test(text)) return null;
@@ -276,7 +278,7 @@
       for(const [column,day] of cells){
         if(approvedDay(member.id,day)){issue(index,column,member.name+' · Approved leave kept.',false);continue;}
         if(member.eligible_days?.[day]===false||(member.joining_date&&dates[day]<member.joining_date)||(member.last_day&&dates[day]>member.last_day)){issue(index,column,member.name+' · Date is outside employment dates.');continue;}
-        try{const value=String(row[column]).trim();if(/^[-\s]+$/.test(value))continue;const shift=importedDay(value);if(!shift&&!/^not scheduled$/i.test(value))continue;changes.set(member.id+':'+day,{member,day,shift});}
+        try{const value=String(row[column]).trim();if(/^[-\s]+$/.test(value))continue;const shift=importedDay(value);if(shift?.kind==='Event'){const targets=eventTargets[member.id]||[];if(targets.length!==1)throw Error('Select the Event branch in the day editor; exactly one eligible Event is required for Excel EVENT.');shift.event_branch=targets[0].id;}if(!shift&&!/^not scheduled$/i.test(value))continue;changes.set(member.id+':'+day,{member,day,shift});}
         catch(e){issue(index,column,member.name+' · '+dates[day]+' · '+e.message);}
       }
     });
@@ -370,6 +372,7 @@
     const picker=$('roster-week'), dialog=$('roster-edit'), form=$('roster-day-form');
     for(const [value,label] of [['Paid Off','Paid Off — Use Balance'],['Advance Off','Advance Off — Use in Advance']])form.elements.kind.add(new Option(label,value));
     const balanceHint=document.createElement('p');balanceHint.className='small';balanceHint.id='roster-paid-hint';form.elements.kind.parentElement.after(balanceHint);
+    const targetLabel=document.createElement('label');targetLabel.hidden=true;targetLabel.innerHTML='Event branch<select name=eventBranch></select><small>Assignment only. Working hours are planned in the selected Event’s roster. No off balance is used.</small>';form.elements.kind.parentElement.after(targetLabel);
     const preset = form.elements.preset;
     let presets = [];
     const deletePreset = document.createElement('button');
@@ -442,7 +445,7 @@
         ['Clear one day','Type Not scheduled to explicitly clear a draft shift. Approved leave stays protected.'],
         ['Shift','09:00-18:00'],['Closing shift — next day','16:00-01:00'],['Break','09:00-18:00 · 60m break'],
         ['Split shift','08:00-12:00 / 16:00-20:00'],['Weekly off','Weekly Off'],['Annual leave','Annual Leave'],['Sick leave','Sick Leave'],['Other leave','Other Leave'],
-        ['Custom shift','Training | 09:00-18:00'],['Import','Choose the same week, Import Excel, Preview, correct all errors, then Apply to draft.'],
+        ['Event assignment','EVENT — no hours; requires exactly one eligible Event. Use the portal editor if there are several.'],['Custom shift','Training | 09:00-18:00'],['Import','Choose the same week, Import Excel, Preview, correct all errors, then Apply to draft.'],
         ['Publish','Applying does not publish or save. Review the draft, Save Draft or Publish separately.'],
         ['Approved leave','Approved dates take priority and cannot be overwritten by Excel.'],['Notes and balances','Existing shift notes, weekly notes and off balances are preserved. Edit these in the portal.']];
       const help=XLSX.utils.aoa_to_sheet(instructions);help['!cols']=[{wch:28},{wch:110}];XLSX.utils.book_append_sheet(book,help,'Instructions');
@@ -470,7 +473,7 @@
       refreshPresets();
       $('roster-edit-status').textContent='';
       form.dataset.staff=id;
-      form.dataset.day=index;
+      form.dataset.day=index;const targets=eventTargets[id]||[];form.elements.eventBranch.replaceChildren(new Option('Select Event',''),...targets.map(t=>new Option(t.name,t.id)));form.elements.eventBranch.value=day?.event_branch||(targets.length===1?targets[0].id:'');
       $('roster-edit-title').textContent=staff.find(m=>m.id===id).name+' · '+names[index];
       form.elements.kind.value=editorKind(day);form.elements.customLabel.value=day?.label||'';
       form.elements.note.value=day?.note || '';
@@ -486,6 +489,7 @@
       const isShift=workingType(form.elements.kind.value);const custom=form.elements.kind.value==='Custom';$('roster-custom-label').hidden=!custom;form.elements.customLabel.disabled=!custom;form.elements.customLabel.required=custom;
       const kind=form.elements.kind.value,paid=kind==='Paid Off'||kind==='Advance Off',available=Number(offBalances[form.dataset.staff]?.balance??0);
       balanceHint.hidden=!paid;balanceHint.textContent=paid?'Available balance: '+available+' days · Uses 1 day on publish · '+(kind==='Advance Off'?'Advance balance allowed.':'Insufficient balance will block publishing.') : '';
+      const isEvent=kind==='EVENT';targetLabel.hidden=!isEvent;form.elements.eventBranch.disabled=!isEvent;form.elements.eventBranch.required=isEvent;$('roster-save-preset').disabled=!isShift;
       $('roster-times').hidden=!isShift;
       $('roster-times').disabled=!isShift;
     }
@@ -499,7 +503,7 @@
       let segments,label;
       try { segments = daySegments(form);label=shiftLabel(form); }
       catch (error) { $('roster-edit-status').textContent=error.message; return; }
-      schedule.staff[id][index]=kind.value?{kind:workingType(kind.value)?'Shift':['Paid Off','Advance Off'].includes(kind.value)?'Weekly Off':kind.value,...(kind.value==='Paid Off'?{off_source:'balance'}:kind.value==='Advance Off'?{off_source:'advance'}:{}),segments,note:note.value.trim(),...(label?{label}:{})}:null;
+      schedule.staff[id][index]=kind.value?{kind:kind.value==='EVENT'?'Event':workingType(kind.value)?'Shift':['Paid Off','Advance Off'].includes(kind.value)?'Weekly Off':kind.value,...(kind.value==='Paid Off'?{off_source:'balance'}:kind.value==='Advance Off'?{off_source:'advance'}:{}),segments,note:note.value.trim(),...(kind.value==='EVENT'?{event_branch:form.elements.eventBranch.value}:label?{label}:{})}:null;
       dirty=true;
       renderAdmin();
       dialog.close();
@@ -537,7 +541,7 @@
       showStaffWeeks(week);
       const roster=result.week;
       if(!roster) {status('No published schedule for this week.');return;}
-      const index=roster.days.findIndex((day,i)=>day?.kind==='Shift'&&add(week,i)>=dubaiDate());
+      const index=roster.days.findIndex((day,i)=>day?.kind==='Shift'&&!eventDay(day)&&add(week,i)>=dubaiDate());
       $('roster-next').textContent=index<0?'':'Next scheduled shift in this week: '+names[index]+' · '+describe(roster.days[index]);
       $('roster-days').innerHTML=names.map((name,i)=>{
         const date=add(week,i), day=roster.days[i];
@@ -562,7 +566,7 @@
       if((window.GoyaDashboard?.scheduleDate?.()||dubaiDate())!==date)return loadDutyWindow();
       const dayFor=day=>{
         const result=results[weeks.indexOf(monday(day))];
-        return result.week?.days?.[(new Date(day+'T00:00:00Z').getUTCDay()+6)%7]||null;
+        const entry=result.week?.days?.[(new Date(day+'T00:00:00Z').getUTCDay()+6)%7]||null;return eventDay(entry)?{...entry,kind:'Event',segments:[]}:entry;
       };
       const latest=results.map(result=>result.latest_publication).filter(Boolean)
         .sort((a,b)=>Date.parse(b.published_at)-Date.parse(a.published_at))[0];
@@ -601,6 +605,7 @@
   window.GoyaRoster={openWeek:async week=>{if(admin||!/^\d{4}-\d{2}-\d{2}$/.test(week||''))return;await window.GoyaHR?.openStaffTab('schedule');if($('roster-filter-month'))$('roster-filter-month').value='';return loadStaff(monday(week));},
     open:()=>{
       if(admin) return loadAdmin($('roster-week').value || monday(dubaiDate()));
+      if(context()?.user?.access?.schedule===false)return window.GoyaHR?.openStaffTab('journey');
       window.GoyaHR?.openStaffTab('schedule');
       if($('roster-filter-month')) $('roster-filter-month').value='';
       $('roster-next').textContent='';
@@ -615,7 +620,7 @@
       }
     },
     reminder:()=>{
-      if(admin) return;
+      if(admin||context()?.user?.access?.schedule===false) return;
       return loadDutyWindow();
     }
   };

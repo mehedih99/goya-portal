@@ -32,7 +32,7 @@
   for(const r of rows){const ss=r.sessions||[],c=totals(r,data.today.rules,false);if(ss.length){summary.duty++;summary.net+=c.net;summary.ot+=c.ot;}else if(['Weekly Off','Day Off','Public Holiday'].includes(r.classification))summary.off++;else if(/Leave/.test(r.classification||''))summary.leave++;if(Number(r.late_minutes)>0)summary.late++;if(needsReview(r,today))summary.review++;}
   $('dashMonthly').innerHTML=[['Duty Days',summary.duty],['Off / Holiday',summary.off],['Leave',summary.leave],['Net Hours',mins(summary.net)],['Overtime',mins(summary.ot)],['Late Days',summary.late]].map(([k,v])=>`<div><span>${k}</span><strong>${v}</strong></div>`).join('');
   $('dashAttention').textContent=summary.review?`${summary.review} attendance record${summary.review===1?'':'s'} need review. Open My Attendance for details.`:'No outstanding attendance issues.';
-  const a=ctx().user?.access||{};$('dashQuick').innerHTML=[['Order History','staffHistory',true],['Production','staffProduction',a.production],['Wastage','staffWastage',a.wastage],['Inventory','staffInventory',a.inventory||(ctx().data?.inventory_sessions||[]).length],['Additional Info','staffInfo',(ctx().data?.info_pages||[]).length],['Feedback','staffComplaint',true]].filter(x=>x[2]).map(([label,id])=>`<button class="btn secondary" onclick="GoyaDashboard.go('${id}')">${label} →</button>`).join('');
+  const a=ctx().user?.access||{};$('dashQuick').innerHTML=[['History','staffHistory',['order','production','wastage','inventory'].some(k=>a[k])],['Production','staffProduction',a.production],['Wastage','staffWastage',a.wastage],['Inventory','staffInventory',a.inventory],['Additional Info','staffInfo',(ctx().data?.info_pages||[]).length],['Feedback','staffComplaint',true]].filter(x=>x[2]).map(([label,id])=>`<button class="btn secondary" onclick="GoyaDashboard.go('${id}')">${label} →</button>`).join('');
   $('dashOperations').textContent=`Team activity this month: ${Number(data.operations?.production)||0} production entries · ${Number(data.operations?.wastage)||0} wastage entries`;
   renderNotice();renderClock();
  }
@@ -109,9 +109,10 @@
   const segments=day?.kind==='Shift'?day.segments||[]:[];
   const shift=segments.length>0,off=day?.kind==='Weekly Off';
   const unavailable=dutyWindow?.unavailable||!!dutyWindow&&dutyWindow.date!==now.date;
-  const heading=off?period+'’s Day Off':day&&!shift?period+'’s Leave':period+'’s Duty';
+  const event=day?.kind==='Event';
+  const heading=event?period+'’s Event Assignment':off?period+'’s Day Off':day&&!shift?period+'’s Leave':period+'’s Duty';
   const hint=!dutyWindow?'Loading schedule…':unavailable?'Schedule unavailable. Open My Schedule to retry.':
-   shift?'Be on time':off?'Enjoy your day':day?'Take care':'Schedule not published yet';
+   event?'Working hours are in the Event branch schedule.':shift?'Be on time':off?'Enjoy your day':day?'Take care':'Schedule not published yet';
   const [activity,message]=dutyActivity(now,today);
   const key=JSON.stringify([selectedDate,heading,day,hint,activity,message]);
   if(key===dutyRenderKey)return;
@@ -136,7 +137,7 @@
     time.append(line);
    }
   } else {
-   time.textContent=off?(showToday?'Today is your day off':'Tomorrow is your day off'):day?.kind||'—';
+   time.textContent=event?'EVENT':off?(showToday?'Today is your day off':'Tomorrow is your day off'):day?.kind||'—';
   }
   $('dashTomorrowHint').textContent=hint;
   node.dataset.kind=shift?'shift':off?'off':'other';
