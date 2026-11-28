@@ -70,7 +70,7 @@ begin
  return jsonb_build_object('id',employee,'profile',(select to_jsonb(p) from goya_private.staff_hr_profiles p where p.staff_id=employee));
 end $function$
 ;
-alter function goya_private.profile_save_base(p_token text, p_row jsonb, p_profile jsonb, p_expected timestamp with time zone) owner to goya_operations;revoke all on function goya_private.profile_save_base(p_token text, p_row jsonb, p_profile jsonb, p_expected timestamp with time zone) from public;grant execute on function goya_private.profile_save_base(p_token text, p_row jsonb, p_profile jsonb, p_expected timestamp with time zone) to goya_operations;
+grant create on schema goya_private to goya_operations;alter function goya_private.profile_save_base(p_token text, p_row jsonb, p_profile jsonb, p_expected timestamp with time zone) owner to goya_operations;revoke all on function goya_private.profile_save_base(p_token text, p_row jsonb, p_profile jsonb, p_expected timestamp with time zone) from public;grant execute on function goya_private.profile_save_base(p_token text, p_row jsonb, p_profile jsonb, p_expected timestamp with time zone) to goya_operations;revoke create on schema goya_private from goya_operations;
 CREATE OR REPLACE FUNCTION public.goya_people_save_staff(p_token text, p_row jsonb, p_profile jsonb, p_expected timestamp with time zone)
  RETURNS jsonb
  LANGUAGE plpgsql
